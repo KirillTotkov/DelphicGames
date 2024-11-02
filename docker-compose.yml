@@ -1,0 +1,6 @@
+﻿services:
+  delphicgames:
+    image: delphicgames
+    build:
+      context: .
+      dockerfile: DelphicGames/Dockerfile

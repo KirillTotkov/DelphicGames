@@ -1,0 +1,21 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DelphicGames", "DelphicGames\DelphicGames.csproj", "{8B71DE72-F3A2-4FD6-A51A-72D5DD18FA4C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BBA57111-CDD2-4EBA-9E1F-5DE8A94BD219}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose.yml = docker-compose.yml
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8B71DE72-F3A2-4FD6-A51A-72D5DD18FA4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B71DE72-F3A2-4FD6-A51A-72D5DD18FA4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B71DE72-F3A2-4FD6-A51A-72D5DD18FA4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B71DE72-F3A2-4FD6-A51A-72D5DD18FA4C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
