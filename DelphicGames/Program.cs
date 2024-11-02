@@ -1,4 +1,6 @@
-using Scalar.AspNetCore;
+using DelphicGames.Data;
+using DelphicGames.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,16 +9,20 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddAuthorization();
 
+builder.Services.AddDbContext<ApplicationContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+        .UseSnakeCaseNamingConvention());
+
+builder.Services.AddSingleton<StreamManager>();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger(options =>
-    {
-        options.RouteTemplate = "/openapi/{documentName}.json";
-    });
-    app.MapScalarApiReference();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
@@ -32,5 +38,14 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Остановка трансляций при завершении работы приложения
+var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+lifetime.ApplicationStopping.Register(() =>
+{
+    app.Services.GetRequiredService<StreamManager>().StopAllStreams();
+    Console.WriteLine("Application is stopping");
+});
+
 
 app.Run();
