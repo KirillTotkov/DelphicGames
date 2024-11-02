@@ -1,5 +1,6 @@
 using DelphicGames.Data;
-using DelphicGames.Services;
+using DelphicGames.Data.Models;
+using DelphicGames.Services.Streaming;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,10 +9,14 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddAuthorization();
+builder.Services.AddRazorPages();
 
 builder.Services.AddDbContext<ApplicationContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
         .UseSnakeCaseNamingConvention());
+
+builder.Services.AddDefaultIdentity<User>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddEntityFrameworkStores<ApplicationContext>();
 
 builder.Services.AddSingleton<StreamManager>();
 
@@ -38,6 +43,7 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapRazorPages();
 
 // Остановка трансляций при завершении работы приложения
 var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();

@@ -1,9 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
-using DelphicGames.Data.Models;
+﻿using DelphicGames.Data.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace DelphicGames.Data;
 
-public class ApplicationContext : DbContext
+public class ApplicationContext : IdentityDbContext<User>
 {
     public ApplicationContext(DbContextOptions<ApplicationContext> options) : base(options)
     {
@@ -18,6 +19,8 @@ public class ApplicationContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         // Связь многие ко многим между камерами и платформами
         modelBuilder.Entity<CameraPlatforms>()
             .HasKey(cp => new { cp.CameraId, cp.PlatformId }); // Составной ключ
