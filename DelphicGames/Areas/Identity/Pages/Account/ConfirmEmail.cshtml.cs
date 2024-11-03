@@ -21,10 +21,7 @@ namespace DelphicGames.Areas.Identity.Pages.Account
             _userManager = userManager;
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
+
         [TempData]
         public string StatusMessage { get; set; }
 
@@ -43,7 +40,7 @@ namespace DelphicGames.Areas.Identity.Pages.Account
 
             code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
             var result = await _userManager.ConfirmEmailAsync(user, code);
-            StatusMessage = result.Succeeded ? "Thank you for confirming your email." : "Error confirming your email.";
+            StatusMessage = result.Succeeded ? "Спасибо за подтверждение вашего email." : "Ошибка подтверждения email.";
             return Page();
         }
     }
