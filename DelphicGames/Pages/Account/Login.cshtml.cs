@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace DelphicGames.Areas.Identity.Pages.Account;
+namespace DelphicGames.Pages.Account;
 
 public class LoginModel : PageModel
 {

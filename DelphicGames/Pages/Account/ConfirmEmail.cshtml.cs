@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 
-namespace DelphicGames.Areas.Identity.Pages.Account
+namespace DelphicGames.Pages.Account
 {
     public class ConfirmEmailModel : PageModel
     {
