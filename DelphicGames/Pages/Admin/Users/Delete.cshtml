@@ -1,0 +1,14 @@
+﻿@page
+@model DelphicGames.Pages.Admin.Users.DeleteModel
+
+@{
+    ViewData["Title"] = "Удалить пользователя";
+}
+
+<h1>Удалить пользователя</h1>
+
+<form method="post">
+    <p>Вы уверены, что хотите удалить пользователя @Model.User.UserName?</p>
+    <button type="submit">Удалить</button>
+    <a asp-page="Index">Отмена</a>
+</form>
