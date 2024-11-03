@@ -6,6 +6,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Text.Encodings.Web;
+using DelphicGames.Data;
 using DelphicGames.Data.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -13,6 +14,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 
 namespace DelphicGames.Areas.Identity.Pages.Account
 {
@@ -21,58 +23,57 @@ namespace DelphicGames.Areas.Identity.Pages.Account
         private readonly IEmailSender _emailSender;
         private readonly IUserEmailStore<User> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly SignInManager<User> _signInManager;
         private readonly UserManager<User> _userManager;
         private readonly IUserStore<User> _userStore;
+        private readonly ApplicationContext _context;
 
         public RegisterModel(
             UserManager<User> userManager,
-            IUserStore<User> userStore,
             SignInManager<User> signInManager,
+            IUserStore<User> userStore,
+            IEmailSender emailSender,
             ILogger<RegisterModel> logger,
-            IEmailSender emailSender)
+            RoleManager<IdentityRole> roleManager,
+            ApplicationContext context)
         {
             _userManager = userManager;
-            _userStore = userStore;
-            _emailStore = GetEmailStore();
             _signInManager = signInManager;
-            _logger = logger;
+            _userStore = userStore;
             _emailSender = emailSender;
+            _logger = logger;
+            _roleManager = roleManager;
+            _context = context;
+            _emailStore = GetEmailStore();
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        [BindProperty]
-        public InputModel Input { get; set; }
-
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
+        [BindProperty] public InputModel Input { get; set; }
         public string ReturnUrl { get; set; }
-
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        public IList<AuthenticationScheme> ExternalLogins { get; set; }
-
+        public IList<Region> Regions { get; set; }
 
         public async Task OnGetAsync(string returnUrl = null)
         {
             ReturnUrl = returnUrl;
-            ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+            Regions = _context.Regions.AsNoTracking().ToList();
         }
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
             returnUrl ??= Url.Content("~/");
-            ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+
             if (ModelState.IsValid)
             {
                 var user = CreateUser();
+                user.Region = await _context.Regions.FindAsync(Input.RegionId);
+                user.City = await _context.Cities.FindAsync(Input.CityId);
+
+                if (!await _roleManager.RoleExistsAsync(nameof(UserRoles.Specialist)))
+                {
+                    await _roleManager.CreateAsync(new IdentityRole(nameof(UserRoles.Specialist)));
+                }
+
+                await _userManager.AddToRoleAsync(user, nameof(UserRoles.Specialist));
 
                 await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
@@ -112,8 +113,21 @@ namespace DelphicGames.Areas.Identity.Pages.Account
                 }
             }
 
-            // If we got this far, something failed, redisplay form
+            // Инициализация Regions при наличии ошибок
+            Regions = _context.Regions.AsNoTracking().ToList();
+
+            // Повторный показ формы с ошибками
             return Page();
+        }
+
+        public async Task<JsonResult> OnGetCitiesAsync(int regionId)
+        {
+            var cities = await _context.Cities
+                .Where(c => c.RegionId == regionId)
+                .Select(c => new { c.Id, c.Name })
+                .ToListAsync();
+
+            return new JsonResult(cities);
         }
 
         private User CreateUser()
@@ -140,25 +154,13 @@ namespace DelphicGames.Areas.Identity.Pages.Account
             return (IUserEmailStore<User>)_userStore;
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         public class InputModel
         {
-            /// <summary>
-            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-            ///     directly from your code. This API may change or be removed in future releases.
-            /// </summary>
             [Required]
             [EmailAddress]
             [Display(Name = "Email")]
             public string Email { get; set; }
 
-            /// <summary>
-            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-            ///     directly from your code. This API may change or be removed in future releases.
-            /// </summary>
             [Required]
             [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.",
                 MinimumLength = 6)]
@@ -166,14 +168,14 @@ namespace DelphicGames.Areas.Identity.Pages.Account
             [Display(Name = "Password")]
             public string Password { get; set; }
 
-            /// <summary>
-            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-            ///     directly from your code. This API may change or be removed in future releases.
-            /// </summary>
             [DataType(DataType.Password)]
             [Display(Name = "Confirm password")]
             [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
             public string ConfirmPassword { get; set; }
+
+            [Display(Name = "Регион")] public int RegionId { get; set; }
+
+            [Display(Name = "Город")] public int? CityId { get; set; }
         }
     }
 }

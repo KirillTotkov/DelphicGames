@@ -1,6 +1,4 @@
-﻿/* Please see documentation at https://docs.microsoft.com/aspnet/core/client-side/bundling-and-minification\
-for details on configuring this project to bundle and minify static web assets. */
-
+﻿
 a.navbar-brand {
     white-space: normal;
     text-align: center;
@@ -76,11 +74,18 @@ body {
     margin-bottom: 60px;
 }
 
-.footer {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    overflow: scroll;
-    white-space: nowrap;
-    line-height: 60px;
+
+.registration-container,
+.login-container {
+    max-width: 500px; /* Максимальная ширина формы */
+    display: flex;
+    flex-direction: column;
+    /*align-items: center;*/
+    margin: 0 auto; /* Выравниваем форму по центру */
+    margin-top: 80px; /* Отступ сверху */
+    margin-bottom: 50px;
+    padding: 20px;
+    background-color: white; /* Белый фон для формы */
+    border-radius: 8px; /* Скругленные углы */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Тень для формы */
 }

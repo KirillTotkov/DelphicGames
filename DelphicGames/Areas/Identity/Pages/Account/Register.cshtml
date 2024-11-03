@@ -4,75 +4,93 @@
     ViewData["Title"] = "Register";
 }
 
-<h1>@ViewData["Title"]</h1>
+<div class="registration-container">
+    <h1 class="text-center fs-2">Регистрация</h1>
+    <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+        <div class="form-floating mb-3">
+            <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true"
+                   placeholder="name@example.com"/>
+            <label asp-for="Input.Email">Email</label>
+            <span asp-validation-for="Input.Email" class="text-danger"></span>
+        </div>
+        <div class="form-floating mb-3">
+            <input asp-for="Input.Password" class="form-control" autocomplete="new-password" aria-required="true"
+                   placeholder="password"/>
+            <label asp-for="Input.Password">Пароль</label>
+            <span asp-validation-for="Input.Password" class="text-danger"></span>
+        </div>
+        <div class="form-floating mb-3">
+            <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password"
+                   aria-required="true" placeholder="password"/>
+            <label asp-for="Input.ConfirmPassword">Подтвердите пароль</label>
+            <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+        </div>
 
-<div class="row">
-    <div class="col-md-4">
-        <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
-            <h2>Create a new account.</h2>
-            <hr/>
-            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true"
-                       placeholder="name@example.com"/>
-                <label asp-for="Input.Email">Email</label>
-                <span asp-validation-for="Input.Email" class="text-danger"></span>
-            </div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Password" class="form-control" autocomplete="new-password" aria-required="true"
-                       placeholder="password"/>
-                <label asp-for="Input.Password">Password</label>
-                <span asp-validation-for="Input.Password" class="text-danger"></span>
-            </div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password"
-                       aria-required="true" placeholder="password"/>
-                <label asp-for="Input.ConfirmPassword">Confirm Password</label>
-                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
-            </div>
-            <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </form>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to register.</h3>
-            <hr/>
-            @{
-                if ((Model.ExternalLogins?.Count ?? 0) == 0)
+        <div class="mb-3">
+            <label asp-for="Input.RegionId" class="form-label">Регион</label>
+            <select asp-for="Input.RegionId" class="form-select" required>
+                <option value="" disabled selected>Выберите регион</option>
+                @foreach (var region in Model.Regions ?? [])
                 {
-                    <div>
-                        <p>
-                            There are no external authentication services configured. See this
-                            <a
-                                href="https://go.microsoft.com/fwlink/?LinkID=532715">
-                                article
-                                about setting up this ASP.NET application to support logging in via external services
-                            </a>.
-                        </p>
-                    </div>
+                    <option value="@region.Id">@region.Name</option>
                 }
-                else
-                {
-                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post"
-                          class="form-horizontal">
-                        <div>
-                            <p>
-                                @foreach (var provider in Model.ExternalLogins!)
-                                {
-                                    <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name"
-                                            title="Log in using your @provider.DisplayName account">
-                                        @provider.DisplayName
-                                    </button>
-                                }
-                            </p>
-                        </div>
-                    </form>
-                }
-            }
-        </section>
-    </div>
+            </select>
+            <span asp-validation-for="Input.RegionId" class="text-danger"></span>
+        </div>
+        <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="responsibilityCheckbox">
+            <label class="form-check-label" for="responsibilityCheckbox">Отвечаю за весь регион</label>
+        </div>
+
+        <div class="mb-3" id="city-container">
+            <label asp-for="Input.CityId" class="form-label">Город</label>
+            <select asp-for="Input.CityId" class="form-select" required>
+                <option value="" disabled selected>Выберите город</option>
+
+            </select>
+            <span asp-validation-for="Input.CityId" class="text-danger"></span>
+        </div>
+        <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Зарегистрироваться</button>
+
+    </form>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial"/>
+
+    <script>
+    // Скрипт для управления видимостью выпадающего списка с городами
+    const checkbox = document.getElementById('responsibilityCheckbox');
+    const cityContainer = document.getElementById('city-container');
+    const citySelect = document.getElementById('Input_CityId');
+    const regionSelect = document.getElementById('Input_RegionId');
+
+    checkbox.addEventListener('change', function() {
+        if (this.checked) {
+            cityContainer.style.display = 'none';
+            citySelect.removeAttribute('required');
+        } else {
+            cityContainer.style.display = 'block';
+            citySelect.setAttribute('required', 'required');
+        }
+    });
+
+    // Скрипт для загрузки городов при выборе региона
+    regionSelect.addEventListener('change', function() {
+        const regionId = this.value;
+        fetch(`/Identity/Account/Register?handler=Cities&regionId=${regionId}`)
+            .then(response => response.json())
+            .then(data => {
+                citySelect.innerHTML = '<option value="" disabled selected>Выберите город</option>';
+                data.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city.id;
+                    option.textContent = city.name;
+                    citySelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Ошибка загрузки городов:', error));
+    });
+</script>
 }
