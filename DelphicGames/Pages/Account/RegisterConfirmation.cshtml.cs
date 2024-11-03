@@ -11,8 +11,6 @@ public class RegisterConfirmationModel : PageModel
 {
     public IActionResult OnGet(string returnUrl = null)
     {
-        returnUrl ??= Url.Content("~/");
-
         return Page();
     }
 }

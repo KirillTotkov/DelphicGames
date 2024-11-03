@@ -4,7 +4,6 @@ using Stream = DelphicGames.Models.Stream;
 
 namespace DelphicGames.Services.Streaming;
 
-
 /// <summary>
 /// Обрабатывает потоковое вещание на платформу
 /// </summary>
@@ -13,7 +12,12 @@ public class StreamProcessor : IDisposable
     private const string FfmpegPath = "ffmpeg";
     private bool _disposed = false;
 
-    public async Task<Stream> StartStreamForPlatform(CameraPlatforms cameraPlatforms)
+    public void Dispose()
+    {
+        // TODO: Implement IDisposable
+    }
+
+    public Stream StartStreamForPlatform(CameraPlatforms cameraPlatforms)
     {
         ArgumentNullException.ThrowIfNull(cameraPlatforms);
 
@@ -68,7 +72,7 @@ public class StreamProcessor : IDisposable
     private string GenerateFfmpegArguments(CameraPlatforms stream)
     {
         var command =
-            $" -y -fflags +genpts -thread_queue_size 512 -probesize 5000000 -analyzeduration 5000000 -timeout 5000000 -rtsp_transport tcp ";
+            " -y -fflags +genpts -thread_queue_size 512 -probesize 5000000 -analyzeduration 5000000 -timeout 5000000 -rtsp_transport tcp ";
 
         command += $"-i {stream.Camera.Url} -dn -sn -map 0:0 -codec:v copy -map 0:1 -codec:a aac -b:a 64k -shortest ";
 
@@ -82,10 +86,5 @@ public class StreamProcessor : IDisposable
         command += $"-f flv {url} ";
 
         return command.Trim();
-    }
-
-    public void Dispose()
-    {
-        // TODO: Implement IDisposable
     }
 }

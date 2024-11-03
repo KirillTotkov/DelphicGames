@@ -19,6 +19,7 @@ namespace DelphicGames.Pages.Account;
 
 public class RegisterModel : PageModel
 {
+    private readonly ApplicationContext _context;
     private readonly IEmailSender _emailSender;
     private readonly IUserEmailStore<User> _emailStore;
     private readonly ILogger<RegisterModel> _logger;
@@ -26,7 +27,6 @@ public class RegisterModel : PageModel
     private readonly SignInManager<User> _signInManager;
     private readonly UserManager<User> _userManager;
     private readonly IUserStore<User> _userStore;
-    private readonly ApplicationContext _context;
 
     public RegisterModel(
         UserManager<User> userManager,
@@ -51,10 +51,11 @@ public class RegisterModel : PageModel
     public string ReturnUrl { get; set; }
     public IList<Region> Regions { get; set; }
 
-    public async Task OnGetAsync(string returnUrl = null)
+    public Task OnGetAsync(string returnUrl = null)
     {
         ReturnUrl = returnUrl;
         Regions = _context.Regions.AsNoTracking().ToList();
+        return Task.CompletedTask;
     }
 
     public async Task<IActionResult> OnPostAsync(string returnUrl = null)
@@ -88,7 +89,7 @@ public class RegisterModel : PageModel
                 var callbackUrl = Url.Page(
                     "/Account/ConfirmEmail",
                     pageHandler: null,
-                    values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
+                    values: new { area = "Identity", userId, code, returnUrl },
                     protocol: Request.Scheme);
 
                 await _emailSender.SendEmailAsync(Input.Email, "Подтвердите свой адрес электронной почты",
@@ -97,7 +98,7 @@ public class RegisterModel : PageModel
                 if (_userManager.Options.SignIn.RequireConfirmedAccount)
                 {
                     return RedirectToPage("RegisterConfirmation",
-                        new { email = Input.Email, returnUrl = returnUrl });
+                        new { email = Input.Email, returnUrl });
                 }
                 else
                 {

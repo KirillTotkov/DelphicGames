@@ -1,5 +1,6 @@
 ﻿using DelphicGames.Data;
 using DelphicGames.Services.Streaming;
+using Microsoft.EntityFrameworkCore;
 
 namespace DelphicGames.Services;
 
@@ -22,16 +23,17 @@ public class StreamService : IDisposable
     }
 
     // Запуск трансляции для определенной камеры на определенной платформе
-    public async Task StartStreamAsync(int cameraId, int platformId)
+    public void StartStream(int cameraId, int platformId)
     {
         try
         {
             var cameraPlatform = _context.CameraPlatforms
+                .AsNoTracking()
                 .FirstOrDefault(cp => cp.CameraId == cameraId && cp.PlatformId == platformId);
 
             if (cameraPlatform != null)
             {
-                await _streamManager.StartStreamAsync(cameraPlatform);
+                _streamManager.StartStream(cameraPlatform);
             }
             else
             {
@@ -53,6 +55,7 @@ public class StreamService : IDisposable
         try
         {
             var cameraPlatform = _context.CameraPlatforms
+                .AsNoTracking()
                 .FirstOrDefault(cp => cp.CameraId == cameraId && cp.PlatformId == platformId);
 
             if (cameraPlatform != null)
@@ -74,12 +77,12 @@ public class StreamService : IDisposable
     }
 
     // Запуск всех трансляций
-    public async Task StartAllStreamsAsync()
+    public void StartAllStreams()
     {
         try
         {
-            var cameraPlatforms = _context.CameraPlatforms.ToList();
-            await _streamManager.StartAllStreamsAsync(cameraPlatforms);
+            var cameraPlatforms = _context.CameraPlatforms.AsNoTracking().ToList();
+            _streamManager.StartAllStreams(cameraPlatforms);
         }
         catch (Exception ex)
         {
@@ -103,17 +106,18 @@ public class StreamService : IDisposable
     }
 
     // Запуск трансляций на определенной платформе
-    public async Task StartPlatformStreamsAsync(int platformId)
+    public void StartPlatformStreams(int platformId)
     {
         try
         {
             var cameraPlatforms = _context.CameraPlatforms
                 .Where(cp => cp.PlatformId == platformId)
+                .AsNoTracking()
                 .ToList();
 
             foreach (var cp in cameraPlatforms)
             {
-                await _streamManager.StartStreamAsync(cp);
+                _streamManager.StartStream(cp);
             }
         }
         catch (Exception ex)
@@ -130,6 +134,7 @@ public class StreamService : IDisposable
         {
             var cameraPlatforms = _context.CameraPlatforms
                 .Where(cp => cp.PlatformId == platformId)
+                .AsNoTracking()
                 .ToList();
 
             foreach (var cp in cameraPlatforms)
@@ -145,17 +150,18 @@ public class StreamService : IDisposable
     }
 
     // Запуск трансляций для определенной камеры на всех платформах
-    public async Task StartCameraStreamsAsync(int cameraId)
+    public void StartCameraStreams(int cameraId)
     {
         try
         {
             var cameraPlatforms = _context.CameraPlatforms
                 .Where(cp => cp.CameraId == cameraId)
+                .AsNoTracking()
                 .ToList();
 
             foreach (var cp in cameraPlatforms)
             {
-                await _streamManager.StartStreamAsync(cp);
+                _streamManager.StartStream(cp);
             }
         }
         catch (Exception ex)
@@ -172,6 +178,7 @@ public class StreamService : IDisposable
         {
             var cameraPlatforms = _context.CameraPlatforms
                 .Where(cp => cp.CameraId == cameraId)
+                .AsNoTracking()
                 .ToList();
 
             foreach (var cp in cameraPlatforms)
@@ -187,10 +194,11 @@ public class StreamService : IDisposable
     }
 
     // Запуск трансляций для определенной номинации
-    public async Task StartNominationStreamsAsync(int nominationId)
+    public void StartNominationStreamsAsync(int nominationId)
     {
         var cameras = _context.Cameras
             .Where(c => c.Nomination != null && c.Nomination.Id == nominationId)
+            .AsNoTracking()
             .ToList();
 
         if (cameras == null || cameras.Count == 0)
@@ -200,9 +208,10 @@ public class StreamService : IDisposable
 
         var cameraPlatforms = _context.CameraPlatforms
             .Where(cp => cameras.Contains(cp.Camera))
+            .AsNoTracking()
             .ToList();
 
-        if (cameraPlatforms == null || !cameraPlatforms.Any())
+        if (cameraPlatforms == null || cameraPlatforms.Count == 0)
         {
             throw new InvalidOperationException("Платформы для указанных камер не найдены.");
         }
@@ -211,7 +220,7 @@ public class StreamService : IDisposable
         {
             try
             {
-                await _streamManager.StartStreamAsync(cp);
+                _streamManager.StartStream(cp);
             }
             catch (Exception ex)
             {
@@ -227,18 +236,20 @@ public class StreamService : IDisposable
     {
         var cameras = _context.Cameras
             .Where(c => c.Nomination != null && c.Nomination.Id == nominationId)
+            .AsNoTracking()
             .ToList();
 
-        if (cameras == null || !cameras.Any())
+        if (cameras == null || cameras.Count == 0)
         {
             throw new InvalidOperationException($"Камеры для номинации с ID {nominationId} не найдены.");
         }
 
         var cameraPlatforms = _context.CameraPlatforms
             .Where(cp => cameras.Contains(cp.Camera))
+            .AsNoTracking()
             .ToList();
 
-        if (cameraPlatforms == null || !cameraPlatforms.Any())
+        if (cameraPlatforms == null || cameraPlatforms.Count == 0)
         {
             throw new InvalidOperationException("Платформы для указанных камер не найдены.");
         }

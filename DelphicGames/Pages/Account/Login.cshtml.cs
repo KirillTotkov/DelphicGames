@@ -23,15 +23,13 @@ public class LoginModel : PageModel
         _logger = logger;
     }
 
-    [BindProperty]
-    public InputModel Input { get; set; }
+    [BindProperty] public InputModel Input { get; set; }
 
     public IList<AuthenticationScheme> ExternalLogins { get; set; }
 
     public string ReturnUrl { get; set; }
 
-    [TempData]
-    public string ErrorMessage { get; set; }
+    [TempData] public string ErrorMessage { get; set; }
 
 
     public async Task OnGetAsync(string returnUrl = null)
@@ -65,14 +63,14 @@ public class LoginModel : PageModel
                 ModelState.AddModelError(string.Empty, "Вы должны подтвердить свою электронную почту, чтобы войти.");
                 return Page();
             }
-            
+
             var rememberMe = true;
-            
+
             // This doesn't count login failures towards account lockout
             // To enable password failures to trigger account lockout, set lockoutOnFailure: true
             var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, rememberMe,
                 lockoutOnFailure: false);
-           
+
             if (result.Succeeded)
             {
                 _logger.LogInformation("Пользователь вошел в систему.");
@@ -90,11 +88,9 @@ public class LoginModel : PageModel
                 _logger.LogWarning("Учетная запись пользователя заблокирована.");
                 return RedirectToPage("./Lockout");
             }
-            else
-            {
-                ModelState.AddModelError(string.Empty, "Неверная попытка входа.");
-                return Page();
-            }
+
+            ModelState.AddModelError(string.Empty, "Неверная попытка входа.");
+            return Page();
         }
 
         // If we got this far, something failed, redisplay form
@@ -104,10 +100,7 @@ public class LoginModel : PageModel
 
     public class InputModel
     {
-
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
+        [Required] [EmailAddress] public string Email { get; set; }
 
         [Required]
         [DataType(DataType.Password)]

@@ -11,15 +11,21 @@ public class Stream : IDisposable
 
     public void Dispose()
     {
-        if (Process != null)
-        {
-            if (!Process.HasExited)
-            {
-                Process.Kill(true);
-            }
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
-            Process.Dispose();
-            Process = null;
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing) return;
+        if (Process == null) return;
+
+        if (!Process.HasExited)
+        {
+            Process.Kill(true);
         }
+
+        Process.Dispose();
+        Process = null;
     }
 }

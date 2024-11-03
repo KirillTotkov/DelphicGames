@@ -1,6 +1,5 @@
 ﻿using DelphicGames.Data;
 using DelphicGames.Data.Models;
-using DelphicGames.Services.Streaming;
 using Microsoft.EntityFrameworkCore;
 
 namespace DelphicGames.Services;
@@ -43,7 +42,7 @@ public class CameraService
     {
         return await _context.Cameras.ToListAsync();
     }
-    
+
     public async Task<Camera?> UpdateCamera(int id, Camera camera)
     {
         var existingCamera = await _context.Cameras.FindAsync(id);
