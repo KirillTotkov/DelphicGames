@@ -1,6 +1,6 @@
 using DelphicGames.Data.Models;
 
-namespace DelphicGames.Services;
+namespace DelphicGames.Services.Streaming;
 
 public class StreamManager
 {

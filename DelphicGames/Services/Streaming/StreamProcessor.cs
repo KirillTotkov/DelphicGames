@@ -1,8 +1,7 @@
-using System;
 using System.Diagnostics;
 using DelphicGames.Data.Models;
 
-namespace DelphicGames.Services;
+namespace DelphicGames.Services.Streaming;
 
 public class Stream : IDisposable
 {
