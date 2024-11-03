@@ -23,11 +23,10 @@ public class CameraService
         return camera;
     }
 
-    public async Task<List<Camera>> CreateCameras(List<Camera> cameras)
+    public async Task CreateCameras(List<Camera> cameras)
     {
         _context.Cameras.AddRange(cameras);
         await _context.SaveChangesAsync();
-        return cameras;
     }
 
     public async Task<Camera?> GetCamera(int id)
@@ -44,8 +43,7 @@ public class CameraService
     {
         return await _context.Cameras.ToListAsync();
     }
-
-
+    
     public async Task<Camera?> UpdateCamera(int id, Camera camera)
     {
         var existingCamera = await _context.Cameras.FindAsync(id);
