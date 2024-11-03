@@ -1,0 +1,16 @@
+﻿@page
+@model DelphicGames.Pages.Root.Users.EditModel
+
+@{
+    ViewData["Title"] = "Изменить пароль пользователя";
+}
+
+<h1>Изменить пароль пользователя</h1>
+
+<form method="post">
+    <div>
+        <label>Новый пароль</label>
+        <input asp-for="Input.NewPassword" type="password" />
+    </div>
+    <button type="submit">Изменить пароль</button>
+</form>

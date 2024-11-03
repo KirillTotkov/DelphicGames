@@ -1,0 +1,26 @@
+﻿@page
+@model DelphicGames.Pages.Root.Users.CreateModel
+
+@{
+    ViewData["Title"] = "Создать пользователя";
+}
+
+<h1>Создать пользователя</h1>
+
+<form method="post">
+    <div>
+        <label>Email</label>
+        <input asp-for="Input.Email"/>
+    </div>
+    <div>
+        <label>Пароль</label>
+        <input asp-for="Input.Password" type="password"/>
+    </div>
+     <div>
+        <label>Роль</label>
+        <select asp-for="Input.Role" asp-items="Model.Roles">
+            <option value="">-- Выберите роль --</option>
+        </select>
+    </div>
+    <button type="submit">Создать</button>
+</form>
