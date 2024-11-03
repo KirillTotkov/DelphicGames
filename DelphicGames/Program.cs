@@ -1,5 +1,6 @@
 using DelphicGames.Data;
 using DelphicGames.Data.Models;
+using DelphicGames.Services;
 using DelphicGames.Services.Streaming;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,7 @@ builder.Services.AddDefaultIdentity<User>(options => options.SignIn.RequireConfi
     .AddEntityFrameworkStores<ApplicationContext>();
 
 builder.Services.AddSingleton<StreamManager>();
+builder.Services.AddScoped<CameraService>();
 
 var app = builder.Build();
 
