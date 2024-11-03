@@ -31,9 +31,9 @@
             <label asp-for="Input.RegionId" class="form-label">Регион</label>
             <select asp-for="Input.RegionId" class="form-select" required>
                 <option value="" disabled selected>Выберите регион</option>
-                @foreach (var region in Model.Regions ?? [])
+                @foreach (var region in Model.Regions)
                 {
-                    <option value="@region.Id">@region.Name</option>
+                    <option value="@region.Id.ToString()">@region.Name</option>
                 }
             </select>
             <span asp-validation-for="Input.RegionId" class="text-danger"></span>
@@ -57,7 +57,7 @@
 </div>
 
 @section Scripts {
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.21.0/jquery.validate.min.js"
             integrity="sha512-KFHXdr2oObHKI9w4Hv1XPKc898mE4kgYx58oqsc/JqqdLMDI4YjOLzom+EMlW8HFUd0QfjfAvxSL6sEq/a42fQ=="
             crossorigin="anonymous" referrerpolicy="no-referrer">
@@ -68,9 +68,9 @@
             crossorigin="anonymous" referrerpolicy="no-referrer">
 
     </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js"
-        integrity="sha512-xq+Vm8jC94ynOikewaQXMEkJIOBp7iArs3IhFWSWdRT3Pq8wFz46p+ZDFAR7kHnSFf+zUv52B3prRYnbDRdgog=="
-        crossorigin="anonymous" referrerpolicy="no-referrer">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js"
+            integrity="sha512-xq+Vm8jC94ynOikewaQXMEkJIOBp7iArs3IhFWSWdRT3Pq8wFz46p+ZDFAR7kHnSFf+zUv52B3prRYnbDRdgog=="
+            crossorigin="anonymous" referrerpolicy="no-referrer">
 
     </script>
 

@@ -40,8 +40,10 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
     .AddDefaultTokenProviders();
 
 
+builder.Services.AddSingleton<StreamProcessor>();
 builder.Services.AddSingleton<StreamManager>();
 builder.Services.AddScoped<CameraService>();
+builder.Services.AddScoped<StreamService>();
 
 var app = builder.Build();
 

@@ -27,9 +27,8 @@ public class ResendEmailConfirmationModel : PageModel
         _userManager = userManager;
         _emailSender = emailSender;
     }
-        
-    [BindProperty]
-    public InputModel Input { get; set; }
+
+    [BindProperty] public InputModel Input { get; set; }
 
     public void OnGet()
     {
@@ -48,7 +47,7 @@ public class ResendEmailConfirmationModel : PageModel
             ModelState.AddModelError(string.Empty, "Пользователь с таким адресом электронной почты не найден");
             return Page();
         }
-            
+
         if (user.EmailConfirmed)
         {
             ModelState.AddModelError(string.Empty, "Ваш адрес электронной почты уже подтвержден");
@@ -61,21 +60,20 @@ public class ResendEmailConfirmationModel : PageModel
         var callbackUrl = Url.Page(
             "/Account/ConfirmEmail",
             pageHandler: null,
-            values: new { userId = userId, code = code },
+            values: new { userId, code },
             protocol: Request.Scheme);
         await _emailSender.SendEmailAsync(
             Input.Email,
             "Подтвердите свой адрес электронной почты",
             $"Пожалуйста, подтвердите свой аккаунт <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>нажав здесь</a>.");
 
-        ModelState.AddModelError(string.Empty, "Письмо с подтверждением отправлено. Пожалуйста, проверьте свою электронную почту");
+        ModelState.AddModelError(string.Empty,
+            "Письмо с подтверждением отправлено. Пожалуйста, проверьте свою электронную почту");
         return Page();
     }
-        
+
     public class InputModel
     {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
+        [Required] [EmailAddress] public string Email { get; set; }
     }
 }

@@ -20,14 +20,14 @@
     <tbody>
     @foreach (var user in Model.Users)
     {
-    <tr>
-        <td>@user.UserName</td>
-        <td>@user.Email</td>
-        <td>
-            <a asp-page="Edit" asp-route-id="@user.Id">Изменить пароль</a> |
-            <a asp-page="Delete" asp-route-id="@user.Id">Удалить</a>
-        </td>
-    </tr>
+        <tr>
+            <td>@user.UserName</td>
+            <td>@user.Email</td>
+            <td>
+                <a asp-page="Edit" asp-route-id="@user.Id">Изменить пароль</a> |
+                <a asp-page="Delete" asp-route-id="@user.Id">Удалить</a>
+            </td>
+        </tr>
     }
     </tbody>
 </table>

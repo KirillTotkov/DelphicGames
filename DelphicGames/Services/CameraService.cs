@@ -1,6 +1,5 @@
 ﻿using DelphicGames.Data;
 using DelphicGames.Data.Models;
-using DelphicGames.Services.Streaming;
 using Microsoft.EntityFrameworkCore;
 
 namespace DelphicGames.Services;
@@ -43,7 +42,7 @@ public class CameraService
     {
         return await _context.Cameras.ToListAsync();
     }
-    
+
     public async Task<Camera?> UpdateCamera(int id, Camera camera)
     {
         var existingCamera = await _context.Cameras.FindAsync(id);
@@ -80,5 +79,29 @@ public class CameraService
     public async Task<bool> CameraExists(string name)
     {
         return await _context.Cameras.AnyAsync(c => c.Name == name);
+    }
+    
+    public async Task AddPlatformToCamera(int cameraId, int platformId)
+    {
+        var camera = await _context.Cameras.FindAsync(cameraId);
+        if (camera == null)
+        {
+            throw new InvalidOperationException($"Камера с ID {cameraId} не найдена.");
+        }
+
+        var platform = await _context.Platforms.FindAsync(platformId);
+        if (platform == null)
+        {
+            throw new InvalidOperationException($"Платформа с ID {platformId} не найдена.");
+        }
+
+        var cameraPlatform = new CameraPlatforms
+        {
+            Camera = camera,
+            Platform = platform
+        };
+
+        _context.CameraPlatforms.Add(cameraPlatform);
+        await _context.SaveChangesAsync();
     }
 }
