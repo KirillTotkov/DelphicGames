@@ -5,42 +5,67 @@ namespace DelphicGames.Services.Streaming;
 public class StreamManager
 {
     private readonly Dictionary<Camera, List<Stream>> _cameraStreams = new();
-    private readonly StreamProcessor _streamProcessor = new();
+    private readonly StreamProcessor _streamProcessor;
+
+    private readonly ILogger<StreamManager> _logger;
+
+    public StreamManager(StreamProcessor streamProcessor, ILogger<StreamManager> logger)
+    {
+        _streamProcessor = streamProcessor;
+        _logger = logger;
+    }
 
     // Запуск потока для определённой камеры и платформы
     public async Task StartStreamAsync(CameraPlatforms cameraPlatform)
     {
-        var camera = cameraPlatform.Camera;
-
-        if (!_cameraStreams.ContainsKey(camera))
+        try
         {
-            _cameraStreams[camera] = new List<Stream>();
-        }
+            var camera = cameraPlatform.Camera;
 
-        var stream = await _streamProcessor.StartStreamForPlatform(cameraPlatform);
-        _cameraStreams[camera].Add(stream);
+            if (!_cameraStreams.ContainsKey(camera))
+            {
+                _cameraStreams[camera] = new List<Stream>();
+            }
+
+            var stream = await _streamProcessor.StartStreamForPlatform(cameraPlatform);
+
+            _cameraStreams[camera].Add(stream);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при запуске потока для камеры {CameraId} на платформе {PlatformId}", cameraPlatform.CameraId, cameraPlatform.PlatformId);
+            throw;
+        }
     }
 
     // Остановка потока для определённой камеры и платформы
     public void StopStream(CameraPlatforms cameraPlatform)
     {
-        var camera = cameraPlatform.Camera;
-
-        if (_cameraStreams.ContainsKey(camera))
+        try
         {
-            var stream = _cameraStreams[camera]
-                .FirstOrDefault(s => s.PlatformUrl == cameraPlatform.Platform.Url);
+            var camera = cameraPlatform.Camera;
 
-            if (stream != null)
+            if (_cameraStreams.ContainsKey(camera))
             {
-                _streamProcessor.StopStreamForPlatform(stream);
-                _cameraStreams[camera].Remove(stream);
+                var stream = _cameraStreams[camera]
+                    .FirstOrDefault(s => s.PlatformUrl == cameraPlatform.Platform.Url);
 
-                if (_cameraStreams[camera].Count == 0)
+                if (stream != null)
                 {
-                    _cameraStreams.Remove(camera);
+                    _streamProcessor.StopStreamForPlatform(stream);
+                    _cameraStreams[camera].Remove(stream);
+
+                    if (_cameraStreams[camera].Count == 0)
+                    {
+                        _cameraStreams.Remove(camera);
+                    }
                 }
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при остановке потока для камеры {CameraId} на платформе {PlatformId}", cameraPlatform.CameraId, cameraPlatform.PlatformId);
+            throw;
         }
     }
 
