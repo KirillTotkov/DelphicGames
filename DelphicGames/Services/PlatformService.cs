@@ -15,22 +15,33 @@ public class PlatformService
         _logger = logger;
     }
 
-    public async Task<Platform> CreatePlatform(Platform platform)
+    public async Task CreatePlatform(AddPlatformDto platform)
     {
-        _context.Platforms.Add(platform);
+        var existingPlatform = await GetPlatform(platform.Name);
+        if (existingPlatform != null)
+        {
+            throw new InvalidOperationException("Platform already exists");
+        }
+
+        var newPlatform = new Platform
+        {
+            Name = platform.Name,
+            Url = platform.Url
+        };
+
+        _context.Platforms.Add(newPlatform);
         await _context.SaveChangesAsync();
-        return platform;
     }
 
-    public async Task CreatePlatforms(List<Platform> platforms)
+    public async Task<GetPlatformDto?> GetPlatform(int id)
     {
-        _context.Platforms.AddRange(platforms);
-        await _context.SaveChangesAsync();
-    }
+        var platform = await _context.Platforms.FindAsync(id);
+        if (platform == null)
+        {
+            return null;
+        }
 
-    public async Task<Platform?> GetPlatform(int id)
-    {
-        return await _context.Platforms.FindAsync(id);
+        return new GetPlatformDto(platform.Id, platform.Name, platform.Url);
     }
 
     public async Task<Platform?> GetPlatform(string name)
@@ -38,36 +49,42 @@ public class PlatformService
         return await _context.Platforms.FirstOrDefaultAsync(p => p.Name == name);
     }
 
-    public async Task<List<Platform>> GetPlatforms()
+    public async Task<List<GetPlatformDto>> GetPlatforms()
     {
-        return await _context.Platforms.ToListAsync();
+        return await _context.Platforms
+            .Select(p => new GetPlatformDto(p.Id, p.Name, p.Url))
+            .ToListAsync();
     }
 
-    public async Task<Platform?> UpdatePlatform(int id, Platform platform)
+    public async Task UpdatePlatform(int id, UpdatePlatformDto platform)
     {
         var existingPlatform = await _context.Platforms.FindAsync(id);
         if (existingPlatform == null)
         {
-            return null;
+            return;
         }
 
         existingPlatform.Name = platform.Name;
         existingPlatform.Url = platform.Url;
 
         await _context.SaveChangesAsync();
-        return existingPlatform;
     }
 
-    public async Task<bool> DeletePlatform(int id)
+    public async Task DeletePlatform(int id)
     {
         var platform = await _context.Platforms.FindAsync(id);
         if (platform == null)
         {
-            return false;
+            return;
         }
 
         _context.Platforms.Remove(platform);
         await _context.SaveChangesAsync();
-        return true;
     }
 }
+
+public record AddPlatformDto(string Name, string Url);
+
+public record GetPlatformDto(int Id, string Name, string Url);
+
+public record UpdatePlatformDto(string Name, string Url);

@@ -23,7 +23,7 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     builder.Configuration.AddEnvironmentVariables();
-    
+
     builder.Services.AddSerilog();
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
@@ -58,6 +58,7 @@ try
     builder.Services.AddSingleton<StreamManager>();
     builder.Services.AddScoped<CameraService>();
     builder.Services.AddScoped<StreamService>();
+    builder.Services.AddScoped<PlatformService>();
 
     var app = builder.Build();
 
