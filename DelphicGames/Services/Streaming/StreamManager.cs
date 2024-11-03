@@ -1,4 +1,5 @@
 using DelphicGames.Data.Models;
+using Stream = DelphicGames.Models.Stream;
 
 namespace DelphicGames.Services.Streaming;
 

@@ -1,28 +1,8 @@
 using System.Diagnostics;
 using DelphicGames.Data.Models;
+using Stream = DelphicGames.Models.Stream;
 
 namespace DelphicGames.Services.Streaming;
-
-public class Stream : IDisposable
-{
-    public string CameraUrl { get; set; }
-    public string PlatformUrl { get; set; }
-    public string Token { get; set; }
-    public Process Process { get; set; }
-
-    public void Dispose()
-    {
-        if (Process != null)
-        {
-            if (!Process.HasExited)
-            {
-                Process.Kill(true);
-            }
-            Process.Dispose();
-            Process = null;
-        }
-    }
-}
 
 
 /// <summary>
@@ -32,15 +12,10 @@ public class StreamProcessor : IDisposable
 {
     private const string FfmpegPath = "ffmpeg";
     private bool _disposed = false;
-    public StreamProcessor()
-    {
-    }
-
 
     public async Task<Stream> StartStreamForPlatform(CameraPlatforms cameraPlatforms)
     {
-        if (cameraPlatforms == null)
-            throw new ArgumentNullException(nameof(cameraPlatforms));
+        ArgumentNullException.ThrowIfNull(cameraPlatforms);
 
         var ffmpegArguments = GenerateFfmpegArguments(cameraPlatforms);
 
@@ -72,6 +47,7 @@ public class StreamProcessor : IDisposable
             Console.Error.WriteLine($"Ошибка при запуске процесса ffmpeg: {ex.Message}");
             throw;
         }
+
         var stream = new Stream
         {
             CameraUrl = cameraPlatforms.Camera.Url,
