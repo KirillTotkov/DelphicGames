@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace DelphicGames.Pages.Admin.Users;
+namespace DelphicGames.Pages.Root.Users;
 
-[Authorize(Roles = "Root")]
+[Authorize(Roles = nameof(UserRoles.Root))]
 public class EditModel : PageModel
 {
     private readonly UserManager<User> _userManager;
