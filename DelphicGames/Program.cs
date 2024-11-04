@@ -62,7 +62,16 @@ try
     builder.Services.AddRazorPages();
 
     builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
-    builder.Services.AddTransient<IEmailSender, EmailSender>();
+    var emailSettings = builder.Configuration.GetSection("EmailSettings").Get<EmailSettings>();
+    if (emailSettings.EnableSendConfirmationEmail)
+    {
+        builder.Services.AddTransient<IEmailSender, EmailSender>();
+    }
+    else
+    {
+        builder.Services.AddTransient<IEmailSender, NoOpEmailSender>();
+    }
+
 
     builder.Services.AddDbContext<ApplicationContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
@@ -134,20 +143,15 @@ try
     {
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-
-        var rootUser = await userManager.FindByNameAsync(rootUserConfig.Email);
-        if (rootUser != null)
-        {
-            return;
-        }
-
+        
         // Создаем роль cуперадминистратора, если ее нет
         if (!await roleManager.RoleExistsAsync(nameof(UserRoles.Root)))
         {
             var rootRole = new IdentityRole(nameof(UserRoles.Root));
             await roleManager.CreateAsync(rootRole);
         }
-
+        
+        var rootUser = await userManager.FindByNameAsync(rootUserConfig.Email);
         // Проверяем, есть ли уже пользователь-cуперадминистратора
         if (rootUser == null)
         {
