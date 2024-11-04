@@ -96,4 +96,28 @@ public class CameraController : ControllerBase
             return BadRequest(new { Error = e.Message });
         }
     }
+
+    [HttpGet("regions")]
+    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)},{nameof(UserRoles.Admin)}")]
+    public async Task<IActionResult> GetCamerasCity([FromQuery] int? nominationId)
+    {
+        var cameras = await _cameraService.GetCamerasCity(nominationId);
+        return Ok(cameras);
+    }
+
+    [HttpGet("regions/city/{cityId:int}")]
+    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)},{nameof(UserRoles.Admin)}")]
+    public async Task<IActionResult> GetCamerasByCity(int cityId, [FromQuery] int? nominationId)
+    {
+        var cameras = await _cameraService.GetCamerasByCity(cityId, nominationId);
+        return Ok(cameras);
+    }
+
+    [HttpGet("regions/{regionId:int}")]
+    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)},{nameof(UserRoles.Admin)}")]
+    public async Task<IActionResult> GetCamerasByRegion(int regionId, [FromQuery] int? nominationId)
+    {
+        var cameras = await _cameraService.GetCamerasByRegion(regionId, nominationId);
+        return Ok(cameras);
+    }
 }
