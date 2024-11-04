@@ -7,6 +7,8 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+RUN dotnet tool install --global dotnet-ef
+ENV PATH="${PATH}:/root/.dotnet/tools"
 COPY ["DelphicGames/DelphicGames.csproj", "DelphicGames/"]
 RUN dotnet restore "DelphicGames/DelphicGames.csproj"
 COPY . .

@@ -23,16 +23,26 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     builder.Configuration.AddEnvironmentVariables();
-    
+
     builder.Services.AddSerilog();
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(c => { });
+
     builder.Services.AddAuthorization();
     builder.Services.AddRazorPages();
 
     builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
-    builder.Services.AddTransient<IEmailSender, EmailSender>();
+    var emailSettings = builder.Configuration.GetSection("EmailSettings").Get<EmailSettings>();
+    if (emailSettings.EnableSendConfirmationEmail)
+    {
+        builder.Services.AddTransient<IEmailSender, EmailSender>();
+    }
+    else
+    {
+        builder.Services.AddTransient<IEmailSender, NoOpEmailSender>();
+    }
+
 
     builder.Services.AddDbContext<ApplicationContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
@@ -58,6 +68,11 @@ try
     builder.Services.AddSingleton<StreamManager>();
     builder.Services.AddScoped<CameraService>();
     builder.Services.AddScoped<StreamService>();
+    builder.Services.AddScoped<PlatformService>();
+    builder.Services.AddScoped<NominationService>();
+
+    var rootUserConfig = builder.Configuration.GetSection("RootUser").Get<RootUserConfig>();
+
 
     var app = builder.Build();
 
@@ -94,6 +109,39 @@ try
         Console.WriteLine("Application is stopping");
     });
 
+    // Создаем роль cуперадминистратора и пользователя-cуперадминистратора, если их нет
+    using (var scope = app.Services.CreateScope())
+    {
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+        // Создаем роль cуперадминистратора, если ее нет
+        if (!await roleManager.RoleExistsAsync(nameof(UserRoles.Root)))
+        {
+            var rootRole = new IdentityRole(nameof(UserRoles.Root));
+            await roleManager.CreateAsync(rootRole);
+        }
+
+        var rootUser = await userManager.FindByNameAsync(rootUserConfig.Email);
+        // Проверяем, есть ли уже пользователь-cуперадминистратора
+        if (rootUser == null)
+        {
+            rootUser = new User
+            {
+                UserName = rootUserConfig.Email,
+                Email = rootUserConfig.Email,
+                EmailConfirmed = true
+            };
+
+            // Создаем пользователя с паролем
+            var result = await userManager.CreateAsync(rootUser, rootUserConfig.Password);
+            if (result.Succeeded)
+            {
+                // Назначаем роль cуперадминистратора
+                await userManager.AddToRoleAsync(rootUser, nameof(UserRoles.Root));
+            }
+        }
+    }
 
     app.Run();
 }

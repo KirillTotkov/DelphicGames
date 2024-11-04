@@ -5,7 +5,7 @@ namespace DelphicGames.Services.Streaming;
 
 public class StreamManager
 {
-    private readonly Dictionary<Camera, List<Stream>> _cameraStreams = new();
+    private readonly Dictionary<int, List<Stream>> _cameraStreams = new();
     private readonly ILogger<StreamManager> _logger;
     private readonly StreamProcessor _streamProcessor;
 
@@ -16,16 +16,16 @@ public class StreamManager
     }
 
     // Запуск потока для определённой камеры и платформы
-    public void StartStream(CameraPlatforms cameraPlatform)
+    public void StartStream(CameraPlatform cameraPlatform)
     {
         try
         {
-            var camera = cameraPlatform.Camera;
+            int cameraId = cameraPlatform.CameraId;
 
-            if (!_cameraStreams.TryGetValue(camera, out var streams))
+            if (!_cameraStreams.TryGetValue(cameraId, out var streams))
             {
                 streams = new List<Stream>();
-                _cameraStreams[camera] = streams;
+                _cameraStreams[cameraId] = streams;
             }
 
             var stream = _streamProcessor.StartStreamForPlatform(cameraPlatform);
@@ -40,15 +40,16 @@ public class StreamManager
     }
 
     // Остановка потока для определённой камеры и платформы
-    public void StopStream(CameraPlatforms cameraPlatform)
+    public void StopStream(CameraPlatform cameraPlatform)
     {
         try
         {
-            var camera = cameraPlatform.Camera;
+            int cameraId = cameraPlatform.CameraId;
 
-            if (_cameraStreams.TryGetValue(camera, out var streams))
+            if (_cameraStreams.TryGetValue(cameraId, out var streams))
             {
-                var stream = streams.FirstOrDefault(s => s.PlatformUrl == cameraPlatform.Platform.Url);
+                var stream = streams.FirstOrDefault(s =>
+                    s.PlatformUrl == cameraPlatform.Platform.Url && s.Token == cameraPlatform.Token);
 
                 if (stream != null)
                 {
@@ -57,7 +58,7 @@ public class StreamManager
 
                     if (streams.Count == 0)
                     {
-                        _cameraStreams.Remove(camera);
+                        _cameraStreams.Remove(cameraId);
                     }
                 }
             }
@@ -71,7 +72,7 @@ public class StreamManager
     }
 
     // Запуск всех потоков
-    public void StartAllStreams(IEnumerable<CameraPlatforms> cameraPlatformsList)
+    public void StartAllStreams(IEnumerable<CameraPlatform> cameraPlatformsList)
     {
         foreach (var cameraPlatform in cameraPlatformsList)
         {

@@ -17,12 +17,18 @@ public class StreamProcessor : IDisposable
         // TODO: Implement IDisposable
     }
 
-    public Stream StartStreamForPlatform(CameraPlatforms cameraPlatforms)
+    public Stream StartStreamForPlatform(CameraPlatform cameraPlatform)
     {
-        ArgumentNullException.ThrowIfNull(cameraPlatforms);
+        ArgumentNullException.ThrowIfNull(cameraPlatform);
 
-        var ffmpegArguments = GenerateFfmpegArguments(cameraPlatforms);
+        if (string.IsNullOrWhiteSpace(cameraPlatform.Token))
+        {
+            throw new InvalidOperationException("Токен для трансляции не указан.");
+        }
 
+        var ffmpegArguments = GenerateFfmpegArguments(cameraPlatform);
+
+        Console.WriteLine($"Запуск ffmpeg с аргументами: {ffmpegArguments}");
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
@@ -54,9 +60,9 @@ public class StreamProcessor : IDisposable
 
         var stream = new Stream
         {
-            CameraUrl = cameraPlatforms.Camera.Url,
-            PlatformUrl = cameraPlatforms.Platform.Url,
-            Token = cameraPlatforms.Token,
+            CameraUrl = cameraPlatform.Camera.Url,
+            PlatformUrl = cameraPlatform.Platform.Url,
+            Token = cameraPlatform.Token,
             Process = process
         };
 
@@ -89,7 +95,7 @@ public class StreamProcessor : IDisposable
     /// </summary>
     /// <param name="stream"></param>
     /// <returns></returns>
-    private string GenerateFfmpegArguments(CameraPlatforms stream)
+    private string GenerateFfmpegArguments(CameraPlatform stream)
     {
         var command =
             " -y -fflags +genpts -thread_queue_size 512 -probesize 5000000 -analyzeduration 5000000 -timeout 5000000 -rtsp_transport tcp ";

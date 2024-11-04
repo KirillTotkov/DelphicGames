@@ -12,7 +12,7 @@ public class ApplicationContext : IdentityDbContext<User>
 
     public DbSet<Camera> Cameras { get; set; }
     public DbSet<Platform> Platforms { get; set; }
-    public DbSet<CameraPlatforms> CameraPlatforms { get; set; }
+    public DbSet<CameraPlatform> CameraPlatforms { get; set; }
     public DbSet<Nomination> Nominations { get; set; }
     public DbSet<City> Cities { get; set; }
     public DbSet<Region> Regions { get; set; }
@@ -22,15 +22,15 @@ public class ApplicationContext : IdentityDbContext<User>
         base.OnModelCreating(modelBuilder);
 
         // Связь многие ко многим между камерами и платформами
-        modelBuilder.Entity<CameraPlatforms>()
+        modelBuilder.Entity<CameraPlatform>()
             .HasKey(cp => new { cp.CameraId, cp.PlatformId }); // Составной ключ
 
-        modelBuilder.Entity<CameraPlatforms>()
+        modelBuilder.Entity<CameraPlatform>()
             .HasOne(cp => cp.Camera)
             .WithMany(c => c.CameraPlatforms)
             .HasForeignKey(cp => cp.CameraId);
 
-        modelBuilder.Entity<CameraPlatforms>()
+        modelBuilder.Entity<CameraPlatform>()
             .HasOne(cp => cp.Platform)
             .WithMany(p => p.CameraPlatforms)
             .HasForeignKey(cp => cp.PlatformId);

@@ -1,10 +1,11 @@
 ﻿using DelphicGames.Data;
+using DelphicGames.Data.Models;
 using DelphicGames.Services.Streaming;
 using Microsoft.EntityFrameworkCore;
 
 namespace DelphicGames.Services;
 
-public class StreamService : IDisposable
+public class StreamService
 {
     private readonly ApplicationContext _context;
     private readonly ILogger<StreamService> _logger;
@@ -17,34 +18,69 @@ public class StreamService : IDisposable
         _logger = logger;
     }
 
-    public void Dispose()
-    {
-        _streamManager.Dispose();
-    }
-
     // Запуск трансляции для определенной камеры на определенной платформе
-    public void StartStream(int cameraId, int platformId)
+    // Если трансляция уже запущена, то она будет перезапущена
+    // Если токен не пустой, то он будет обновлен
+    public void StartStream(AddStreamDto streamDto)
     {
         try
         {
             var cameraPlatform = _context.CameraPlatforms
-                .AsNoTracking()
-                .FirstOrDefault(cp => cp.CameraId == cameraId && cp.PlatformId == platformId);
+                .Include(cp => cp.Camera)
+                .Include(cp => cp.Platform)
+                .FirstOrDefault(cp => cp.CameraId == streamDto.CameraId && cp.PlatformId == streamDto.PlatformId);
 
             if (cameraPlatform != null)
             {
+                if (!string.IsNullOrEmpty(streamDto.Token) && cameraPlatform.Token != streamDto.Token)
+                {
+                    cameraPlatform.Token = streamDto.Token.Trim();
+                }
+
                 _streamManager.StartStream(cameraPlatform);
+                cameraPlatform.IsActive = true;
+                _context.SaveChanges();
             }
             else
             {
-                _logger.LogWarning("CameraPlatform не найдена для CameraId: {CameraId}, PlatformId: {PlatformId}",
-                    cameraId, platformId);
+                var camera = _context.Cameras.FirstOrDefault(c => c.Id == streamDto.CameraId);
+                var platform = _context.Platforms.FirstOrDefault(p => p.Id == streamDto.PlatformId);
+
+                if (camera == null || platform == null)
+                {
+                    _logger.LogWarning(
+                        "Камера или платформа не найдены для CameraId: {CameraId}, PlatformId: {PlatformId}",
+                        streamDto.CameraId, streamDto.PlatformId);
+
+                    throw new InvalidOperationException("Камера или платформа не найдены.");
+                }
+
+                cameraPlatform = new CameraPlatform
+                {
+                    Camera = camera,
+                    Platform = platform,
+                    IsActive = true,
+                };
+
+                if (!string.IsNullOrEmpty(streamDto.Token))
+                {
+                    cameraPlatform.Token = streamDto.Token.Trim();
+                }
+
+                _streamManager.StartStream(cameraPlatform);
+
+                _context.CameraPlatforms.Add(cameraPlatform);
+
+                _context.SaveChanges();
+
+                _logger.LogInformation("Трансляция начата для CameraId: {CameraId}, PlatformId: {PlatformId}",
+                    streamDto.CameraId, streamDto.PlatformId);
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ошибка при запуске трансляции для CameraId: {CameraId}, PlatformId: {PlatformId}",
-                cameraId, platformId);
+                streamDto.CameraId, streamDto.PlatformId);
             throw;
         }
     }
@@ -55,17 +91,22 @@ public class StreamService : IDisposable
         try
         {
             var cameraPlatform = _context.CameraPlatforms
-                .AsNoTracking()
+                .Include(cp => cp.Camera)
+                .Include(cp => cp.Platform)
                 .FirstOrDefault(cp => cp.CameraId == cameraId && cp.PlatformId == platformId);
 
             if (cameraPlatform != null)
             {
                 _streamManager.StopStream(cameraPlatform);
+                cameraPlatform.IsActive = false;
+                _context.SaveChanges();
             }
             else
             {
                 _logger.LogWarning("CameraPlatform не найдена для CameraId: {CameraId}, PlatformId: {PlatformId}",
                     cameraId, platformId);
+
+                throw new InvalidOperationException("Камера или платформа не найдены.");
             }
         }
         catch (Exception ex)
@@ -76,13 +117,24 @@ public class StreamService : IDisposable
         }
     }
 
-    // Запуск всех трансляций
+    // Запуск всех трансляций у которых есть токен
     public void StartAllStreams()
     {
         try
         {
-            var cameraPlatforms = _context.CameraPlatforms.AsNoTracking().ToList();
+            var cameraPlatforms = _context.CameraPlatforms
+                .Include(cp => cp.Camera)
+                .Where(cp => !string.IsNullOrEmpty(cp.Token))
+                .ToList();
+
             _streamManager.StartAllStreams(cameraPlatforms);
+
+            foreach (var cp in cameraPlatforms)
+            {
+                cp.IsActive = true;
+            }
+
+            _context.SaveChanges();
         }
         catch (Exception ex)
         {
@@ -97,6 +149,14 @@ public class StreamService : IDisposable
         try
         {
             _streamManager.StopAllStreams();
+            var cameraPlatforms = _context.CameraPlatforms.ToList();
+
+            foreach (var cp in cameraPlatforms)
+            {
+                cp.IsActive = false;
+            }
+
+            _context.SaveChanges();
         }
         catch (Exception ex)
         {
@@ -111,14 +171,23 @@ public class StreamService : IDisposable
         try
         {
             var cameraPlatforms = _context.CameraPlatforms
-                .Where(cp => cp.PlatformId == platformId)
-                .AsNoTracking()
+                .Include(cp => cp.Camera)
+                .Include(cp => cp.Platform)
+                .Where(cp => cp.PlatformId == platformId && !string.IsNullOrEmpty(cp.Token))
                 .ToList();
+
+            if (cameraPlatforms == null || cameraPlatforms.Count == 0)
+            {
+                throw new InvalidOperationException($"Камеры для платформы с ID {platformId} не найдены.");
+            }
 
             foreach (var cp in cameraPlatforms)
             {
                 _streamManager.StartStream(cp);
+                cp.IsActive = true;
             }
+
+            _context.SaveChanges();
         }
         catch (Exception ex)
         {
@@ -133,14 +202,23 @@ public class StreamService : IDisposable
         try
         {
             var cameraPlatforms = _context.CameraPlatforms
+                .Include(cp => cp.Camera)
+                .Include(cp => cp.Platform)
                 .Where(cp => cp.PlatformId == platformId)
-                .AsNoTracking()
                 .ToList();
+
+            if (cameraPlatforms == null || cameraPlatforms.Count == 0)
+            {
+                throw new InvalidOperationException($"Камеры для платформы с ID {platformId} не найдены.");
+            }
 
             foreach (var cp in cameraPlatforms)
             {
                 _streamManager.StopStream(cp);
+                cp.IsActive = false;
             }
+
+            _context.SaveChanges();
         }
         catch (Exception ex)
         {
@@ -155,14 +233,23 @@ public class StreamService : IDisposable
         try
         {
             var cameraPlatforms = _context.CameraPlatforms
-                .Where(cp => cp.CameraId == cameraId)
-                .AsNoTracking()
+                .Include(cp => cp.Camera)
+                .Include(cp => cp.Platform)
+                .Where(cp => cp.CameraId == cameraId && !string.IsNullOrEmpty(cp.Token))
                 .ToList();
+
+            if (cameraPlatforms == null || cameraPlatforms.Count == 0)
+            {
+                throw new InvalidOperationException($"Платформы для камеры с ID {cameraId} не найдены.");
+            }
 
             foreach (var cp in cameraPlatforms)
             {
                 _streamManager.StartStream(cp);
+                cp.IsActive = true;
             }
+
+            _context.SaveChanges();
         }
         catch (Exception ex)
         {
@@ -177,14 +264,23 @@ public class StreamService : IDisposable
         try
         {
             var cameraPlatforms = _context.CameraPlatforms
+                .Include(cp => cp.Camera)
+                .Include(cp => cp.Platform)
                 .Where(cp => cp.CameraId == cameraId)
-                .AsNoTracking()
                 .ToList();
+
+            if (cameraPlatforms == null || cameraPlatforms.Count == 0)
+            {
+                throw new InvalidOperationException($"Платформы для камеры с ID {cameraId} не найдены.");
+            }
 
             foreach (var cp in cameraPlatforms)
             {
                 _streamManager.StopStream(cp);
+                cp.IsActive = false;
             }
+
+            _context.SaveChanges();
         }
         catch (Exception ex)
         {
@@ -198,7 +294,6 @@ public class StreamService : IDisposable
     {
         var cameras = _context.Cameras
             .Where(c => c.Nomination != null && c.Nomination.Id == nominationId)
-            .AsNoTracking()
             .ToList();
 
         if (cameras == null || cameras.Count == 0)
@@ -207,8 +302,9 @@ public class StreamService : IDisposable
         }
 
         var cameraPlatforms = _context.CameraPlatforms
-            .Where(cp => cameras.Contains(cp.Camera))
-            .AsNoTracking()
+            .Include(cp => cp.Camera)
+            .Include(cp => cp.Platform)
+            .Where(cp => cameras.Contains(cp.Camera) && !string.IsNullOrEmpty(cp.Token))
             .ToList();
 
         if (cameraPlatforms == null || cameraPlatforms.Count == 0)
@@ -221,6 +317,7 @@ public class StreamService : IDisposable
             try
             {
                 _streamManager.StartStream(cp);
+                cp.IsActive = true;
             }
             catch (Exception ex)
             {
@@ -229,6 +326,8 @@ public class StreamService : IDisposable
                     cp.CameraId, cp.PlatformId);
             }
         }
+
+        _context.SaveChanges();
     }
 
     // Остановка трансляций для определенной номинации
@@ -236,7 +335,6 @@ public class StreamService : IDisposable
     {
         var cameras = _context.Cameras
             .Where(c => c.Nomination != null && c.Nomination.Id == nominationId)
-            .AsNoTracking()
             .ToList();
 
         if (cameras == null || cameras.Count == 0)
@@ -245,8 +343,9 @@ public class StreamService : IDisposable
         }
 
         var cameraPlatforms = _context.CameraPlatforms
+            .Include(cp => cp.Camera)
+            .Include(cp => cp.Platform)
             .Where(cp => cameras.Contains(cp.Camera))
-            .AsNoTracking()
             .ToList();
 
         if (cameraPlatforms == null || cameraPlatforms.Count == 0)
@@ -259,6 +358,7 @@ public class StreamService : IDisposable
             try
             {
                 _streamManager.StopStream(cp);
+                cp.IsActive = false;
             }
             catch (Exception ex)
             {
@@ -266,5 +366,59 @@ public class StreamService : IDisposable
                     cp.CameraId, cp.PlatformId);
             }
         }
+
+        _context.SaveChanges();
+    }
+
+    // Получение всех трансляций
+    public async Task<List<BroadcastDto>> GetAllStreams()
+    {
+        var broadcasts = await _context.CameraPlatforms
+            .Include(cp => cp.Camera)
+            .ThenInclude(c => c.Nomination)
+            .Include(cp => cp.Platform)
+            .Include(cp => cp.Camera.City)
+            .Select(cp => new BroadcastDto(
+                    cp.Camera.Url,
+                    cp.Camera.City.Name,
+                    cp.Camera.Nomination != null ? cp.Camera.Nomination.Id : 0,
+                    cp.Camera.Nomination != null ? cp.Camera.Nomination.Name : "N/A",
+                    cp.Camera.Id,
+                    cp.Camera.Name,
+                    new List<PlatformStatusDto>
+                    {
+                        new PlatformStatusDto(
+                            cp.Platform.Id,
+                            cp.Platform.Name,
+                            cp.IsActive
+                        )
+                    }
+                )
+            )
+            .ToListAsync();
+
+        return broadcasts;
     }
 }
+
+public record BroadcastDto(
+    string Url,
+    string City,
+    int NominationId,
+    string Nomination,
+    int CameraId,
+    string CameraName,
+    List<PlatformStatusDto> PlatformStatuses
+);
+
+public record PlatformStatusDto(
+    int PlatformId,
+    string Name,
+    bool IsActive
+);
+
+public record AddStreamDto(
+    int CameraId,
+    int PlatformId,
+    string? Token
+);
