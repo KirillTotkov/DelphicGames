@@ -34,5 +34,11 @@ public class ApplicationContext : IdentityDbContext<User>
             .HasOne(cp => cp.Platform)
             .WithMany(p => p.CameraPlatforms)
             .HasForeignKey(cp => cp.PlatformId);
+
+        modelBuilder.Entity<Camera>()
+            .HasOne(c => c.Nomination)
+            .WithMany(n => n.Cameras)
+            .HasForeignKey(c => c.NominationId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

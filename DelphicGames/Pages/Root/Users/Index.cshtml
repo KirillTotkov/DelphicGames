@@ -5,29 +5,31 @@
     ViewData["Title"] = "Управление пользователями";
 }
 
-<h1>Пользователи</h1>
+<div class="container">
+    <h1>Пользователи</h1>
 
-<a asp-page="Create">Создать нового пользователя</a>
+    <a asp-page="Create">Создать нового пользователя</a>
 
-<table class="table table-striped">
-    <thead>
-    <tr>
-        <th>Имя</th>
-        <th>Email</th>
-        <th>Действия</th>
-    </tr>
-    </thead>
-    <tbody>
-    @foreach (var user in Model.Users)
-    {
+    <table class="table table-striped">
+        <thead>
         <tr>
-            <td>@user.UserName</td>
-            <td>@user.Email</td>
-            <td>
-                <a asp-page="Edit" asp-route-id="@user.Id">Изменить пароль</a> |
-                <a asp-page="Delete" asp-route-id="@user.Id">Удалить</a>
-            </td>
+            <th>Имя</th>
+            <th>Email</th>
+            <th>Действия</th>
         </tr>
-    }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+        @foreach (var user in Model.Users)
+        {
+            <tr>
+                <td>@user.UserName</td>
+                <td>@user.Email</td>
+                <td>
+                    <a asp-page="Edit" asp-route-id="@user.Id">Изменить пароль</a> |
+                    <a asp-page="Delete" asp-route-id="@user.Id">Удалить</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

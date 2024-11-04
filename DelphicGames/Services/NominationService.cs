@@ -26,8 +26,8 @@ public class NominationService
 
         if (alreadyNominated.Count != 0)
         {
-            var ids = string.Join(", ", alreadyNominated.Select(c => c.Id));
-            throw new ArgumentException($"Камеры с id {ids} уже связаны с номинацией");
+            var names = string.Join(", ", alreadyNominated.Select(c => c.Name));
+            throw new ArgumentException($"Камеры {names} уже связаны с номинацией");
         }
 
         nomination.Cameras.AddRange(cameras);
@@ -45,8 +45,25 @@ public class NominationService
             .Include(n => n.Cameras)
             .ToListAsync();
 
-        return nominations.Select(n => new GetNominationDto(n.Id, n.Name, n.Cameras.Select(c => c.Url).ToList()))
-            .ToList();
+        return nominations.Select(n =>
+            new GetNominationDto(n.Id, n.Name,
+                n.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList())).ToList();
+    }
+
+    public async Task<GetNominationDto?> GetNominationWithCameras(int nominationId)
+    {
+        var nomination = await _context.Nominations
+            .AsNoTracking()
+            .Include(n => n.Cameras)
+            .FirstOrDefaultAsync(n => n.Id == nominationId);
+
+        if (nomination == null)
+        {
+            return null;
+        }
+
+        return new GetNominationDto(nomination.Id, nomination.Name,
+            nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList());
     }
 
     public async Task<List<NominationDto>> GetNominations()
@@ -61,7 +78,7 @@ public class NominationService
 
     public async Task DeleteNomination(int nominationId)
     {
-        var nomination = await _context.Nominations.FindAsync(nominationId);
+        var nomination = await _context.Nominations.FirstOrDefaultAsync(n => n.Id == nominationId);
 
         if (nomination == null)
         {
@@ -86,16 +103,16 @@ public class NominationService
         nomination.Name = dto.Name.Trim();
 
         var cameras = await GetCamerasByIds(dto.CameraIds);
-        
+
         // Проверка, не связана ли уже какая-либо камера с номинацией
         var alreadyNominated = await _context.Cameras
-            .Where(c => dto.CameraIds.Contains(c.Id) && c.NominationId != nominationId)
+            .Where(c => dto.CameraIds.Contains(c.Id) && c.NominationId != nominationId && c.NominationId != null)
             .ToListAsync();
 
         if (alreadyNominated.Count != 0)
         {
-            var ids = string.Join(", ", alreadyNominated.Select(c => c.Id));
-            throw new ArgumentException($"Камеры с id {ids} уже связаны с номинацией");
+            var names = string.Join(", ", alreadyNominated.Select(c => c.Name));
+            throw new ArgumentException($"Камеры {names} уже связаны с номинацией");
         }
 
         nomination.Cameras.Clear();
@@ -122,6 +139,6 @@ public class NominationService
 
 public record AddNominationDto(string Name, List<int> CameraIds);
 
-public record GetNominationDto(int Id, string Name, List<string> CameraUrls);
+public record GetNominationDto(int Id, string Name, List<GetCameraDto> Cameras);
 
 public record NominationDto(int Id, string Name);

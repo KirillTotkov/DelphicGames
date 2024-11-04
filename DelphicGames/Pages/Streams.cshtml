@@ -1,0 +1,205 @@
+﻿@page "/streams"
+@model DelphicGames.Pages.StreamsModel
+
+@{
+    ViewData["Title"] = "Трансляции";
+}
+
+<div class="row col-md-12 col-xs-12" style="padding: 15px; margin: 0 auto;">
+    <h3>Монитор потоков</h3>
+    <div class="card container col-md-9 col-sm-12" style="display: inline-block; border: none; margin: 0;">
+        <div class="card-body table-responsive w-100 p-0">
+            <table class="table table-light table-hover align-middle" id="main_table">
+                <!--Table's headers-->
+                <thead>
+                <tr class="table-light">
+                    <th rowspan="2" class="table-light">URL</th>
+                    <th rowspan="2" class="table-light">Город</th>
+                    <th rowspan="2" class="table-light">Номинация</th>
+                    <th rowspan="2" class="table-light">Название камеры</th>
+                    <th class="table-light">VK</th>
+                    <th class="table-light">OK</th>
+                    <th class="table-light">RT</th>
+                    <th class="table-light">TG</th>
+                </tr>
+                <tr class="table-light">
+                    <th class="table-light">
+                        <input type="checkbox" id="vk_all" name="vk_all">
+                    </th>
+                    <th class="table-light">
+                        <input type="checkbox" id="ok_all" name="ok_all">
+                    </th>
+                    <th class="table-light">
+                        <input type="checkbox" id="rt_all" name="rt_all">
+                    </th>
+                    <th class="table-light">
+                        <input type="checkbox" id="tg_all" name="tg_all">
+                    </th>
+                </tr>
+                </thead>
+
+                <!--Table's body-->
+                <tbody id="table-body" class="table-group-divider">
+                <!-- Таблица будет заполнена данными из API ответа -->
+                <tr>
+                    <td>http://example.com</td>
+                    <td>Москва</td>
+                    <td>Лучший проект</td>
+                    <td>Камера A</td>
+                    <td>
+                        <input type="checkbox">
+                    </td>
+                    <td>
+                        <input type="checkbox">
+                    </td>
+                    <td>
+                        <input type="checkbox">
+                    </td>
+                    <td>
+                        <input type="checkbox">
+                    </td>
+                </tr>
+                <tr>
+                    <td>http://example2.com</td>
+                    <td>Санкт-Петербург</td>
+                    <td>Лучший дизайнер</td>
+                    <td>Камера B</td>
+                    <td>
+                        <input type="checkbox">
+                    </td>
+                    <td>
+                        <input type="checkbox">
+                    </td>
+                    <td>
+                        <input type="checkbox">
+                    </td>
+                    <td>
+                        <input type="checkbox">
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
+    <!--FILTERS-->
+    <div class="filters-container card col-md-3 col-sm-12" style="display: inline-block; margin: 0; padding: 0; float: right;">
+        <div class="card-header">
+            <h5 class="">Фильтры</h5>
+        </div>
+        <div class="card-body gap-3">
+            <div class="filter-block">
+                <label for="city_filter">Город</label>
+                <select multiple id="city_filter" class="form-select" aria-label="Выберите позицию...">
+                    <option value="Москва">Москва</option>
+                    <option value="Санкт-Петербург">Санкт-Петербург</option>
+                </select>
+            </div>
+            <div class="filter-block">
+                <label for="nomination_filter">Номинация</label>
+                <select multiple id="nomination_filter" class="form-select" aria-label="Выберите позицию...">
+                    <option value="1">Один</option>
+                    <option value="2">Два</option>
+                    <option value="3">Три</option>
+                </select>
+            </div>
+            <div class="filter-block">
+                <label for="camera_filter">Название камеры</label>
+                <select multiple id="camera_filter" class="form-select" aria-label="Выберите позицию...">
+                    <option value="1">Один</option>
+                    <option value="2">Два</option>
+                    <option value="3">Три</option>
+                </select>
+            </div>
+        </div>
+
+
+    </div>
+</div>
+
+@section Head
+{
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+}
+
+@section Scripts
+{
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+    <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+
+    <script>
+    $(document).ready(function() {
+        var table = $('#main_table').DataTable({
+            "searching": false, // Отключаем стандартное поле поиска
+            "order": [[0, "asc"], [1, "asc"], [2, "asc"], [3, "asc"]], // Сортировка по первым четырем столбцам
+            "columnDefs": [
+                { "orderable": true, "targets": [0, 1, 2, 3] }, // Разрешить сортировку только для первых четырех столбцов
+                { "orderable": false, "targets": [4, 5, 6, 7] } // Запретить сортировку для остальных столбцов
+            ],
+            "language": {
+                "info": "Показано c _START_ по _END_ из _TOTAL_ записей", // Настройка нижней подписи таблицы
+                "lengthMenu": "_MENU_&nbsp;записей на страницу",
+                "emptyTable": "Нет данных", // Сообщение, когда таблица пуста
+                "zeroRecords": "Нет совпадений", // Сообщение, когда нет совпадений
+                "infoEmpty": "", // Сообщение, когда нет записей
+                "infoFiltered": "(отфильтровано из _MAX_ записей)", // Сообщение о фильтрации
+            }
+        });
+
+//Не работает фильтрация
+        //  // Фильтрация по городу
+        // $('#city_filter').on('change', function () {
+        // 	var selectedCities = $(this).val();
+        // 	table.column(1).search(selectedCities ? selectedCities.join('|') : '', true, false).draw();
+        // });
+
+        // // Фильтрация по номинации
+        // $('#nomination_filter').on('change', function () {
+        // 	var selectedNominations = $(this).val();
+        // 	table.column(2).search(selectedNominations ? selectedNominations.join('|') : '', true, false).draw();
+        // });
+
+        // // Фильтрация по названию камеры
+        // $('#camera_filter').on('change', function () {
+        // 	var selectedCameras = $(this).val();
+        // 	table.column(3).search(selectedCameras ? selectedCameras.join('|') : '', true, false).draw();
+        // });
+    });
+</script>
+
+    <!--Initial Multi_Select_Filters-->
+    <script>
+    // Инициализация Choices.js для каждого селекта
+    const citySelect = new Choices('#city_filter', {
+        noResultsText: 'Нет доступных вариантов',
+        noChoicesText: 'Нет доступных вариантов для выбора',
+        removeItemButton: true,
+        searchEnabled: true,
+        placeholder: true,
+        placeholderValue: 'Выберите город',
+    });
+
+    const nominationSelect = new Choices('#nomination_filter', {
+        noResultsText: 'Нет доступных вариантов',
+        noChoicesText: 'Нет доступных вариантов для выбора',
+        removeItemButton: true,
+        searchEnabled: true,
+        placeholder: true,
+        placeholderValue: 'Выберите номинацию',
+    });
+
+    const titleSelect = new Choices('#camera_filter', {
+        noResultsText: 'Нет доступных вариантов',
+        noChoicesText: 'Нет доступных вариантов для выбора',
+        removeItemButton: true,
+        searchEnabled: true,
+        placeholder: true,
+        placeholderValue: 'Выберите название',
+    });
+</script>
+
+}
