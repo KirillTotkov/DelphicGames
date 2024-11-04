@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DelphicGames.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/platforms")]
 public class PlatformController : ControllerBase
 {
     private readonly PlatformService _platformService;
@@ -36,18 +36,32 @@ public class PlatformController : ControllerBase
     [HttpPost]
     public async Task<ActionResult> CreatePlatform(AddPlatformDto platformDto)
     {
-        await _platformService.CreatePlatform(platformDto);
-        return Ok();
+        try
+        {
+            var newPlatform = await _platformService.CreatePlatform(platformDto);
+            return CreatedAtAction(nameof(GetPlatform), new { id = newPlatform.Id }, newPlatform);
+        }
+        catch (Exception ex) when (ex is ValidationException or DuplicateEntityException)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("{id:int}")]
     public async Task<ActionResult> UpdatePlatform(int id, UpdatePlatformDto platformDto)
     {
-        await _platformService.UpdatePlatform(id, platformDto);
-        return Ok();
+        try
+        {
+            var updatedPlatform = await _platformService.UpdatePlatform(id, platformDto);
+            return Ok(updatedPlatform);
+        }
+        catch (Exception ex) when (ex is ValidationException or DuplicateEntityException)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeletePlatform(int id)
     {
         await _platformService.DeletePlatform(id);
