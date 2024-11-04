@@ -34,13 +34,12 @@ public class NominationController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult> GetNomination(int id)
     {
-        var nomination = await _nominationService.GetNominationsWithCameras();
-        var result = nomination.FirstOrDefault(n => n.Id == id);
-        if (result == null)
+        var nomination = await _nominationService.GetNominationWithCameras(id);
+        if (nomination == null)
         {
             return NotFound();
         }
-        return Ok(result);
+        return Ok(nomination);
     }
 
     [HttpPost]
@@ -49,7 +48,7 @@ public class NominationController : ControllerBase
         try
         {
             var nomination = await _nominationService.AddNomination(dto);
-            var result = new GetNominationDto(nomination.Id, nomination.Name, nomination.Cameras.Select(c => c.Url).ToList());
+            var result = new GetNominationDto(nomination.Id, nomination.Name, nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList());
             return CreatedAtAction(nameof(GetNomination), new { id = nomination.Id }, result);
         }
         catch (ArgumentException ex)
