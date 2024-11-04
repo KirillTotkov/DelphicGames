@@ -7,7 +7,6 @@ namespace DelphicGames.Controllers;
 
 [ApiController]
 [Route("api/cameras")]
-[Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)}")]
 public class CameraController : ControllerBase
 {
     private readonly CameraService _cameraService;
@@ -18,6 +17,7 @@ public class CameraController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)}")]
     public async Task<IActionResult> AddCamera([FromBody] AddCameraDto dto)
     {
         try
@@ -31,7 +31,16 @@ public class CameraController : ControllerBase
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet]
+    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)},{nameof(UserRoles.Admin)}")]
+    public async Task<IActionResult> GetAllCameras()
+    {
+        var cameras = await _cameraService.GetCameras();
+        return Ok(cameras);
+    }
+
+    [HttpGet("{id:int}")]
+    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)},{nameof(UserRoles.Admin)}")]
     public async Task<IActionResult> GetCamera(int id)
     {
         var camera = await _cameraService.GetCamera(id);
@@ -43,14 +52,8 @@ public class CameraController : ControllerBase
         return Ok(camera);
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetAllCameras()
-    {
-        var cameras = await _cameraService.GetCameras();
-        return Ok(cameras);
-    }
-
-    [HttpPut("{id}")]
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)}")]
     public async Task<IActionResult> UpdateCamera(int id, [FromBody] UpdateCameraDto dto)
     {
         try
@@ -64,7 +67,8 @@ public class CameraController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)}")]
     public async Task<IActionResult> DeleteCamera(int id)
     {
         try
@@ -78,7 +82,8 @@ public class CameraController : ControllerBase
         }
     }
 
-    [HttpPost("{cameraId}/platforms/{platformId}")]
+    [HttpPost("{cameraId:int}/platforms/{platformId:int}")]
+    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Admin)}")]
     public async Task<IActionResult> AddPlatformToCamera(int cameraId, int platformId)
     {
         try
