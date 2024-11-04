@@ -118,7 +118,7 @@ public class CameraService
             throw new InvalidOperationException($"Платформа с ID {platformId} не найдена.");
         }
 
-        var cameraPlatform = new CameraPlatforms
+        var cameraPlatform = new CameraPlatform
         {
             Camera = camera,
             Platform = platform
