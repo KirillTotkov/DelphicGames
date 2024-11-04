@@ -1,0 +1,136 @@
+﻿@page "/nominations"
+@model DelphicGames.Pages.NominationsModel
+
+@{
+    ViewData["Title"] = "Номинации";
+}
+<div class="row col-md-12 col-xs-12" style="padding: 15px; margin: 0 auto;">
+    <h3>Список созданных номинаций</h3>
+    <div id="nominations-list" class="card col-md-9 col-sm-12" style=" border: none;">
+        <div class="d-flex justify-content-end">
+            <button type="button" class="btn btn-success col-1 w-auto" data-bs-toggle="modal"
+                data-bs-target="#addGroupModal">
+                Добавить
+            </button>
+        </div>
+        <div class="card-body table-responsive w-100 p-0">
+            <table class="table table-secondary table-hover align-middle mt-2">
+                <tr class="table-secondary">
+                    <th class="table-secondary">Номинация</th>
+                    <th class="table-secondary">Содержание (Перечень потоков)</th>
+                    <th class="table-secondary">Действия</th>
+                </tr>
+                <tbody id="table-body" class="table-group-divider">
+                    <!-- Таблица будет заполнена данными из API ответа -->
+                    <tr>
+                        <td>Танцы</td>
+                        <td>
+                            <a>https://example1.com</a><br />
+                            <a>https://example2.com</a>
+                        </td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" id="remove">Удалить</button>
+                            <button class="btn btn-warning btn-sm" id="change">Изменить</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="filters-container card col-md-3 col-sm-12 border-light"
+        style="display: inline-block; padding: 0; float: right;">
+        <div class="card-header">Фильтры</div>
+        <div class="card-body text-secondary gap-3">
+            <div class="filter-block">
+                <label for="group_filter">Номинация</label>
+                <select multiple id="group_filter" class="form-select" aria-label="Выберите позицию...">
+                    <option value="1">Один</option>
+                    <option value="2">Два</option>
+                    <option value="3">Три</option>
+                </select>
+            </div>
+            <div class="filter-block">
+                <label for="camera_filter">Название камеры</label>
+                <select multiple id="camera_filter" class="form-select" aria-label="Выберите позицию...">
+                    <option value="1">Один</option>
+                    <option value="2">Два</option>
+                    <option value="3">Три</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно -->
+<div class="modal fade" id="addGroupModal" tabindex="-1" aria-labelledby="addGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addGroupModalLabel">Название номинации</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="groupName" class="form-label">Укажите название номинации</label>
+                        <input type="text" class="form-control" id="groupName" placeholder="Введите название номинации"
+                            required />
+                    </div>
+                    <h6 class="mb-3">Фильтры</h6>
+                    <div class="border p-3 mb-3">
+                        <div class="mb-3 d-flex flex-wrap">
+                            <div class="me-3">
+                                <label for="filterRegion" class="form-label">Регион</label>
+                                <select class="form-select" id="filterRegion">
+                                </select>
+                            </div>
+                            <div class="me-3">
+                                <label for="filterCity" class="form-label">Город</label>
+                                <select class="form-select" id="filterCity">
+                                </select>
+                            </div>
+                            <div class="me-3">
+                                <label for="filterUrl" class="form-label">URL</label>
+                                <input type="text" class="form-control" id="filterUrl" placeholder="" />
+                            </div>
+                            <div class="me-3">
+                                <label for="filterName" class="form-label">Название камеры</label>
+                                <input type="text" class="form-control" id="filterName"
+                                    placeholder="" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Город/Регион</th>
+                                    <th>URL</th>
+                                    <th>Название камеры</th>
+                                    <th class="text-center">Выбрать</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="height: 30px">
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-success me-2" id="notification-save">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="js/nominations.js"></script>
+}
