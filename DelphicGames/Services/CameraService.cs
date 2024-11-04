@@ -15,8 +15,19 @@ public class CameraService
         _logger = logger;
     }
 
-    public async Task<Camera> CreateCamera(Camera camera)
+    public async Task<Camera> CreateCamera(AddCameraDto dto)
     {
+        if (await _context.Cameras.AnyAsync(c => c.Name == dto.Name))
+        {
+            throw new InvalidOperationException($"Камера с именем {dto.Name} уже существует.");
+        }
+
+        var camera = new Camera
+        {
+            Name = dto.Name,
+            Url = dto.Url
+        };
+
         _context.Cameras.Add(camera);
         await _context.SaveChangesAsync();
         return camera;
@@ -28,22 +39,36 @@ public class CameraService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<Camera?> GetCamera(int id)
+    public async Task<GetCameraDto?> GetCamera(int id)
     {
-        return await _context.Cameras.FindAsync(id);
+        var camera = await _context.Cameras.FindAsync(id);
+        if (camera == null)
+        {
+            return null;
+        }
+
+        return new GetCameraDto(camera.Id, camera.Name, camera.Url);
     }
 
-    public async Task<Camera?> GetCamera(string name)
+    public async Task<GetCameraDto?> GetCamera(string name)
     {
-        return await _context.Cameras.FirstOrDefaultAsync(c => c.Name == name);
+        var camera = await _context.Cameras.FirstOrDefaultAsync(c => c.Name == name);
+        if (camera == null)
+        {
+            return null;
+        }
+
+        return new GetCameraDto(camera.Id, camera.Name, camera.Url);
     }
 
-    public async Task<List<Camera>> GetCameras()
+    public async Task<List<GetCameraDto>> GetCameras()
     {
-        return await _context.Cameras.ToListAsync();
+        return await _context.Cameras
+            .Select(c => new GetCameraDto(c.Id, c.Name, c.Url))
+            .ToListAsync();
     }
 
-    public async Task<Camera?> UpdateCamera(int id, Camera camera)
+    public async Task<Camera?> UpdateCamera(int id, UpdateCameraDto camera)
     {
         var existingCamera = await _context.Cameras.FindAsync(id);
         if (existingCamera == null)
@@ -80,28 +105,8 @@ public class CameraService
     {
         return await _context.Cameras.AnyAsync(c => c.Name == name);
     }
-    
-    public async Task AddPlatformToCamera(int cameraId, int platformId)
-    {
-        var camera = await _context.Cameras.FindAsync(cameraId);
-        if (camera == null)
-        {
-            throw new InvalidOperationException($"Камера с ID {cameraId} не найдена.");
-        }
-
-        var platform = await _context.Platforms.FindAsync(platformId);
-        if (platform == null)
-        {
-            throw new InvalidOperationException($"Платформа с ID {platformId} не найдена.");
-        }
-
-        var cameraPlatform = new CameraPlatforms
-        {
-            Camera = camera,
-            Platform = platform
-        };
-
-        _context.CameraPlatforms.Add(cameraPlatform);
-        await _context.SaveChangesAsync();
-    }
 }
+
+public record AddCameraDto(string Name, string Url);
+public record UpdateCameraDto(string Name, string Url);
+public record GetCameraDto(int Id, string Name, string Url);
