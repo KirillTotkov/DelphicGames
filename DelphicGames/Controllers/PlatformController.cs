@@ -1,10 +1,13 @@
-﻿using DelphicGames.Services;
+﻿using DelphicGames.Data.Models;
+using DelphicGames.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DelphicGames.Controllers;
 
 [ApiController]
 [Route("api/platforms")]
+[Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Admin)}")]
 public class PlatformController : ControllerBase
 {
     private readonly PlatformService _platformService;

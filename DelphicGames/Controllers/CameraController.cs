@@ -1,12 +1,13 @@
-﻿using DelphicGames.Data;
-using DelphicGames.Data.Models;
+﻿using DelphicGames.Data.Models;
 using DelphicGames.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DelphicGames.Controllers;
 
 [ApiController]
 [Route("api/cameras")]
+[Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)}")]
 public class CameraController : ControllerBase
 {
     private readonly CameraService _cameraService;
@@ -38,6 +39,7 @@ public class CameraController : ControllerBase
         {
             return NotFound();
         }
+
         return Ok(camera);
     }
 
@@ -90,4 +92,3 @@ public class CameraController : ControllerBase
         }
     }
 }
-
