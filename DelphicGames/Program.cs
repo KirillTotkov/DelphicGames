@@ -88,6 +88,7 @@ try
     builder.Services.AddScoped<CameraService>();
     builder.Services.AddScoped<StreamService>();
     builder.Services.AddScoped<PlatformService>();
+    builder.Services.AddScoped<NominationService>();
 
     var app = builder.Build();
 
