@@ -10,22 +10,26 @@ namespace DelphicGames.Controllers;
 public class RegionController : ControllerBase
 {
     private readonly ApplicationContext _context;
-    
+
     public RegionController(ApplicationContext context)
     {
         _context = context;
     }
-    
+
     // GET: api/regions
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Region>>> GetRegions()
+    public async Task<ActionResult> GetRegions()
     {
-        return await _context.Regions.Include(r => r.Cities).ToListAsync();
+        var regions = await _context.Regions
+            .Include(r => r.Cities)
+            .Select(r => new RegionDto(r.Id, r.Name, r.Cities.Select(c => new CityDto(c.Id, c.Name)).ToList()))
+            .ToListAsync();
+        return Ok(regions);
     }
-    
+
     // GET: api/region/5
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<Region>> GetRegion(int id)
+    public async Task<ActionResult> GetRegion(int id)
     {
         var region = await _context.Regions.Include(r => r.Cities).FirstOrDefaultAsync(r => r.Id == id);
 
@@ -34,14 +38,23 @@ public class RegionController : ControllerBase
             return NotFound();
         }
 
-        return region;
+        var regionDto = new RegionDto(region.Id, region.Name, region.Cities.Select(c => new CityDto(c.Id, c.Name)).ToList());
+        return Ok(regionDto);
     }
-    
+
     // POST: api/region
     [HttpPost]
-    public async Task<ActionResult<Region>> PostRegion(Region region)
+    public async Task<ActionResult> PostRegion(AddRegionDto regionDto)
     {
-        _context.Regions.Add(region);
+        var region = new Region { Name = regionDto.Name };
+        await _context.Regions.AddAsync(region);
+
+        foreach (var cityDto in regionDto.Cities)
+        {
+            var city = new City { Name = cityDto.Name, Region = region };
+            await _context.Cities.AddAsync(city);
+        }
+
         await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetRegion), new { id = region.Id }, region);
@@ -63,6 +76,26 @@ public class RegionController : ControllerBase
         return NoContent();
     }
 
-    
+    [HttpGet("{id:int}/cities")]
+    public async Task<ActionResult<IEnumerable<CityDto>>> GetCitiesByRegion(int id)
+    {
+        var region = await _context.Regions
+            .Include(r => r.Cities)
+            .FirstOrDefaultAsync(r => r.Id == id);
 
+        if (region == null)
+        {
+            return NotFound();
+        }
+
+        var cities = region.Cities.Select(c => new CityDto(c.Id, c.Name)).ToList();
+        return Ok(cities);
+    }
 }
+
+public record AddRegionDto(string Name, List<AddCityDto> Cities);
+public record AddCityDto(string Name);
+
+public record RegionDto(int Id, string Name, List<CityDto> Cities);
+
+public record CityDto(int Id, string Name);
