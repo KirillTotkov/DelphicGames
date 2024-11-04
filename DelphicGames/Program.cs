@@ -57,6 +57,7 @@ try
             }
         });
     });
+
     builder.Services.AddAuthorization();
     builder.Services.AddRazorPages();
 
@@ -89,6 +90,9 @@ try
     builder.Services.AddScoped<StreamService>();
     builder.Services.AddScoped<PlatformService>();
     builder.Services.AddScoped<NominationService>();
+
+    var rootUserConfig = builder.Configuration.GetSection("RootUser").Get<RootUserConfig>();
+
 
     var app = builder.Build();
 
@@ -125,6 +129,44 @@ try
         Console.WriteLine("Application is stopping");
     });
 
+    // Создаем роль cуперадминистратора и пользователя-cуперадминистратора, если их нет
+    using (var scope = app.Services.CreateScope())
+    {
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+        var rootUser = await userManager.FindByNameAsync(rootUserConfig.Email);
+        if (rootUser != null)
+        {
+            return;
+        }
+
+        // Создаем роль cуперадминистратора, если ее нет
+        if (!await roleManager.RoleExistsAsync(nameof(UserRoles.Root)))
+        {
+            var rootRole = new IdentityRole(nameof(UserRoles.Root));
+            await roleManager.CreateAsync(rootRole);
+        }
+
+        // Проверяем, есть ли уже пользователь-cуперадминистратора
+        if (rootUser == null)
+        {
+            rootUser = new User
+            {
+                UserName = rootUserConfig.Email,
+                Email = rootUserConfig.Email,
+                EmailConfirmed = true
+            };
+
+            // Создаем пользователя с паролем
+            var result = await userManager.CreateAsync(rootUser, rootUserConfig.Password);
+            if (result.Succeeded)
+            {
+                // Назначаем роль cуперадминистратора
+                await userManager.AddToRoleAsync(rootUser, nameof(UserRoles.Root));
+            }
+        }
+    }
 
     app.Run();
 }
