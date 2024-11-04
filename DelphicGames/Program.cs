@@ -6,6 +6,7 @@ using DelphicGames.Services.Streaming;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Events;
 
@@ -27,7 +28,35 @@ try
     builder.Services.AddSerilog();
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(c =>
+    {
+        c.SwaggerDoc("v1", new OpenApiInfo { Title = "YourAPI", Version = "v1" });
+
+        // Add security definition for Cookie
+        c.AddSecurityDefinition("cookieAuth", new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.ApiKey,
+            In = ParameterLocation.Cookie,
+            Name = "Cookie",
+            Description = "Cookie-based authentication."
+        });
+
+        // Add security requirement
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "cookieAuth"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
+    });
     builder.Services.AddAuthorization();
     builder.Services.AddRazorPages();
 
