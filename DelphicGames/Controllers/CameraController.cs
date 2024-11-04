@@ -19,9 +19,15 @@ public class CameraController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AddCamera([FromBody] AddCameraDto dto)
     {
-        await _cameraService.CreateCamera(dto);
-
-        return Ok();
+        try
+        {
+            var camera = await _cameraService.CreateCamera(dto);
+            return CreatedAtAction(nameof(GetCamera), new { Id = camera.Id }, camera);
+        }
+        catch (InvalidOperationException e)
+        {
+            return BadRequest(new { Error = e.Message });
+        }
     }
 
     [HttpGet("{id}")]
@@ -40,6 +46,48 @@ public class CameraController : ControllerBase
     {
         var cameras = await _cameraService.GetCameras();
         return Ok(cameras);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateCamera(int id, [FromBody] UpdateCameraDto dto)
+    {
+        try
+        {
+            var camera = await _cameraService.UpdateCamera(id, dto);
+            return Ok(camera);
+        }
+        catch (InvalidOperationException e)
+        {
+            return BadRequest(new { Error = e.Message });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteCamera(int id)
+    {
+        try
+        {
+            await _cameraService.DeleteCamera(id);
+            return NoContent();
+        }
+        catch (InvalidOperationException e)
+        {
+            return BadRequest(new { Error = e.Message });
+        }
+    }
+
+    [HttpPost("{cameraId}/platforms/{platformId}")]
+    public async Task<IActionResult> AddPlatformToCamera(int cameraId, int platformId)
+    {
+        try
+        {
+            await _cameraService.AddPlatformToCamera(cameraId, platformId);
+            return NoContent();
+        }
+        catch (InvalidOperationException e)
+        {
+            return BadRequest(new { Error = e.Message });
+        }
     }
 }
 
