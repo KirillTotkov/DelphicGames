@@ -5,10 +5,11 @@
 <ul class="navbar-nav mx-auto" style="box-shadow: none;">
     @if (SignInManager.IsSignedIn(User))
     {
-        @if (User.IsInRole(nameof(UserRoles.Root)) || User.IsInRole(nameof(UserRoles.Specialist)) || User.IsInRole(nameof(UserRoles.Admin)))
+        @if (User.IsInRole(nameof(UserRoles.Root)) || User.IsInRole(nameof(UserRoles.Specialist)) ||
+       User.IsInRole(nameof(UserRoles.Admin)))
         {
             <li class="nav-item">
-                <a class="nav-link text-dark" asp-page="cameras">Камеры</a>
+                <a class="nav-link text-dark" asp-page="/Cameras">Камеры</a>
             </li>
         }
 
