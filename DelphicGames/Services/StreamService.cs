@@ -375,29 +375,36 @@ public class StreamService
     {
         var broadcasts = await _context.CameraPlatforms
             .Include(cp => cp.Camera)
-            .ThenInclude(c => c.Nomination)
-            .Include(cp => cp.Platform)
+                .ThenInclude(c => c.Nomination)
             .Include(cp => cp.Camera.City)
-            .Select(cp => new BroadcastDto(
-                    cp.Camera.Url,
-                    cp.Camera.City.Name,
-                    cp.Camera.Nomination != null ? cp.Camera.Nomination.Id : 0,
-                    cp.Camera.Nomination != null ? cp.Camera.Nomination.Name : "N/A",
-                    cp.Camera.Id,
-                    cp.Camera.Name,
-                    new List<PlatformStatusDto>
-                    {
-                        new PlatformStatusDto(
-                            cp.Platform.Id,
-                            cp.Platform.Name,
-                            cp.IsActive
-                        )
-                    }
-                )
-            )
+            .Include(cp => cp.Platform)
+            .AsNoTracking()
             .ToListAsync();
 
-        return broadcasts;
+        var groupedBroadcasts = broadcasts
+            .GroupBy(cp => cp.CameraId)
+            .Select(g =>
+            {
+                var camera = g.First().Camera;
+                return new BroadcastDto(
+                    camera.Url,
+                    camera.City?.Name ?? "N/A",
+                    camera.Nomination?.Id ?? 0,
+                    camera.Nomination?.Name ?? "N/A",
+                    camera.Id,
+                    camera.Name,
+                    g.Select(cp => new PlatformStatusDto(
+                        cp.Platform.Id,
+                        cp.Platform.Name,
+                        cp.IsActive
+                    )).ToList()
+                );
+            })
+            .OrderBy(b => b.Nomination)
+            .ThenBy(b => b.City)
+            .ToList();
+
+        return groupedBroadcasts;
     }
 }
 
