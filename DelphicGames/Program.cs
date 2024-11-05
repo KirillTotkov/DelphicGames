@@ -43,7 +43,6 @@ try
         builder.Services.AddTransient<IEmailSender, NoOpEmailSender>();
     }
 
-
     builder.Services.AddDbContext<ApplicationContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
             .UseSnakeCaseNamingConvention());
@@ -101,14 +100,6 @@ try
     app.MapControllers();
     app.MapRazorPages();
 
-    // Остановка трансляций при завершении работы приложения
-    var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
-    lifetime.ApplicationStopping.Register(() =>
-    {
-        app.Services.GetRequiredService<StreamManager>().StopAllStreams();
-        Console.WriteLine("Application is stopping");
-    });
-
     // Создаем роль cуперадминистратора и пользователя-cуперадминистратора, если их нет
     using (var scope = app.Services.CreateScope())
     {
@@ -142,6 +133,15 @@ try
             }
         }
     }
+
+    // Остановка трансляций при завершении работы приложения
+    app.Lifetime.ApplicationStopping.Register(() =>
+    {
+        using var scope = app.Services.CreateScope();
+        var streamService = scope.ServiceProvider.GetRequiredService<StreamService>();
+        streamService.StopAllStreams();
+        Log.Information("Все трансляции остановлены");
+    });
 
     app.Run();
 }
