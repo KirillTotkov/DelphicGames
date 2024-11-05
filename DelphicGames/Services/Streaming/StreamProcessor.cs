@@ -57,15 +57,15 @@ public class StreamProcessor : IDisposable
             EnableRaisingEvents = true
         };
 
-        process.OutputDataReceived += (sender, args) =>
-         {
-             if (!string.IsNullOrEmpty(args.Data))
-             {
-                 logger.Information(args.Data);
-             }
-         };
+        DataReceivedEventHandler outputHandler = (sender, args) =>
+          {
+              if (!string.IsNullOrEmpty(args.Data))
+              {
+                  logger.Information(args.Data);
+              }
+          };
 
-        process.ErrorDataReceived += (sender, args) =>
+        DataReceivedEventHandler errorHandler = (sender, args) =>
         {
             if (!string.IsNullOrEmpty(args.Data))
             {
@@ -77,6 +77,10 @@ public class StreamProcessor : IDisposable
                     logger.Information(args.Data);
             }
         };
+
+        process.OutputDataReceived += outputHandler;
+        process.ErrorDataReceived += errorHandler;
+
 
         try
         {
@@ -122,6 +126,8 @@ public class StreamProcessor : IDisposable
         }
         finally
         {
+            stream.Process.OutputDataReceived -= null;
+            stream.Process.ErrorDataReceived -= null;
             stream.Process.Dispose();
             stream.Logger.Dispose();
         }
