@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using DelphicGames.Data.Models;
+using Serilog;
 using Stream = DelphicGames.Models.Stream;
 
 namespace DelphicGames.Services.Streaming;
@@ -10,11 +11,12 @@ namespace DelphicGames.Services.Streaming;
 public class StreamProcessor : IDisposable
 {
     private const string FfmpegPath = "ffmpeg";
+    private readonly ILogger<StreamProcessor> _logger;
     private bool _disposed = false;
 
-    public void Dispose()
+    public StreamProcessor(ILogger<StreamProcessor> logger)
     {
-        // TODO: Implement IDisposable
+        _logger = logger;
     }
 
     public Stream StartStreamForPlatform(CameraPlatform cameraPlatform)
@@ -27,6 +29,19 @@ public class StreamProcessor : IDisposable
         }
 
         var ffmpegArguments = GenerateFfmpegArguments(cameraPlatform);
+
+        // Создание директории для логов камеры
+        var cameraId = cameraPlatform.CameraId;
+        var logDirectory = Path.Combine("Logs", $"Camera_{cameraId}");
+        Directory.CreateDirectory(logDirectory);
+
+        // Генерация уникального имени файла лога с временной меткой
+        var logFileName = $"ffmpeg_{cameraPlatform.PlatformId}_{DateTime.Now:yyyyMMdd_HHmmss}.log";
+
+        // Настройка Serilog для записи логов ffmpeg
+        var logger = new LoggerConfiguration()
+            .WriteTo.File(Path.Combine(logDirectory, logFileName))
+            .CreateLogger();
 
         var process = new Process
         {
@@ -42,18 +57,38 @@ public class StreamProcessor : IDisposable
             EnableRaisingEvents = true
         };
 
-        process.OutputDataReceived += (sender, args) => Console.WriteLine(args.Data);
-        process.ErrorDataReceived += (sender, args) => Console.Error.WriteLine(args.Data);
+        process.OutputDataReceived += (sender, args) =>
+         {
+             if (!string.IsNullOrEmpty(args.Data))
+             {
+                 logger.Information(args.Data);
+             }
+         };
+
+        process.ErrorDataReceived += (sender, args) =>
+        {
+            if (!string.IsNullOrEmpty(args.Data))
+            {
+                if (args.Data.Contains("Error"))
+                    logger.Error(args.Data);
+                else if (args.Data.Contains("Warning"))
+                    logger.Warning(args.Data);
+                else
+                    logger.Information(args.Data);
+            }
+        };
 
         try
         {
             process.Start();
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
+            _logger.LogInformation("Запущен ffmpeg процесс для камеры {CameraId}", cameraId);
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Ошибка при запуске процесса ffmpeg: {ex.Message}");
+            _logger.LogError(ex, "Ошибка при запуске процесса ffmpeg для камеры {CameraId}", cameraId);
+            logger.Dispose();
             throw;
         }
 
@@ -62,7 +97,8 @@ public class StreamProcessor : IDisposable
             CameraUrl = cameraPlatform.Camera.Url,
             PlatformUrl = cameraPlatform.Platform.Url,
             Token = cameraPlatform.Token,
-            Process = process
+            Process = process,
+            Logger = logger
         };
 
         return stream;
@@ -70,8 +106,25 @@ public class StreamProcessor : IDisposable
 
     public void StopStreamForPlatform(Stream stream)
     {
-        stream.Process.Kill(true);
-        stream.Process.Dispose();
+        try
+        {
+            if (!stream.Process.HasExited)
+            {
+                stream.Process.Kill(true);
+                stream.Process.WaitForExit();
+                stream.Logger.Information("Трансляция остановлена.");
+                _logger.LogInformation("Остановлен ffmpeg процесс для камеры {CameraId}", stream.CameraUrl);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при остановке процесса ffmpeg для камеры {CameraId}", stream.CameraUrl);
+        }
+        finally
+        {
+            stream.Process.Dispose();
+            stream.Logger.Dispose();
+        }
     }
 
     /// <summary>
@@ -112,4 +165,11 @@ public class StreamProcessor : IDisposable
 
         return command.Trim();
     }
+
+
+    public void Dispose()
+    {
+        // TODO: Implement IDisposable
+    }
+
 }

@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using Serilog;
+using Serilog.Core;
 
 namespace DelphicGames.Models;
 
@@ -8,6 +10,7 @@ public class Stream : IDisposable
     public string PlatformUrl { get; set; }
     public string Token { get; set; }
     public Process Process { get; set; }
+    public Logger Logger { get; set; }
 
     public void Dispose()
     {
