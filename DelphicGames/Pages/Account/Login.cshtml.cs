@@ -89,7 +89,7 @@ public class LoginModel : PageModel
                 return RedirectToPage("./Lockout");
             }
 
-            ModelState.AddModelError(string.Empty, "Неверная попытка входа.");
+            ModelState.AddModelError(string.Empty, "Не удалось войти в систему.");
             return Page();
         }
 

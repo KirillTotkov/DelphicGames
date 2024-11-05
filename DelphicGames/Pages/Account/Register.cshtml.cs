@@ -49,12 +49,10 @@ public class RegisterModel : PageModel
 
     [BindProperty] public InputModel Input { get; set; }
     public string ReturnUrl { get; set; }
-    public IList<Region> Regions { get; set; }
 
     public Task OnGetAsync(string returnUrl = null)
     {
         ReturnUrl = returnUrl;
-        Regions = _context.Regions.AsNoTracking().ToList();
         return Task.CompletedTask;
     }
 
@@ -113,21 +111,8 @@ public class RegisterModel : PageModel
             }
         }
 
-        // Инициализация Regions при наличии ошибок
-        Regions = _context.Regions.AsNoTracking().ToList();
-
         // Повторный показ формы с ошибками
         return Page();
-    }
-
-    public async Task<JsonResult> OnGetCitiesAsync(int regionId)
-    {
-        var cities = await _context.Cities
-            .Where(c => c.RegionId == regionId)
-            .Select(c => new { c.Id, c.Name })
-            .ToListAsync();
-
-        return new JsonResult(cities);
     }
 
     private User CreateUser()
@@ -173,7 +158,9 @@ public class RegisterModel : PageModel
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; }
 
-        [Display(Name = "Регион")] public int RegionId { get; set; }
+        [Required]
+        [Display(Name = "Регион")]
+        public int RegionId { get; set; }
 
         [Display(Name = "Город")] public int? CityId { get; set; }
     }
