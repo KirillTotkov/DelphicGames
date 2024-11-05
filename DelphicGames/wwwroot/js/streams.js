@@ -121,6 +121,7 @@ function populateTable(platforms, broadcasts) {
       zeroRecords: "Нет совпадений",
       infoEmpty: "",
       infoFiltered: "(отфильтровано из _MAX_ записей)",
+      search: "Поиск:",
     },
     columnDefs: [
       { orderable: true, targets: [0, 1, 2, 3] },
