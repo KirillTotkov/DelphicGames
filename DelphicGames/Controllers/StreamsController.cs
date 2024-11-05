@@ -1,5 +1,6 @@
 ﻿using DelphicGames.Data.Models;
 using DelphicGames.Services;
+using DelphicGames.Services.Streaming;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,13 +33,21 @@ public class StreamsController : ControllerBase
             _streamService.StartStream(streamDto);
             return Ok("Трансляция начата.");
         }
+        catch (FfmpegProcessException ex)
+        {
+            return BadRequest($"Ошибка запуска трансляции");
+        }
         catch (InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
         }
+        catch (Exception)
+        {
+            return StatusCode(500, "Внутренняя ошибка сервера.");
+        }
     }
 
-   
+
     [HttpPost("stop")]
     public IActionResult StopStream([FromBody] AddStreamDto streamDto)
     {

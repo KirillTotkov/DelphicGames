@@ -33,8 +33,6 @@ public class StreamManager
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при запуске потока для камеры {CameraId} на платформе {PlatformId}",
-                cameraPlatform.CameraId, cameraPlatform.PlatformId);
             throw;
         }
     }
@@ -62,6 +60,11 @@ public class StreamManager
                     }
                 }
             }
+        }
+        catch (FfmpegProcessException ex)
+        {
+            _logger.LogError(ex, "FFmpeg ошибка при запуске потока для камеры {CameraId}", ex.CameraId);
+            throw;
         }
         catch (Exception ex)
         {
