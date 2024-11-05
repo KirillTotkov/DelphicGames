@@ -1,27 +1,46 @@
+let cityChoices, nominationChoices, cameraChoices;
+
+const cityChoicesOptions = {
+  noResultsText: "Нет доступных вариантов",
+  noChoicesText: "Нет доступных вариантов для выбора",
+  removeItemButton: true,
+  searchEnabled: true,
+  placeholder: true,
+};
+
 async function fetchData() {
-  const platformsResponse = await fetch("/api/platforms");
-  const platforms = await platformsResponse.json();
+  try {
+    const [platformsResponse, broadcastsResponse] = await Promise.all([
+      fetch("/api/platforms"),
+      fetch("/api/streams"),
+    ]);
 
-  const broadcastsResponse = await fetch("/api/streams");
-  const broadcasts = await broadcastsResponse.json();
+    if (!platformsResponse.ok || !broadcastsResponse.ok) {
+      throw new Error("Network response was not ok");
+    }
 
-  populateTable(platforms, broadcasts);
-  updateAllHeaderCheckboxes(platforms);
+    const platforms = await platformsResponse.json();
+    const broadcasts = await broadcastsResponse.json();
+
+    populateTable(platforms, broadcasts);
+    populateFilterOptions(broadcasts);
+    updateAllHeaderCheckboxes(platforms);
+  } catch (error) {
+    console.error("Failed to fetch data:", error);
+  }
 }
+
 function populateTable(platforms, broadcasts) {
   const table = document.getElementById("main_table");
   const thead = table.querySelector("thead");
   const tbody = table.querySelector("tbody");
 
-  // Clear existing headers and body
   thead.innerHTML = "";
   tbody.innerHTML = "";
 
-  // Create header rows
   const headerRow1 = document.createElement("tr");
   const headerRow2 = document.createElement("tr");
 
-  // Static headers in Russian
   const headers = ["URL", "Город", "Номинация", "Имя Камеры"];
   headers.forEach((text) => {
     const th = document.createElement("th");
@@ -54,14 +73,12 @@ function populateTable(platforms, broadcasts) {
   broadcasts.forEach((broadcast) => {
     const tr = document.createElement("tr");
 
-    // Static columns
     ["url", "city", "nomination", "cameraName"].forEach((key) => {
       const td = document.createElement("td");
       td.textContent = broadcast[key];
       tr.appendChild(td);
     });
 
-    // Platform checkboxes
     platforms.forEach((platform) => {
       const td = document.createElement("td");
       const checkbox = document.createElement("input");
@@ -72,14 +89,14 @@ function populateTable(platforms, broadcasts) {
       const platformStatus = broadcast.platformStatuses.find(
         (ps) => ps.platformId === platform.id
       );
-      if (!platformStatus) {
-        checkbox.disabled = true;
-      } else {
+      if (platformStatus) {
         checkbox.checked = platformStatus.isActive;
         checkbox.addEventListener("change", () => {
           toggleBroadcast(broadcast.cameraId, platform.id, checkbox.checked);
           updatePlatformHeaderCheckbox(platform.id);
         });
+      } else {
+        checkbox.disabled = true;
       }
 
       td.appendChild(checkbox);
@@ -95,7 +112,7 @@ function populateTable(platforms, broadcasts) {
   }
 
   $("#main_table").DataTable({
-    searching: false,
+    searching: true,
     ordering: true,
     language: {
       info: "Показано c _START_ по _END_ из _TOTAL_ записей",
@@ -112,13 +129,54 @@ function populateTable(platforms, broadcasts) {
   });
 }
 
+function populateFilterOptions(broadcasts) {
+  const unique = (arr) => [...new Set(arr)].sort();
+
+  populateChoices(
+    "#city_filter",
+    unique(broadcasts.map((b) => b.city)),
+    "Выберите город"
+  );
+  populateChoices(
+    "#nomination_filter",
+    unique(broadcasts.map((b) => b.nomination)),
+    "Выберите номинацию"
+  );
+  populateChoices(
+    "#camera_filter",
+    unique(broadcasts.map((b) => b.cameraName)),
+    "Выберите название"
+  );
+}
+
+function populateChoices(selector, options, placeholder) {
+  const select = document.querySelector(selector);
+  select.innerHTML = "";
+
+  options.forEach((option) => {
+    const opt = document.createElement("option");
+    opt.value = option;
+    opt.textContent = option;
+    select.appendChild(opt);
+  });
+
+  const choiceInstance = new Choices(selector, {
+    ...cityChoicesOptions,
+    placeholderValue: placeholder,
+  });
+
+  if (selector === "#city_filter") cityChoices = choiceInstance;
+  if (selector === "#nomination_filter") nominationChoices = choiceInstance;
+  if (selector === "#camera_filter") cameraChoices = choiceInstance;
+}
+
 function toggleBroadcast(cameraId, platformId, isActive) {
   const action = isActive ? "start" : "stop";
   fetch(`/api/streams/${action}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ cameraId, platformId }),
-  });
+  }).catch((error) => console.error("Toggle broadcast failed:", error));
 }
 
 function toggleAllPlatforms(platformId, isChecked) {
@@ -142,6 +200,7 @@ function updatePlatformHeaderCheckbox(platformId) {
   );
   const allDisabled = Array.from(checkboxes).every((cb) => cb.disabled);
   const headerCheckbox = document.getElementById(`${platformId}_all`);
+
   if (headerCheckbox) {
     headerCheckbox.checked = allChecked;
     headerCheckbox.disabled = allDisabled;
@@ -156,5 +215,34 @@ function updateAllHeaderCheckboxes(platforms) {
     updatePlatformHeaderCheckbox(platform.id);
   });
 }
+
+function applyFilters() {
+  const [cityValues, nominationValues, cameraValues] = [
+    cityChoices.getValue(true),
+    nominationChoices.getValue(true),
+    cameraChoices.getValue(true),
+  ];
+
+  $.fn.DataTable.ext.search = [];
+
+  $.fn.DataTable.ext.search = [
+    function (settings, data) {
+      const [, city, nomination, cameraName] = data;
+      return (
+        (cityValues.length ? cityValues.includes(city) : true) &&
+        (nominationValues.length
+          ? nominationValues.includes(nomination)
+          : true) &&
+        (cameraValues.length ? cameraValues.includes(cameraName) : true)
+      );
+    },
+  ];
+
+  $("#main_table").DataTable().draw();
+}
+
+document
+  .querySelectorAll("#city_filter, #nomination_filter, #camera_filter")
+  .forEach((element) => element.addEventListener("change", applyFilters));
 
 document.addEventListener("DOMContentLoaded", fetchData);

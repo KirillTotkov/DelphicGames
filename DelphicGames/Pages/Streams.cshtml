@@ -96,37 +96,5 @@
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
     <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
-    <script src="js/streams.js"></script>
-
-    <!--Initial Multi_Select_Filters-->
-    <script>
-        // Инициализация Choices.js для каждого селекта
-        const citySelect = new Choices('#city_filter', {
-            noResultsText: 'Нет доступных вариантов',
-            noChoicesText: 'Нет доступных вариантов для выбора',
-            removeItemButton: true,
-            searchEnabled: true,
-            placeholder: true,
-            placeholderValue: 'Выберите город',
-        });
-
-        const nominationSelect = new Choices('#nomination_filter', {
-            noResultsText: 'Нет доступных вариантов',
-            noChoicesText: 'Нет доступных вариантов для выбора',
-            removeItemButton: true,
-            searchEnabled: true,
-            placeholder: true,
-            placeholderValue: 'Выберите номинацию',
-        });
-
-        const titleSelect = new Choices('#camera_filter', {
-            noResultsText: 'Нет доступных вариантов',
-            noChoicesText: 'Нет доступных вариантов для выбора',
-            removeItemButton: true,
-            searchEnabled: true,
-            placeholder: true,
-            placeholderValue: 'Выберите название',
-        });
-    </script>
-
+    <script src="js/streams.js" asp-append-version="true"></script>
 }
