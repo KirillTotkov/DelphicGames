@@ -8,7 +8,6 @@ async function fetchData() {
   populateTable(platforms, broadcasts);
   updateAllHeaderCheckboxes(platforms);
 }
-
 function populateTable(platforms, broadcasts) {
   const table = document.getElementById("main_table");
   const thead = table.querySelector("thead");
@@ -88,6 +87,28 @@ function populateTable(platforms, broadcasts) {
     });
 
     tbody.appendChild(tr);
+  });
+
+  // Initialize or Reinitialize DataTable
+  if ($.fn.DataTable.isDataTable("#main_table")) {
+    $("#main_table").DataTable().destroy();
+  }
+
+  $("#main_table").DataTable({
+    searching: false,
+    ordering: true,
+    language: {
+      info: "Показано c _START_ по _END_ из _TOTAL_ записей",
+      lengthMenu: "_MENU_&nbsp;записей на страницу",
+      emptyTable: "Нет данных",
+      zeroRecords: "Нет совпадений",
+      infoEmpty: "",
+      infoFiltered: "(отфильтровано из _MAX_ записей)",
+    },
+    columnDefs: [
+      { orderable: true, targets: [0, 1, 2, 3] },
+      { orderable: false, targets: "_all" },
+    ],
   });
 }
 
