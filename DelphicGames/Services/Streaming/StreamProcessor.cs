@@ -28,7 +28,6 @@ public class StreamProcessor : IDisposable
 
         var ffmpegArguments = GenerateFfmpegArguments(cameraPlatform);
 
-        Console.WriteLine($"Запуск ffmpeg с аргументами: {ffmpegArguments}");
         var process = new Process
         {
             StartInfo = new ProcessStartInfo

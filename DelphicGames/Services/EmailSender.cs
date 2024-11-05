@@ -18,8 +18,6 @@ public class EmailSender : IEmailSender
 
     public async Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
-        Console.WriteLine(_emailSettings.Password);
-        
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress("Дельфийкие игры", _emailSettings.From));
         message.To.Add(new MailboxAddress("", email));
