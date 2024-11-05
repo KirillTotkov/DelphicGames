@@ -69,9 +69,9 @@ public class StreamProcessor : IDisposable
         {
             if (!string.IsNullOrEmpty(args.Data))
             {
-                if (args.Data.Contains("Error"))
+                if (args.Data.Contains("Error", StringComparison.OrdinalIgnoreCase))
                     logger.Error(args.Data);
-                else if (args.Data.Contains("Warning"))
+                else if (args.Data.Contains("Warning", StringComparison.OrdinalIgnoreCase))
                     logger.Warning(args.Data);
                 else
                     logger.Information(args.Data);
@@ -81,17 +81,25 @@ public class StreamProcessor : IDisposable
         process.OutputDataReceived += outputHandler;
         process.ErrorDataReceived += errorHandler;
 
-
         try
         {
             process.Start();
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
             _logger.LogInformation("Запущен ffmpeg процесс для камеры {CameraId}", cameraId);
+
+            // Ждем, чтобы проверить, что процесс не завершился сразу
+            Thread.Sleep(4000);
+            if (process.HasExited)
+            {
+                throw new FfmpegProcessException($"Процесс ffmpeg завершился с ошибкой при запуске для камеры {cameraId}", cameraId);
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ошибка при запуске процесса ffmpeg для камеры {CameraId}", cameraId);
+            process.OutputDataReceived -= outputHandler;
+            process.ErrorDataReceived -= errorHandler;
             logger.Dispose();
             throw;
         }
