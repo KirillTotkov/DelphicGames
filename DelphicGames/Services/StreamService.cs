@@ -378,6 +378,7 @@ public class StreamService
                 .ThenInclude(c => c.Nomination)
             .Include(cp => cp.Camera.City)
             .Include(cp => cp.Platform)
+            .Where(cp => cp.Token != null && cp.Token != "")
             .AsNoTracking()
             .ToListAsync();
 
