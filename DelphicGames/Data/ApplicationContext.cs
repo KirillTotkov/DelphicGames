@@ -8,6 +8,7 @@ public class ApplicationContext : IdentityDbContext<User>
 {
     public ApplicationContext(DbContextOptions<ApplicationContext> options) : base(options)
     {
+        EnsurePlatforms();
     }
 
     public DbSet<Camera> Cameras { get; set; }
@@ -40,5 +41,26 @@ public class ApplicationContext : IdentityDbContext<User>
             .WithMany(n => n.Cameras)
             .HasForeignKey(c => c.NominationId)
             .OnDelete(DeleteBehavior.SetNull);
+    }
+
+    private void EnsurePlatforms()
+    {
+        var platforms = new List<Platform>
+        {
+            new() { Name = "ВК", Url = "rtmp://ovsu.mycdn.me/input/"},
+            new() { Name = "ОК", Url = "rtmp://vsu.mycdn.me/input/"},
+            new() { Name = "RT", Url = "rtmp://rtmp-lb.m9.rutube.ru/live_push"},
+            new() { Name = "TG", Url = "rtmps://dc4-1.rtmp.t.me/s/"},
+        };
+
+        foreach (var platform in platforms)
+        {
+            if (!Platforms.Any(p => p.Name == platform.Name))
+            {
+                Platforms.Add(platform);
+            }
+        }
+
+        SaveChanges();
     }
 }
