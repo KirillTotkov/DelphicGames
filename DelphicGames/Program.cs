@@ -100,6 +100,16 @@ try
     app.MapControllers();
     app.MapRazorPages();
 
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
+        Log.Information("Applying migrations...");
+        dbContext.Database.Migrate();
+        dbContext.EnsurePlatforms();
+        Log.Information("Migrations applied");
+    }
+
+
     // Создаем роль cуперадминистратора и пользователя-cуперадминистратора, если их нет
     using (var scope = app.Services.CreateScope())
     {
