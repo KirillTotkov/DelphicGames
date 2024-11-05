@@ -38,12 +38,13 @@ public class StreamsController : ControllerBase
         }
     }
 
+   
     [HttpPost("stop")]
-    public IActionResult StopStream([FromQuery] int cameraId, [FromQuery] int platformId)
+    public IActionResult StopStream([FromBody] AddStreamDto streamDto)
     {
         try
         {
-            _streamService.StopStream(cameraId, platformId);
+            _streamService.StopStream(streamDto.CameraId, streamDto.PlatformId);
             return Ok("Трансляция остановлена.");
         }
         catch (InvalidOperationException ex)
