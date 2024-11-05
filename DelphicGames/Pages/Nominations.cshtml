@@ -6,7 +6,7 @@
 }
 <div class="row col-md-12 col-xs-12" style="padding: 15px; margin: 0 auto;">
     <h3>Список созданных номинаций</h3>
-    <div id="nominations-list" class="card col-md-9 col-sm-12" style=" border: none;">
+    <div id="nominations-list" class="card col-md-12 col-sm-12" style=" border: none;">
         <div class="d-flex justify-content-end">
             <button type="button" class="btn btn-success col-1 w-auto" data-bs-toggle="modal"
                 data-bs-target="#addGroupModal">
@@ -37,7 +37,7 @@
             </table>
         </div>
     </div>
-    <div class="filters-container card col-md-3 col-sm-12 border-light"
+    <div class="filters-container card col-md-3 col-sm-12 border-light d-none"
         style="display: inline-block; padding: 0; float: right;">
         <div class="card-header">Фильтры</div>
         <div class="card-body text-secondary gap-3">
@@ -95,8 +95,7 @@
                             </div>
                             <div class="me-3">
                                 <label for="filterName" class="form-label">Название камеры</label>
-                                <input type="text" class="form-control" id="filterName"
-                                    placeholder="" />
+                                <input type="text" class="form-control" id="filterName" placeholder="" />
                             </div>
                         </div>
                     </div>
