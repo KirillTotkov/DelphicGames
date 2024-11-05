@@ -1,11 +1,10 @@
-﻿version: '3.8'
-services:
+﻿services:
   db:
     image: postgres:latest
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=123456
-      - POSTGRES_DB=delphic_games
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - db-data:/var/lib/postgresql/data
     ports:
@@ -15,8 +14,14 @@ services:
       context: .
       dockerfile: DelphicGames/Dockerfile
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=db;Port=5433;Database=delphic_games;Username=user;Password=123456
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
+      - EmailSettings__From=${EmailSettings__From}
+      - EmailSettings__SmtpServer=${EmailSettings__SmtpServer}
+      - EmailSettings__Port=${EmailSettings__Port}
+      - EmailSettings__Username=${EmailSettings__Username}
+      - EmailSettings__Password=${EmailSettings__Password}
+      - EmailSettings__EnableSendConfirmationEmail=${EmailSettings__EnableSendConfirmationEmail}
     ports:
       - "8080:8080"
       - "8081:8081"
