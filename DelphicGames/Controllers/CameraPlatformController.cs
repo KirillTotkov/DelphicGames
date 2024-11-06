@@ -15,7 +15,7 @@ public class CameraPlatformController : ControllerBase
     {
         _cameraPlatformService = cameraPlatformService;
     }
-    
+
 
     [HttpGet("GetCameraPlatforms")]
     [Authorize(Roles = $"{nameof(UserRoles.Specialist)},{nameof(UserRoles.Root)},{nameof(UserRoles.Admin)}")]
@@ -56,6 +56,44 @@ public class CameraPlatformController : ControllerBase
             return Ok(result);
         }
         catch (ArgumentException ex)
+        {
+            return BadRequest(new { Error = ex.Message });
+        }
+    }
+
+    // Get all platforms
+    [HttpGet("platforms")]
+    [Authorize(Roles = $"{nameof(UserRoles.Admin)},{nameof(UserRoles.Root)}")]
+    public async Task<ActionResult> GetPlatforms()
+    {
+        var platforms = await _cameraPlatformService.GetPlatforms();
+        return Ok(platforms);
+    }
+
+    // Get platforms and tokens for a specific camera
+    [HttpGet("cameraplatform/{cameraId:int}")]
+    [Authorize(Roles = $"{nameof(UserRoles.Admin)},{nameof(UserRoles.Root)}")]
+    public async Task<ActionResult> GetCameraPlatforms(int cameraId)
+    {
+        var cameraPlatforms = await _cameraPlatformService.GetCameraPlatforms(cameraId);
+        if (cameraPlatforms == null)
+        {
+            return NotFound();
+        }
+        return Ok(cameraPlatforms);
+    }
+
+    // Update tokens for a camera's platforms
+    [HttpPost("cameraplatform/{cameraId:int}")]
+    [Authorize(Roles = $"{nameof(UserRoles.Admin)},{nameof(UserRoles.Root)}")]
+    public async Task<ActionResult> UpdateCameraTokens(int cameraId, [FromBody] CameraPlatformService.UpdateCameraTokensDto dto)
+    {
+        try
+        {
+            await _cameraPlatformService.UpdateCameraTokens(cameraId, dto);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
         {
             return BadRequest(new { Error = ex.Message });
         }
