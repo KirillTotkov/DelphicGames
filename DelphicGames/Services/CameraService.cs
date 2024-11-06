@@ -43,53 +43,56 @@ public class CameraService
         _context.Cameras.Add(camera);
         await _context.SaveChangesAsync();
 
-        return new GetCameraDto(camera.Id, camera.Name, camera.Url);
+        return new GetCameraDto(camera.Id, camera.Name, camera.Url, camera.City.Name);
     }
 
     public async Task<GetCameraDto?> GetCamera(int id)
     {
-        var camera = await _context.Cameras.FindAsync(id);
+        var camera = await _context.Cameras.Include(c => c.City).FirstOrDefaultAsync(c => c.Id == id);
         if (camera == null)
         {
             return null;
         }
 
-        return new GetCameraDto(camera.Id, camera.Name, camera.Url);
+        return new GetCameraDto(camera.Id, camera.Name, camera.Url, camera.City?.Name);
     }
 
     public async Task<GetCameraDto?> GetCamera(string name)
     {
-        var camera = await _context.Cameras.FirstOrDefaultAsync(c => c.Name == name);
+        var camera = await _context.Cameras.Include(camera => camera.City).FirstOrDefaultAsync(c => c.Name == name);
         if (camera == null)
         {
             return null;
         }
 
-        return new GetCameraDto(camera.Id, camera.Name, camera.Url);
+        return new GetCameraDto(camera.Id, camera.Name, camera.Url, camera.City?.Name);
     }
 
     public async Task<List<GetCameraDto>> GetCameras()
     {
-        return await _context.Cameras
-            .Select(c => new GetCameraDto(c.Id, c.Name, c.Url))
+        var camerasDb = await _context.Cameras
+            .Include(c => c.City)
+            .OrderBy(c => c.Id)
+            .AsNoTracking()
             .ToListAsync();
+
+        return camerasDb.Select(c => new GetCameraDto(c.Id, c.Name, c.Url, c.City?.Name)).ToList();
     }
 
     public async Task<Camera?> UpdateCamera(int id, UpdateCameraDto camera)
     {
-        var existingCamera = await _context.Cameras.FindAsync(id);
+        var existingCamera = await _context.Cameras.FirstOrDefaultAsync(c => c.Id == id);
         if (existingCamera == null)
         {
             return null;
         }
-
-        if (await _context.Cameras.AnyAsync(c => c.Name == camera.Name && c.Id != id))
+    
+        // TODO кажется, что это условие лишнее
+        if (string.IsNullOrWhiteSpace(camera.Url))
         {
-            throw new InvalidOperationException($"Камера с именем {camera.Name} уже существует.");
+            existingCamera.Url = camera.Url;
         }
 
-
-        existingCamera.Name = camera.Name;
         existingCamera.Url = camera.Url;
 
         await _context.SaveChangesAsync();
@@ -194,6 +197,6 @@ public record CityCameraDto(int Id, string Name, string Url, string CityName);
 
 public record AddCameraDto(int City, string Name, string Url);
 
-public record UpdateCameraDto(string Name, string Url);
+public record UpdateCameraDto( string Url);
 
-public record GetCameraDto(int Id, string Name, string Url);
+public record GetCameraDto(int Id, string Name, string Url, string City);
