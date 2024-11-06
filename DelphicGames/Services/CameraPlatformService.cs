@@ -12,39 +12,51 @@ public class CameraPlatformService
     {
         _context = context;
     }
-
-    public async Task<GetCameraPlatformDto> CreateCameraPlatform(AddCameraPlatformDto dto)
+    
+    public async Task<List<CameraDto>> GetCameraPlatforms()
     {
-        if (await _context.Cameras.AnyAsync(c => c.Name == dto.Name))
+        var r = await _context.Cameras
+            .Include(c => c.CameraPlatforms)
+            .ThenInclude(cp => cp.Platform)
+            .Include(c => c.City).ToListAsync();
+
+        return r.Select(c => new CameraDto
         {
-            throw new InvalidOperationException($"Камера с именем {dto.Name} уже существует.");
+            Id = c.Id,
+            City = c.City?.Name,
+            Name = c.Name,
+            Url = c.Url,
+            PlatformTokens = c.CameraPlatforms.Select(cp => new GetPlatformTokens(
+                cp.PlatformId,
+                cp.Platform.Name,
+                cp?.Token
+            )).ToList()
+        }).ToList();
+    }
+
+    public async Task<GetCameraPlatformDto> UpdateCameraPlatform(int id, UpdateCameraPlatformDto dto)
+    {
+        var camera = await _context.Cameras.FindAsync(id);
+        if (camera == null)
+        {
+            throw new InvalidOperationException($"Камера с ID {id} не найдена.");
         }
 
-        if (await _context.Cameras.AnyAsync(c => c.Url == dto.Url))
-        {
-            throw new InvalidOperationException($"Камера с URL {dto.Url} уже существует.");
-        }
+        camera.Url = dto.Url;
 
-        var camera = new Camera
-        {
-            Name = dto.Name,
-            Url = dto.Url
-        };
+        var cameraPlatforms = await _context.CameraPlatforms
+            .Where(cp => cp.CameraId == id)
+            .ToListAsync();
 
-        _context.Cameras.Add(camera);
-
-        var platforms = _context.Platforms.ToList();
-        foreach (Platform platform in platforms)
+        foreach (var platform in dto.PlatformTokens)
         {
-            _context.CameraPlatforms.Add(new CameraPlatform
+            var cameraPlatform = cameraPlatforms.FirstOrDefault(cp => cp.PlatformId == platform.Id);
+            if (cameraPlatform == null)
             {
-                CameraId = camera.Id,
-                Camera = camera,
-                PlatformId = platform.Id,
-                Platform = platform,
-                Token = string.Empty,
-                IsActive = false
-            });
+                throw new InvalidOperationException($"Платформа с ID {platform.Id} не найдена.");
+            }
+
+            cameraPlatform.Token = platform.Token;
         }
 
         await _context.SaveChangesAsync();
@@ -53,61 +65,24 @@ public class CameraPlatformService
             camera.Id,
             camera.Name,
             camera.Url,
-            new List<string>()
+            dto.PlatformTokens
         );
-    }
-
-    public async Task<List<CameraDTO>> GetCameraPlatforms()
-    {
-        // List<GetCameraPlatformDto> res = new List<GetCameraPlatformDto>();
-        // foreach(var cam in _context.Cameras)
-        // {
-        //     List<string> tokens = new List<string>();
-
-        //     foreach(var cm in _context.CameraPlatforms)
-        //     {
-        //         if(cm.CameraId == cam.Id)
-        //             tokens.Add(cm.Token);
-        //     }
-
-        //     res.Add(new GetCameraPlatformDto(cam.Id, cam.Name, cam.Url,
-        //         tokens));
-        // }
-
-        // return res;
-
-        return await _context.Cameras
-            .Include(c => c.CameraPlatforms)
-            .Select(c => new CameraDTO
-            {
-                id = c.Id,
-                Name = c.Name,
-                Url = c.Url,
-                TokenVK = c.CameraPlatforms.FirstOrDefault(p => p.PlatformId == 1).Token,
-                TokenOK = c.CameraPlatforms.FirstOrDefault(p => p.PlatformId == 2).Token,
-                TokenRT = c.CameraPlatforms.FirstOrDefault(p => p.PlatformId == 3).Token,
-                TokenTG = c.CameraPlatforms.FirstOrDefault(p => p.PlatformId == 4).Token
-            }).ToListAsync();
     }
 
     public async Task<bool> DeleteCameraPlatform(int id)
     {
-        var cameraPlatform = await _context.CameraPlatforms.FindAsync(id);
-        if (cameraPlatform == null)
-        {
-            return false;
-        }
-
-        _context.CameraPlatforms.Remove(cameraPlatform);
-        await _context.SaveChangesAsync();
-
         var camera = await _context.Cameras.FindAsync(id);
         if (camera == null)
         {
             return false;
         }
 
+        var cameraPlatforms = await _context.CameraPlatforms
+            .Where(cp => cp.CameraId == id)
+            .ToListAsync();
+
         _context.Cameras.Remove(camera);
+        _context.CameraPlatforms.RemoveRange(cameraPlatforms);
         await _context.SaveChangesAsync();
 
         return true;
@@ -116,6 +91,17 @@ public class CameraPlatformService
 
 public record AddCameraPlatformDto(string Name, string Url);
 
-public record GetPlatformTokens(string TokenVk, string TokenOk, string TokenRb, string TokenTg);
+public record GetCameraPlatformDto(int Id, string Name, string Url, List<GetPlatformTokens> PlatformTokens);
 
-public record GetCameraPlatformDto(int Id, string Name, string Url, List<String> PlatformTokens);
+public record UpdateCameraPlatformDto(string Url, List<GetPlatformTokens> PlatformTokens);
+
+public record GetPlatformTokens(int Id, string Name, string Token);
+
+public class CameraDto
+{
+    public int Id { get; set; }
+    public string City { get; set; }
+    public string Name { get; set; }
+    public string Url { get; set; }
+    public List<GetPlatformTokens> PlatformTokens { get; set; }
+}
