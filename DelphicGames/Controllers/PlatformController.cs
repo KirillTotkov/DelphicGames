@@ -70,4 +70,6 @@ public class PlatformController : ControllerBase
         await _platformService.DeletePlatform(id);
         return Ok();
     }
+
+    
 }
