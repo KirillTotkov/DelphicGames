@@ -27,10 +27,17 @@ public class CameraService
             throw new InvalidOperationException($"Камера с URL {dto.Url} уже существует.");
         }
 
+        var city = await _context.Cities.FirstOrDefaultAsync(c => c.Id == dto.City);
+        if (city == null)
+        {
+            throw new InvalidOperationException($"Город с ID {dto.City} не найден.");
+        }
+
         var camera = new Camera
         {
             Name = dto.Name,
-            Url = dto.Url
+            Url = dto.Url,
+            City = city
         };
 
         _context.Cameras.Add(camera);
@@ -185,7 +192,7 @@ public class CameraService
 
 public record CityCameraDto(int Id, string Name, string Url, string CityName);
 
-public record AddCameraDto(string Name, string Url);
+public record AddCameraDto(int City, string Name, string Url);
 
 public record UpdateCameraDto(string Name, string Url);
 
