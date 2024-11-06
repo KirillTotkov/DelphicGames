@@ -257,7 +257,7 @@ function populateNominationsTable(nominations) {
 
     const actionsTd = document.createElement("td");
     const deleteBtn = document.createElement("button");
-    deleteBtn.className = "btn btn-danger btn-sm";
+    deleteBtn.className = "btn btn-danger btn-sm me-2";
     deleteBtn.textContent = "Удалить";
     deleteBtn.id = "deleteBtn";
     deleteBtn.dataset.id = nomination.id;
