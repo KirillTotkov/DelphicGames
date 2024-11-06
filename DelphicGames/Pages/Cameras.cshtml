@@ -10,7 +10,8 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="card-title">Камеры</h5>
-                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#addCameraModal">Добавить камеру</button>
+                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal"
+                    data-bs-target="#addCameraModal">Добавить камеру</button>
             </div>
 
             <!-- Фильтры -->
@@ -31,31 +32,34 @@
 
             <!-- Таблица с камерами -->
             <div class="table-responsive">
-                <table class="table table-striped table-hover">
+                <table id="cameraTable" class="table table-striped table-hover">
                     <thead>
-                    <tr>
-                        <th>Город/Регион</th>
-                        <th>Название камеры</th>
-                        <th>URL-адрес</th>
-                        <th>Токен VK</th>
-                        <th>Токен OK</th>
-                        <th>Токен Rutube</th>
-                        <th>Действия</th>
-                    </tr>
+                        <tr>
+                            <th>Город/Регион</th>
+                            <th>Название камеры</th>
+                            <th>URL-адрес</th>
+                            <th>Токен VK</th>
+                            <th>Токен OK</th>
+                            <th>Токен Rutube</th>
+                            <th>Токен Telegram</th>
+                            <th>Действия</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    <tr>
-                        <td>Город</td>
-                        <td>Пример камеры</td>
-                        <td>https://example.com</td>
-                        <td>vk_token</td>
-                        <td>ok_token</td>
-                        <td>rutube_token</td>
-                        <td>
-                            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editCameraModal">Изменить</button>
-                            <button type="button" class="btn btn-danger btn-sm">Удалить</button>
-                        </td>
-                    </tr>
+                        <tr>
+                            <td>Город</td>
+                            <td>Пример камеры</td>
+                            <td>https://example.com</td>
+                            <td>vk_token</td>
+                            <td>ok_token</td>
+                            <td>rutube_token</td>
+                            <td>telegram_token</td>
+                            <td>
+                                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal"
+                                    data-bs-target="#editCameraModal">Изменить</button>
+                                <button type="button" class="btn btn-danger btn-sm">Удалить</button>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -85,6 +89,7 @@
                         <label class="form-label text-secondary">URL-адрес</label>
                         <input type="url" class="form-control">
                     </div>
+                    <!--
                     <div class="mb-3">
                         <label class="form-label text-secondary">Токен VK</label>
                         <input type="text" class="form-control">
@@ -97,11 +102,18 @@
                         <label class="form-label text-secondary">Токен Rutube</label>
                         <input type="text" class="form-control">
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary">Токен Telegram</label>
+                        <input type="text" class="form-control">
+                    </div>
+                    -->
                 </form>
             </div>
             <div class="modal-footer border-0">
+
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-success me-2">Добавить</button>
+                <button type="button" class="btn btn-success me-2" onclick="createCameraPlatform()">Добавить</button>
+
             </div>
         </div>
     </div>
@@ -150,3 +162,8 @@
         </div>
     </div>
 </div>
+
+@section Scripts
+{
+    <script src="js/cameraPlatforms.js" asp-append-version="true"></script>
+}
