@@ -15,22 +15,7 @@ public class CameraPlatformController : ControllerBase
     {
         _cameraPlatformService = cameraPlatformService;
     }
-
-    [HttpPost("CreateCameraPlatform")]
-    [Authorize(Roles = $"{nameof(UserRoles.Specialist)},{nameof(UserRoles.Root)},{nameof(UserRoles.Admin)}")]
-    public async Task<IActionResult> CreateCameraPlatform(AddCameraPlatformDto dto)
-    {
-        try
-        {
-            var cameraPlatform = await _cameraPlatformService.CreateCameraPlatform(dto);
-
-            return NoContent();
-        }
-        catch (InvalidOperationException e)
-        {
-            return BadRequest(new { Error = e.Message });
-        }
-    }
+    
 
     [HttpGet("GetCameraPlatforms")]
     [Authorize(Roles = $"{nameof(UserRoles.Specialist)},{nameof(UserRoles.Root)},{nameof(UserRoles.Admin)}")]
@@ -43,6 +28,22 @@ public class CameraPlatformController : ControllerBase
         }
 
         return Ok(cameraPlatforms);
+    }
+
+    // update
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = $"{nameof(UserRoles.Specialist)},{nameof(UserRoles.Root)},{nameof(UserRoles.Admin)}")]
+    public async Task<ActionResult> UpdateCameraPlatform(int id, UpdateCameraPlatformDto cameraPlatform)
+    {
+        try
+        {
+            var result = await _cameraPlatformService.UpdateCameraPlatform(id, cameraPlatform);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { Error = ex.Message });
+        }
     }
 
     [HttpDelete("{id:int}")]
