@@ -19,7 +19,16 @@
                 <h6 class="text-secondary">Фильтры</h6>
                 <div class="row g-2">
                     <div class="col-md">
-                        <input type="text" class="form-control" placeholder="Город/Регион">
+                        <select id="filterRegion" class="form-control">
+                            <option value="">Выберите регион</option>
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="col-md">
+                        <select id="filterCity" class="form-control">
+                            <option value="">Выберите город</option>
+                            <!-- Options will be populated based on selected region -->
+                        </select>
                     </div>
                     <div class="col-md">
                         <input type="text" class="form-control" placeholder="Название камеры">
@@ -38,10 +47,6 @@
                             <th>Город/Регион</th>
                             <th>Название камеры</th>
                             <th>URL-адрес</th>
-                            <th>Токен VK</th>
-                            <th>Токен OK</th>
-                            <th>Токен Rutube</th>
-                            <th>Токен Telegram</th>
                             <th>Действия</th>
                         </tr>
                     </thead>
@@ -50,14 +55,11 @@
                             <td>Город</td>
                             <td>Пример камеры</td>
                             <td>https://example.com</td>
-                            <td>vk_token</td>
-                            <td>ok_token</td>
-                            <td>rutube_token</td>
-                            <td>telegram_token</td>
                             <td>
-                                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal"
+                                <button type="button" class="btn btn-danger btn-sm me-2">Удалить</button>
+                                <button type="button" class="btn btn-warning btn-sm edit-camera-button" data-id="1"
+                                    data-url="https://example.com" data-bs-toggle="modal"
                                     data-bs-target="#editCameraModal">Изменить</button>
-                                <button type="button" class="btn btn-danger btn-sm">Удалить</button>
                             </td>
                         </tr>
                     </tbody>
@@ -76,45 +78,36 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="addCameraForm">
+                <form id="addCameraForm" method="post">
                     <div class="mb-3">
-                        <label class="form-label text-secondary">Название города/региона</label>
-                        <input type="text" class="form-control">
+                        <label class="form-label text-secondary">Регион</label>
+                        <select id="addCameraRegion" class="form-control" required>
+                            <option value="">Выберите регион</option>
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary">Город</label>
+                        <select id="addCameraCity" class="form-control" required>
+                            <option value="">Выберите город</option>
+                            <!-- Options will be populated based on selected region -->
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label text-secondary">Название камеры</label>
-                        <input type="text" class="form-control">
+                        <input type="text" class="form-control" id="addCameraName" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label text-secondary">URL-адрес</label>
-                        <input type="url" class="form-control">
+                        <input type="url" class="form-control" id="addCameraUrl" required>
                     </div>
-                    <!--
-                    <div class="mb-3">
-                        <label class="form-label text-secondary">Токен VK</label>
-                        <input type="text" class="form-control">
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="button" class="btn btn-success me-2" id="addCameraButton">Добавить камеру</button>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label text-secondary">Токен OK</label>
-                        <input type="text" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label text-secondary">Токен Rutube</label>
-                        <input type="text" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label text-secondary">Токен Telegram</label>
-                        <input type="text" class="form-control">
-                    </div>
-                    -->
                 </form>
             </div>
-            <div class="modal-footer border-0">
 
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-success me-2" onclick="createCameraPlatform()">Добавить</button>
-
-            </div>
         </div>
     </div>
 </div>
@@ -129,35 +122,16 @@
             </div>
             <div class="modal-body">
                 <form id="editCameraForm">
-                    <div class="mb-3">
-                        <label class="form-label text-secondary">Название города/региона</label>
-                        <input type="text" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label text-secondary">Название камеры</label>
-                        <input type="text" class="form-control">
-                    </div>
+                    <input type="hidden" id="editCameraId">
                     <div class="mb-3">
                         <label class="form-label text-secondary">URL-адрес</label>
-                        <input type="url" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label text-secondary">Токен VK</label>
-                        <input type="text" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label text-secondary">Токен OK</label>
-                        <input type="text" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label text-secondary">Токен Rutube</label>
-                        <input type="text" class="form-control">
+                        <input type="url" class="form-control" id="editCameraUrl" required>
                     </div>
                 </form>
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-success me-2">Сохранить изменения</button>
+                <button type="button" class="btn btn-success" id="saveCameraChanges">Сохранить изменения</button>
             </div>
         </div>
     </div>
@@ -165,5 +139,5 @@
 
 @section Scripts
 {
-    <script src="js/cameraPlatforms.js" asp-append-version="true"></script>
+    <script src="js/cameras.js" asp-append-version="true"></script>
 }
