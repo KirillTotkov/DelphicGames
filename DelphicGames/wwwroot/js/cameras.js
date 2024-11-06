@@ -126,7 +126,6 @@ const deleteCameraPlatform = async (id) => {
     console.error("Error deleting camera:", error);
   }
 };
-
 const drawCameraTable = async () => {
   try {
     const response = await fetch("api/cameras", {
@@ -148,9 +147,9 @@ const drawCameraTable = async () => {
     cameras.forEach((camera) => {
       const tr = document.createElement("tr");
 
-      const regionTd = document.createElement("td");
-      regionTd.textContent = camera.city;
-      tr.appendChild(regionTd);
+      const cityId = document.createElement("td");
+      cityId.textContent = camera.city;
+      tr.appendChild(cityId);
 
       const nameTd = document.createElement("td");
       nameTd.textContent = camera.name;
@@ -184,11 +183,13 @@ const drawCameraTable = async () => {
       tr.appendChild(actionsTd);
       tbody.appendChild(tr);
     });
+
+    // Attach event listeners after updating the table
+    attachEditButtonListeners();
   } catch (error) {
     console.error("Error drawing table:", error);
   }
 };
-
 document.addEventListener("DOMContentLoaded", async () => {
   await fetchRegions();
   await drawCameraTable();
@@ -203,16 +204,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     .addEventListener("click", async () => {
       await createCamera();
     });
-
-  document.querySelectorAll(".edit-camera-button").forEach((button) => {
-    button.addEventListener("click", () => {
-      const cameraId = button.dataset.id;
-      const cameraUrl = button.dataset.url;
-
-      document.getElementById("editCameraId").value = cameraId;
-      document.getElementById("editCameraUrl").value = cameraUrl;
-    });
-  });
 
   document
     .getElementById("saveCameraChanges")
@@ -249,3 +240,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
 });
+const attachEditButtonListeners = () => {
+  document.querySelectorAll(".edit-camera-button").forEach((button) => {
+    button.removeEventListener("click", handleEditButtonClick);
+    button.addEventListener("click", handleEditButtonClick);
+  });
+};
+const handleEditButtonClick = (event) => {
+  const cameraId = event.currentTarget.dataset.id;
+  const cameraUrl = event.currentTarget.dataset.url;
+
+  document.getElementById("editCameraId").value = cameraId;
+  document.getElementById("editCameraUrl").value = cameraUrl;
+};
