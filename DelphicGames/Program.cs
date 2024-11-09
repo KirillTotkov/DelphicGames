@@ -70,7 +70,7 @@ try
     });
 
 
-    builder.Services.AddSingleton<StreamProcessor>();
+    builder.Services.AddSingleton<IStreamProcessor, TestStreamProcessor>();
     builder.Services.AddSingleton<StreamManager>();
     builder.Services.AddScoped<CameraService>();
     builder.Services.AddScoped<StreamService>();

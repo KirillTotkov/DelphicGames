@@ -5,11 +5,11 @@ namespace DelphicGames.Services.Streaming;
 
 public class StreamManager
 {
-    private readonly Dictionary<int, List<Stream>> _cameraStreams = new();
+    public Dictionary<int, List<Stream>> CameraStreams { get; } = new();
     private readonly ILogger<StreamManager> _logger;
-    private readonly StreamProcessor _streamProcessor;
+    private readonly IStreamProcessor _streamProcessor;
 
-    public StreamManager(StreamProcessor streamProcessor, ILogger<StreamManager> logger)
+    public StreamManager(IStreamProcessor streamProcessor, ILogger<StreamManager> logger)
     {
         _streamProcessor = streamProcessor;
         _logger = logger;
@@ -22,10 +22,10 @@ public class StreamManager
         {
             int cameraId = cameraPlatform.CameraId;
 
-            if (!_cameraStreams.TryGetValue(cameraId, out var streams))
+            if (!CameraStreams.TryGetValue(cameraId, out var streams))
             {
                 streams = new List<Stream>();
-                _cameraStreams[cameraId] = streams;
+                CameraStreams[cameraId] = streams;
             }
 
             var stream = _streamProcessor.StartStreamForPlatform(cameraPlatform);
@@ -44,7 +44,7 @@ public class StreamManager
         {
             int cameraId = cameraPlatform.CameraId;
 
-            if (_cameraStreams.TryGetValue(cameraId, out var streams))
+            if (CameraStreams.TryGetValue(cameraId, out var streams))
             {
                 var stream = streams.FirstOrDefault(s =>
                     s.PlatformUrl == cameraPlatform.Platform.Url && s.Token == cameraPlatform.Token);
@@ -56,7 +56,7 @@ public class StreamManager
 
                     if (streams.Count == 0)
                     {
-                        _cameraStreams.Remove(cameraId);
+                        CameraStreams.Remove(cameraId);
                     }
                 }
             }
@@ -86,7 +86,7 @@ public class StreamManager
     // Остановка всех потоков
     public void StopAllStreams()
     {
-        foreach (var streams in _cameraStreams.Values)
+        foreach (var streams in CameraStreams.Values)
         {
             foreach (var stream in streams)
             {
@@ -94,7 +94,7 @@ public class StreamManager
             }
         }
 
-        _cameraStreams.Clear();
+        CameraStreams.Clear();
     }
 
     public void Dispose()

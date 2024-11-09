@@ -8,7 +8,7 @@ namespace DelphicGames.Services.Streaming;
 /// <summary>
 /// Обрабатывает потоковое вещание на платформу
 /// </summary>
-public class StreamProcessor : IDisposable
+public class StreamProcessor : IStreamProcessor
 {
     private const string FfmpegPath = "ffmpeg";
     private readonly ILogger<StreamProcessor> _logger;
@@ -86,14 +86,14 @@ public class StreamProcessor : IDisposable
             process.Start();
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
-            _logger.LogInformation("Запущен ffmpeg процесс для камеры {CameraId}", cameraId);
 
-            // Ждем, чтобы проверить, что процесс не завершился сразу
             Thread.Sleep(4000);
             if (process.HasExited)
             {
-                throw new FfmpegProcessException($"Процесс ffmpeg завершился с ошибкой при запуске для камеры {cameraId}", cameraId);
+                throw new InvalidOperationException("Процесс FFmpeg завершился неожиданно.");
             }
+
+            _logger.LogInformation("Запущен ffmpeg процесс для камеры {CameraId}", cameraId);
         }
         catch (Exception ex)
         {
@@ -101,7 +101,7 @@ public class StreamProcessor : IDisposable
             process.OutputDataReceived -= outputHandler;
             process.ErrorDataReceived -= errorHandler;
             logger.Dispose();
-            throw;
+            throw new InvalidOperationException("Не удалось начать трансляцию.", ex);
         }
 
         var stream = new Stream
@@ -185,5 +185,4 @@ public class StreamProcessor : IDisposable
     {
         // TODO: Implement IDisposable
     }
-
 }
