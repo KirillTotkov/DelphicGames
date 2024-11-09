@@ -21,8 +21,7 @@
                     <th class="table-secondary">Действия</th>
                 </tr>
                 <tbody id="table-body" class="table-group-divider">
-                    <!-- Таблица будет заполнена данными из API ответа -->
-                    <tr>
+                    <tr class="d-none">
                         <td>Танцы</td>
                         <td>
                             <a>https://example1.com</a><br />
@@ -43,7 +42,7 @@
         <div class="card-body text-secondary gap-3">
             <div class="filter-block">
                 <label for="group_filter">Номинация</label>
-                <select multiple id="group_filter" class="form-select" aria-label="Выберите позицию...">
+                <select multiple id="group_filter" class="form-select d-none" aria-label="Выберите позицию...">
                     <option value="1">Один</option>
                     <option value="2">Два</option>
                     <option value="3">Три</option>
@@ -51,7 +50,7 @@
             </div>
             <div class="filter-block">
                 <label for="camera_filter">Название камеры</label>
-                <select multiple id="camera_filter" class="form-select" aria-label="Выберите позицию...">
+                <select multiple id="camera_filter" class="form-select d-none" aria-label="Выберите позицию...">
                     <option value="1">Один</option>
                     <option value="2">Два</option>
                     <option value="3">Три</option>

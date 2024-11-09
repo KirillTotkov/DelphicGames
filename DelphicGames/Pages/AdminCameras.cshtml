@@ -1,4 +1,4 @@
-﻿@page
+﻿@page "/admin/cameras"
 @model DelphicGames.Pages.AdminCamerasModel
 
 @{
@@ -25,7 +25,6 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Cameras will be dynamically populated here -->
                     </tbody>
                 </table>
             </div>
@@ -33,7 +32,6 @@
     </div>
 </div>
 
-<!-- Modal for adding/editing tokens -->
 <div class="modal fade" id="editTokensModal" tabindex="-1" aria-labelledby="editTokensModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -45,7 +43,6 @@
                 <form id="platformTokensForm">
                     <input type="hidden" id="cameraId" />
                     <div id="platformTokensContainer">
-                        <!-- Platform tokens input fields will be dynamically added here -->
                     </div>
                 </form>
             </div>
