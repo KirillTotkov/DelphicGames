@@ -14,15 +14,15 @@ public class CreateModel : PageModel
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly ILogger<CreateModel> _logger;
 
-    public CreateModel(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, ILogger<CreateModel> logger)
+    public CreateModel(UserManager<User> userManager, RoleManager<IdentityRole> roleManager,
+        ILogger<CreateModel> logger)
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _logger = logger;
     }
 
-    [BindProperty]
-    public CreateUserInput Input { get; set; }
+    [BindProperty] public CreateUserInput Input { get; set; }
     public List<SelectListItem> Roles { get; set; }
 
 
@@ -30,7 +30,6 @@ public class CreateModel : PageModel
     {
         Roles = _roleManager.Roles.Select(r => new SelectListItem { Value = r.Name, Text = r.Name }).ToList();
     }
-
 
     public async Task<IActionResult> OnPostAsync()
     {
@@ -47,8 +46,14 @@ public class CreateModel : PageModel
         {
             if (!string.IsNullOrEmpty(Input.Role))
             {
+                if (Input.Role == nameof(UserRoles.Admin))
+                {
+                    user.EmailConfirmed = true;
+                }
+                
                 await _userManager.AddToRoleAsync(user, Input.Role);
             }
+            
             _logger.LogInformation("Пользователь создан и назначена роль.");
             return RedirectToPage("Index");
         }
