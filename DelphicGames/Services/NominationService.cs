@@ -15,7 +15,11 @@ public class NominationService
 
     public async Task<Nomination> AddNomination(AddNominationDto dto)
     {
-        var nomination = new Nomination { Name = dto.Name.Trim() };
+        var nomination = new Nomination
+        {
+            Name = dto.Name.Trim(),
+            StreamUrl = dto.StreamUrl.Trim()
+        };
 
         var cameras = await GetCamerasByIds(dto.CameraIds);
 
@@ -46,7 +50,7 @@ public class NominationService
             .ToListAsync();
 
         return nominations.Select(n =>
-            new GetNominationDto(n.Id, n.Name,
+            new GetNominationDto(n.Id, n.Name, n.StreamUrl,
                 n.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList())).ToList();
     }
 
@@ -62,7 +66,7 @@ public class NominationService
             return null;
         }
 
-        return new GetNominationDto(nomination.Id, nomination.Name,
+        return new GetNominationDto(nomination.Id, nomination.Name, nomination.StreamUrl,
             nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList());
     }
 
@@ -101,6 +105,7 @@ public class NominationService
         }
 
         nomination.Name = dto.Name.Trim();
+        nomination.StreamUrl = dto.StreamUrl.Trim();
 
         var cameras = await GetCamerasByIds(dto.CameraIds);
 
@@ -137,8 +142,6 @@ public class NominationService
     }
 }
 
-public record AddNominationDto(string Name, List<int> CameraIds);
-
-public record GetNominationDto(int Id, string Name, List<GetCameraDto> Cameras);
-
+public record AddNominationDto(string Name, string StreamUrl, List<int> CameraIds);
+public record GetNominationDto(int Id, string Name, string StreamUrl, List<GetCameraDto> Cameras);
 public record NominationDto(int Id, string Name);
