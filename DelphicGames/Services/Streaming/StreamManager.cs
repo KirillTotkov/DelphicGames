@@ -5,7 +5,7 @@ namespace DelphicGames.Services.Streaming;
 
 public class StreamManager
 {
-    public Dictionary<int, List<Stream>> CameraStreams { get; } = new();
+    public Dictionary<int, List<Stream>> NominationStreams { get; } = new();
     private readonly ILogger<StreamManager> _logger;
     private readonly IStreamProcessor _streamProcessor;
 
@@ -16,19 +16,19 @@ public class StreamManager
     }
 
     // Запуск потока для определённой камеры и платформы
-    public void StartStream(CameraPlatform cameraPlatform)
+    public void StartStream(NominationPlatform nominationPlatform)
     {
         try
         {
-            int cameraId = cameraPlatform.CameraId;
+            var nominationId = nominationPlatform.NominationId;
 
-            if (!CameraStreams.TryGetValue(cameraId, out var streams))
+            if (!NominationStreams.TryGetValue(nominationId, out var streams))
             {
                 streams = new List<Stream>();
-                CameraStreams[cameraId] = streams;
+                NominationStreams[nominationId] = streams;
             }
 
-            var stream = _streamProcessor.StartStreamForPlatform(cameraPlatform);
+            var stream = _streamProcessor.StartStreamForPlatform(nominationPlatform);
             streams.Add(stream);
         }
         catch (Exception ex)
@@ -38,16 +38,16 @@ public class StreamManager
     }
 
     // Остановка потока для определённой камеры и платформы
-    public void StopStream(CameraPlatform cameraPlatform)
+    public void StopStream(NominationPlatform nominationPlatform)
     {
         try
         {
-            int cameraId = cameraPlatform.CameraId;
+            var nominationId = nominationPlatform.NominationId;
 
-            if (CameraStreams.TryGetValue(cameraId, out var streams))
+            if (NominationStreams.TryGetValue(nominationId, out var streams))
             {
                 var stream = streams.FirstOrDefault(s =>
-                    s.PlatformUrl == cameraPlatform.Platform.Url && s.Token == cameraPlatform.Token);
+                    s.PlatformUrl == nominationPlatform.Platform.Url && s.Token == nominationPlatform.Token);
 
                 if (stream != null)
                 {
@@ -56,26 +56,28 @@ public class StreamManager
 
                     if (streams.Count == 0)
                     {
-                        CameraStreams.Remove(cameraId);
+                        NominationStreams.Remove(nominationId);
                     }
                 }
             }
         }
         catch (FfmpegProcessException ex)
         {
-            _logger.LogError(ex, "FFmpeg ошибка при запуске потока для камеры {CameraId}", ex.CameraId);
+            _logger.LogError(ex,
+                "FFmpeg ошибка при запуске потока для номинации {NominationId} на платформе {PlatformId}",
+                nominationPlatform.NominationId, nominationPlatform.PlatformId);
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при остановке потока для камеры {CameraId} на платформе {PlatformId}",
-                cameraPlatform.CameraId, cameraPlatform.PlatformId);
+            _logger.LogError(ex, "Ошибка при остановке потока для номинации {NominationId} на платформе {PlatformId}",
+                nominationPlatform.NominationId, nominationPlatform.PlatformId);
             throw;
         }
     }
 
     // Запуск всех потоков
-    public void StartAllStreams(IEnumerable<CameraPlatform> cameraPlatformsList)
+    public void StartAllStreams(IEnumerable<NominationPlatform> cameraPlatformsList)
     {
         foreach (var cameraPlatform in cameraPlatformsList)
         {
@@ -86,7 +88,7 @@ public class StreamManager
     // Остановка всех потоков
     public void StopAllStreams()
     {
-        foreach (var streams in CameraStreams.Values)
+        foreach (var streams in NominationStreams.Values)
         {
             foreach (var stream in streams)
             {
@@ -94,7 +96,7 @@ public class StreamManager
             }
         }
 
-        CameraStreams.Clear();
+        NominationStreams.Clear();
     }
 
     public void Dispose()

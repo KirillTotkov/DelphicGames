@@ -1,12 +1,11 @@
 ﻿using System.Diagnostics;
-using Serilog;
 using Serilog.Core;
 
 namespace DelphicGames.Models;
 
 public class Stream : IDisposable
 {
-    public string CameraUrl { get; set; }
+    public string NominationUrl { get; set; }
     public string PlatformUrl { get; set; }
     public string Token { get; set; }
     public Process Process { get; set; }
