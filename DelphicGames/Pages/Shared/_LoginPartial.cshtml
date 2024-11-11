@@ -15,10 +15,10 @@
         @if (User.IsInRole(nameof(UserRoles.Root)) || User.IsInRole(nameof(UserRoles.Admin)))
         {
             <li class="nav-item">
-                <a class="nav-link text-dark" asp-page="/Streams">Трансляции</a>
+                <a class="nav-link text-dark" asp-page="/Nominations">Номинации</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-dark" asp-page="/Nominations">Номинации</a>
+                <a class="nav-link text-dark" asp-page="/Streams">Трансляции</a>
             </li>
         }
 
