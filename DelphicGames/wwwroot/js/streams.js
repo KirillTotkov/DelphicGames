@@ -1,4 +1,4 @@
-let cityChoices, nominationChoices, cameraChoices;
+let nominationChoices, cameraChoices;
 const notyf = new Notyf({
     duration: 4000,
     position: {
@@ -7,7 +7,7 @@ const notyf = new Notyf({
     },
 });
 
-const cityChoicesOptions = {
+const choicesOptions = {
     noResultsText: "Нет доступных вариантов",
     noChoicesText: "Нет доступных вариантов для выбора",
     removeItemButton: true,
@@ -49,7 +49,7 @@ function populateTable(platforms, broadcasts) {
     const headerRow1 = document.createElement("tr");
     const headerRow2 = document.createElement("tr");
 
-    const headers = ["URL", "Город", "Номинация", "Имя Камеры"];
+    const headers = ["URL", "Номинация", "Имя Камеры"];
     headers.forEach((text) => {
         const th = document.createElement("th");
         th.rowSpan = 2;
@@ -81,7 +81,7 @@ function populateTable(platforms, broadcasts) {
     broadcasts.forEach((broadcast) => {
         const tr = document.createElement("tr");
 
-        ["url", "city", "nomination", "cameraName"].forEach((key) => {
+        ["url", "nomination", "cameraName"].forEach((key) => {
             const td = document.createElement("td");
             td.textContent = broadcast[key];
             tr.appendChild(td);
@@ -132,7 +132,7 @@ function populateTable(platforms, broadcasts) {
             search: "Поиск:",
         },
         columnDefs: [
-            {orderable: true, targets: [0, 1, 2, 3]},
+            {orderable: true, targets: [0, 1, 2]},
             {orderable: false, targets: "_all"},
         ],
     });
@@ -140,12 +140,7 @@ function populateTable(platforms, broadcasts) {
 
 function populateFilterOptions(broadcasts) {
     const unique = (arr) => [...new Set(arr)].sort();
-
-    populateChoices(
-        "#city_filter",
-        unique(broadcasts.map((b) => b.city)),
-        "Выберите город"
-    );
+    
     populateChoices(
         "#nomination_filter",
         unique(broadcasts.map((b) => b.nomination)),
@@ -170,11 +165,10 @@ function populateChoices(selector, options, placeholder) {
     });
 
     const choiceInstance = new Choices(selector, {
-        ...cityChoicesOptions,
+        ...choicesOptions,
         placeholderValue: placeholder,
     });
 
-    if (selector === "#city_filter") cityChoices = choiceInstance;
     if (selector === "#nomination_filter") nominationChoices = choiceInstance;
     if (selector === "#camera_filter") cameraChoices = choiceInstance;
 }
@@ -248,7 +242,6 @@ function updateAllHeaderCheckboxes(platforms) {
 
 function applyFilters() {
     const [cityValues, nominationValues, cameraValues] = [
-        cityChoices.getValue(true),
         nominationChoices.getValue(true),
         cameraChoices.getValue(true),
     ];
@@ -257,9 +250,8 @@ function applyFilters() {
 
     $.fn.DataTable.ext.search = [
         function (settings, data) {
-            const [, city, nomination, cameraName] = data;
+            const [, nomination, cameraName] = data;
             return (
-                (cityValues.length ? cityValues.includes(city) : true) &&
                 (nominationValues.length
                     ? nominationValues.includes(nomination)
                     : true) &&
@@ -272,7 +264,7 @@ function applyFilters() {
 }
 
 document
-    .querySelectorAll("#city_filter, #nomination_filter, #camera_filter")
+    .querySelectorAll("#nomination_filter, #camera_filter")
     .forEach((element) => element.addEventListener("change", applyFilters));
 
 document.addEventListener("DOMContentLoaded", fetchData);
