@@ -118,6 +118,29 @@ try
     }
 
 
+    // Создаем роли
+    using (var scope = app.Services.CreateScope())
+    {
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        if (!await roleManager.RoleExistsAsync(nameof(UserRoles.Root)))
+        {
+            var rootRole = new IdentityRole(nameof(UserRoles.Root));
+            await roleManager.CreateAsync(rootRole);
+        }
+
+        if (!await roleManager.RoleExistsAsync(nameof(UserRoles.Admin)))
+        {
+            var adminRole = new IdentityRole(nameof(UserRoles.Admin));
+            await roleManager.CreateAsync(adminRole);
+        }
+
+        if (!await roleManager.RoleExistsAsync(nameof(UserRoles.Specialist)))
+        {
+            var specRole = new IdentityRole(nameof(UserRoles.Specialist));
+            await roleManager.CreateAsync(specRole);
+        }
+    }
+
     // Создаем роль cуперадминистратора и пользователя-cуперадминистратора, если их нет
     using (var scope = app.Services.CreateScope())
     {
@@ -151,6 +174,32 @@ try
             }
         }
     }
+
+    // Добавляем регион и город
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
+        var region = new Region()
+        {
+            Name = "Республика Коми",
+            Cities = new List<City>()
+        };
+        var city = new City()
+        {
+            Name = "Сыктывкар",
+            Region = region
+        };
+
+        region.Cities.Add(city);
+
+        if (!await dbContext.Regions.AnyAsync(x => x.Name == region.Name))
+        {
+            await dbContext.Regions.AddAsync(region);
+
+            await dbContext.SaveChangesAsync();
+        }
+    }
+
 
     // Остановка трансляций при завершении работы приложения
     app.Lifetime.ApplicationStopping.Register(() =>

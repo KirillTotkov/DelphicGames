@@ -10,4 +10,7 @@ public class Camera
     public int? NominationId { get; set; }
     public City? City { get; set; }
     public int? CityId { get; set; }
+
+    public User User { get; set; }
+    public string UserId { get; set; }
 }
