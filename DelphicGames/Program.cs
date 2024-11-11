@@ -70,7 +70,7 @@ try
     });
 
 
-    builder.Services.AddSingleton<IStreamProcessor, TestStreamProcessor>();
+    builder.Services.AddSingleton<IStreamProcessor, StreamProcessor>();
     builder.Services.AddSingleton<StreamManager>();
     builder.Services.AddScoped<CameraService>();
     builder.Services.AddScoped<StreamService>();
@@ -180,7 +180,7 @@ try
         using var scope = app.Services.CreateScope();
         var streamService = scope.ServiceProvider.GetRequiredService<StreamService>();
         streamService.StopAllStreams();
-        Log.Information("Все трансляции остановлены");
+        Log.Information("Приложение остановлено. Все трансляции остановлены");
     });
 
     app.Run();
