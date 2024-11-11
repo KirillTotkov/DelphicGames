@@ -2,7 +2,6 @@ let currentNominationId = null;
 let selectedCameraIds = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await loadRegions();
   await loadNominations();
 
   // Delete nomination
@@ -12,56 +11,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       deleteNomination(id);
     }
   });
-
-  // Load cities into filter
-  await loadCities();
-
-  document
-    .getElementById("filterRegion")
-    .addEventListener("change", async (event) => {
-      const regionId = event.target.value;
-      if (currentNominationId) {
-        await loadCities(regionId, currentNominationId);
-        await loadCameras({ regionId, nominationId: currentNominationId });
-      } else {
-        if (regionId) {
-          await loadCities(regionId);
-          await loadCameras({ regionId });
-        } else {
-          await loadCities();
-          await loadCameras();
-        }
-      }
-      filterCameras(); // Apply URL and name filters
-    });
-
-  document
-    .getElementById("filterCity")
-    .addEventListener("change", async (event) => {
-      const cityId = event.target.value;
-      const regionId = document.getElementById("filterRegion").value; // Added line
-      if (currentNominationId) {
-        if (cityId) {
-          await loadCameras({ cityId, nominationId: currentNominationId });
-        } else if (regionId) {
-          // Added condition
-          await loadCameras({ regionId, nominationId: currentNominationId });
-        } else {
-          await loadCameras({ nominationId: currentNominationId });
-        }
-      } else {
-        if (cityId) {
-          await loadCameras({ cityId });
-        } else if (regionId) {
-          // Added condition
-          await loadCameras({ regionId });
-        } else {
-          await loadCameras();
-        }
-      }
-      filterCameras(); // Apply URL and name filters
-    });
-
+  
+  
   // Filter cameras by URL or name
   document.getElementById("filterUrl").addEventListener("input", filterCameras);
   document
@@ -95,8 +46,6 @@ document
     // Set save button action for adding
     document.getElementById("notification-save").onclick = addNomination;
     // Clear filters
-    document.getElementById("filterRegion").value = "";
-    document.getElementById("filterCity").value = "";
     document.getElementById("filterUrl").value = "";
     document.getElementById("filterName").value = "";
     // Clear camera table
@@ -159,8 +108,6 @@ async function openEditModal(nominationId) {
   currentNominationId = nominationId;
 
   // clear filters
-  document.getElementById("filterRegion").value = "";
-  document.getElementById("filterCity").value = "";
   document.getElementById("filterUrl").value = "";
   document.getElementById("filterName").value = "";
 
@@ -286,31 +233,6 @@ async function deleteNomination(id) {
   }
 }
 
-async function loadCities(regionId) {
-  if (!regionId) {
-    populateCityFilter([]);
-    return;
-  }
-  try {
-    const response = await fetch(`/api/regions/${regionId}/cities`);
-    const cities = await response.json();
-    populateCityFilter(cities);
-  } catch (error) {
-    console.error("Error loading cities:", error);
-  }
-}
-
-function populateCityFilter(cities) {
-  const citySelect = document.getElementById("filterCity");
-  citySelect.innerHTML = "<option value=''>-- Выберите город --</option>";
-  cities.forEach((city) => {
-    const option = document.createElement("option");
-    option.value = city.id;
-    option.textContent = city.name;
-    citySelect.appendChild(option);
-  });
-}
-
 async function loadCameras(filter = {}) {
   let url = "/api/cameras/regions";
 
@@ -341,10 +263,6 @@ function populateCameraTable(cameras) {
 
   cameras.forEach((camera) => {
     const tr = document.createElement("tr");
-
-    const cityTd = document.createElement("td");
-    cityTd.textContent = camera.cityName;
-    tr.appendChild(cityTd);
 
     const urlTd = document.createElement("td");
     urlTd.textContent = camera.url;
@@ -393,28 +311,6 @@ function filterCameras() {
     } else {
       row.style.display = "none";
     }
-  });
-}
-
-// Load regions into the region filter dropdown
-async function loadRegions() {
-  try {
-    const response = await fetch("/api/regions");
-    const regions = await response.json();
-    populateRegionFilter(regions);
-  } catch (error) {
-    console.error("Error loading regions:", error);
-  }
-}
-
-function populateRegionFilter(regions) {
-  const regionSelect = document.getElementById("filterRegion");
-  regionSelect.innerHTML = "<option value=''>-- Выберите регион --</option>";
-  regions.forEach((region) => {
-    const option = document.createElement("option");
-    option.value = region.id;
-    option.textContent = region.name;
-    regionSelect.appendChild(option);
   });
 }
 
