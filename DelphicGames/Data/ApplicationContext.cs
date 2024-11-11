@@ -12,7 +12,7 @@ public class ApplicationContext : IdentityDbContext<User>
 
     public DbSet<Camera> Cameras { get; set; }
     public DbSet<Platform> Platforms { get; set; }
-    public DbSet<NominationPlatform> CameraPlatforms { get; set; }
+    public DbSet<NominationPlatform> NominationPlatforms { get; set; }
     public DbSet<Nomination> Nominations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
