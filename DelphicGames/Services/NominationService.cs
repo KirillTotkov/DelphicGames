@@ -42,7 +42,6 @@ public class NominationService
     {
         var nominations = await _context.Nominations
             .Include(n => n.Cameras)
-            .ThenInclude(c => c.City)
             .AsNoTracking()
             .ToListAsync();
 
@@ -55,7 +54,6 @@ public class NominationService
     {
         var nomination = await _context.Nominations
             .Include(n => n.Cameras)
-            .ThenInclude(c => c.City)
             .AsNoTracking()
             .FirstOrDefaultAsync(n => n.Id == nominationId);
 
