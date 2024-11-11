@@ -10,6 +10,7 @@ async function loadPlatforms() {
     console.error("Ошибка загрузки платформ:", error);
   }
 }
+
 function displayPlatformTokens(nominationPlatforms = []) {
   const container = document.getElementById("platformTokensContainer");
   container.innerHTML = "";
@@ -143,10 +144,13 @@ async function addNomination() {
   document
     .querySelectorAll("#platformTokensContainer input")
     .forEach((input) => {
-      platformTokens.push({
-        platformId: parseInt(input.dataset.platformId),
-        token: input.value.trim(),
-      });
+      const token = input.value.trim();
+      if (token) {
+        platformTokens.push({
+          platformId: parseInt(input.dataset.platformId),
+          token: token,
+        });
+      }
     });
 
   const nominationData = {
@@ -236,10 +240,13 @@ async function updateNomination(nominationId) {
   document
     .querySelectorAll("#platformTokensContainer input")
     .forEach((input) => {
-      platformTokens.push({
-        platformId: parseInt(input.dataset.platformId),
-        token: input.value.trim(),
-      });
+      const token = input.value.trim();
+      if (token) {
+        platformTokens.push({
+          platformId: parseInt(input.dataset.platformId),
+          token: token,
+        });
+      }
     });
 
   const nominationData = {
