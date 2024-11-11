@@ -129,49 +129,26 @@ public class CameraService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<CityCameraDto>> GetCamerasByCity(int cityId, int? nominationId)
+    //  камеры, у которых нет номинации или у которых номинация совпадает с переданным ID
+    public async Task<List<GetCameraDto>> GetCamerasByNomination(int? nominationId = null)
     {
-        return await _context.Cameras
-            .Where(c => c.CityId == cityId && (c.NominationId == null || c.NominationId == nominationId))
-            .OrderBy(c => c.Id)
-            .Select(c => new CityCameraDto(c.Id, c.Name, c.Url, c.City.Name))
-            .ToListAsync();
-    }
+        var query = _context.Cameras.AsQueryable();
 
-    public async Task<IEnumerable<CityCameraDto>> GetCamerasCity(int? nominationId)
-    {
-        if (nominationId == null)
+        if (nominationId.HasValue)
         {
-            return await _context.Cameras
-                .Where(c => c.NominationId == null)
-                .OrderBy(c => c.Id)
-                .Select(c => new CityCameraDto(c.Id, c.Name, c.Url, c.City.Name))
-                .ToListAsync();
+            query = query.Where(c => c.NominationId == nominationId.Value || c.NominationId == null);
+        }
+        else
+        {
+            query = query.Where(c => c.NominationId == null);
         }
 
-        return await _context.Cameras
-            .Where(c => (c.NominationId != null && c.NominationId == nominationId) || c.NominationId == null)
+        var cameras = await query
             .OrderBy(c => c.Id)
-            .Select(c => new CityCameraDto(c.Id, c.Name, c.Url, c.City.Name))
+            .AsNoTracking()
             .ToListAsync();
-    }
 
-    public async Task<IEnumerable<CityCameraDto>> GetCamerasByRegion(int regionId, int? nominationId)
-    {
-        if (nominationId != null)
-        {
-            return await _context.Cameras
-                .Where(c => c.City.RegionId == regionId && c.NominationId == nominationId)
-                .OrderBy(c => c.Id)
-                .Select(c => new CityCameraDto(c.Id, c.Name, c.Url, c.City.Name))
-                .ToListAsync();
-        }
-
-        return await _context.Cameras
-            .Where(c => c.City.RegionId == regionId && c.NominationId == null)
-            .OrderBy(c => c.Id)
-            .Select(c => new CityCameraDto(c.Id, c.Name, c.Url, c.City.Name))
-            .ToListAsync();
+        return cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList();
     }
 
     public async Task<bool> CameraExists(int id)
@@ -185,7 +162,7 @@ public class CameraService
     }
 }
 
-public record CityCameraDto(int Id, string Name, string Url, string CityName);
+public record CityCameraDto(int Id, string Name, string Url);
 
 public record AddCameraDto(string Name, string Url);
 

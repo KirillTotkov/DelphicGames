@@ -11,8 +11,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       deleteNomination(id);
     }
   });
-  
-  
+
   // Filter cameras by URL or name
   document.getElementById("filterUrl").addEventListener("input", filterCameras);
   document
@@ -234,15 +233,7 @@ async function deleteNomination(id) {
 }
 
 async function loadCameras(filter = {}) {
-  let url = "/api/cameras/regions";
-
-  if (filter.regionId) {
-    url += `/${filter.regionId}`;
-  }
-
-  if (filter.cityId) {
-    url += `/city/${filter.cityId}`;
-  }
+  let url = "/api/cameras/nominations";
 
   if (filter.nominationId) {
     url += `/?nominationId=${filter.nominationId}`;
