@@ -39,6 +39,7 @@ public class NominationController : ControllerBase
         {
             return NotFound();
         }
+
         return Ok(nomination);
     }
 
@@ -48,7 +49,14 @@ public class NominationController : ControllerBase
         try
         {
             var nomination = await _nominationService.AddNomination(dto);
-            var result = new GetNominationDto(nomination.Id, nomination.Name, nomination.StreamUrl, nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList());
+            var result = new GetNominationDto(
+                nomination.Id,
+                nomination.Name,
+                nomination.StreamUrl,
+                nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList(),
+                nomination.Platforms.Select(np => new GetNominationPlatformDto(np.PlatformId, np.Platform.Name, np.Token))
+                    .ToList()
+            );
             return CreatedAtAction(nameof(GetNomination), new { id = nomination.Id }, result);
         }
         catch (ArgumentException ex)
