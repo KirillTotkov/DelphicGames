@@ -76,7 +76,6 @@ try
     builder.Services.AddScoped<StreamService>();
     builder.Services.AddScoped<PlatformService>();
     builder.Services.AddScoped<NominationService>();
-    builder.Services.AddScoped<CameraPlatformService>();
 
     var rootUserConfig = builder.Configuration.GetSection("RootUser").Get<RootUserConfig>();
 

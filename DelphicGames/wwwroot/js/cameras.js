@@ -48,7 +48,7 @@ const deleteCameraPlatform = async (id) => {
   }
 
   try {
-    const response = await fetch(`api/cameraplatform/${id}`, {
+    const response = await fetch(`api/cameras/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
