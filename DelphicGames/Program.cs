@@ -174,32 +174,6 @@ try
         }
     }
 
-    // Добавляем регион и город
-    using (var scope = app.Services.CreateScope())
-    {
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
-        var region = new Region()
-        {
-            Name = "Республика Коми",
-            Cities = new List<City>()
-        };
-        var city = new City()
-        {
-            Name = "Сыктывкар",
-            Region = region
-        };
-
-        region.Cities.Add(city);
-
-        if (!await dbContext.Regions.AnyAsync(x => x.Name == region.Name))
-        {
-            await dbContext.Regions.AddAsync(region);
-
-            await dbContext.SaveChangesAsync();
-        }
-    }
-
-
     // Остановка трансляций при завершении работы приложения
     app.Lifetime.ApplicationStopping.Register(() =>
     {
