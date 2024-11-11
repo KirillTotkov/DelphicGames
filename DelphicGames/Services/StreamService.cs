@@ -91,6 +91,8 @@ public class StreamService
         try
         {
             var nominationPlatform = _context.NominationPlatforms
+                .Include(np => np.Nomination)
+                .Include(np => np.Platform)
                 .FirstOrDefault(np => np.NominationId == nominationId && np.PlatformId == platformId);
 
             if (nominationPlatform != null)
@@ -144,6 +146,8 @@ public class StreamService
         try
         {
             var activePlatforms = _context.NominationPlatforms
+                .Include(np => np.Nomination)
+                .Include(np => np.Platform)
                 .Where(np => np.IsActive)
                 .ToList();
 
@@ -202,6 +206,8 @@ public class StreamService
         try
         {
             var cameraPlatforms = _context.NominationPlatforms
+                .Include(np => np.Nomination)
+                .Include(np => np.Platform)
                 .Where(np => np.PlatformId == platformId && np.IsActive)
                 .ToList();
 
@@ -268,6 +274,8 @@ public class StreamService
         try
         {
             var nominationPlatforms = _context.NominationPlatforms
+                .Include(np => np.Nomination)
+                .Include(np => np.Platform)
                 .Where(np => np.NominationId == nominationId && np.IsActive)
                 .ToList();
 
@@ -295,19 +303,30 @@ public class StreamService
             var streams = await _context.NominationPlatforms
                 .Include(np => np.Nomination)
                 .Include(np => np.Platform)
-                .Select(np => new BroadcastDto(
-                    np.Platform.Url,
-                    np.NominationId,
-                    np.Nomination.Name,
-                    np.PlatformId,
-                    np.Platform.Name,
-                    new List<PlatformStatusDto>
-                    {
-                        new PlatformStatusDto(np.PlatformId, np.Platform.Name, np.IsActive)
-                    }))
+                .Where(cp => cp.Token != null && cp.Token != "")
+                .AsNoTracking()
                 .ToListAsync();
 
-            return streams;
+            var groupedSteams = streams
+                .GroupBy(cp => cp.NominationId)
+                .Select(g =>
+                {
+                    var nomination = g.First().Nomination;
+                    return new BroadcastDto(
+                        nomination.StreamUrl,
+                        nomination.Id,
+                        nomination.Name,
+                        g.Select(cp => new PlatformStatusDto(
+                            cp.Platform.Id,
+                            cp.Platform.Name,
+                            cp.IsActive
+                        )).ToList()
+                    );
+                })
+                .OrderBy(b => b.Nomination)
+                .ToList();
+
+            return groupedSteams;
         }
         catch (Exception ex)
         {
@@ -321,8 +340,6 @@ public record BroadcastDto(
     string Url,
     int NominationId,
     string Nomination,
-    int PlatformId,
-    string PlatformName,
     List<PlatformStatusDto> PlatformStatuses
 );
 
