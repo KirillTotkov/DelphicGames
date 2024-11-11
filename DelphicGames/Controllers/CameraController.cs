@@ -87,21 +87,7 @@ public class CameraController : ControllerBase
             return BadRequest(new { Error = e.Message });
         }
     }
-
-    [HttpPost("{cameraId:int}/platforms/{platformId:int}")]
-    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Admin)}")]
-    public async Task<IActionResult> AddPlatformToCamera(int cameraId, int platformId)
-    {
-        try
-        {
-            await _cameraService.AddPlatformToCamera(cameraId, platformId);
-            return NoContent();
-        }
-        catch (InvalidOperationException e)
-        {
-            return BadRequest(new { Error = e.Message });
-        }
-    }
+    
 
     [HttpGet("nominations")]
     [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Admin)}")]
