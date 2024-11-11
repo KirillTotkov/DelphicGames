@@ -15,22 +15,24 @@ public class NominationService
 
     public async Task<Nomination> AddNomination(AddNominationDto dto)
     {
-        var nomination = new Nomination { Name = dto.Name.Trim() };
+        var nomination = new Nomination
+        {
+            Name = dto.Name.Trim(),
+            StreamUrl = dto.StreamUrl.Trim()
+        };
 
         var cameras = await GetCamerasByIds(dto.CameraIds);
-
-        // Проверка, не связана ли уже какая-либо камера с номинацией
-        var alreadyNominated = await _context.Cameras
-            .Where(c => dto.CameraIds.Contains(c.Id) && c.NominationId != null)
-            .ToListAsync();
-
-        if (alreadyNominated.Count != 0)
-        {
-            var names = string.Join(", ", alreadyNominated.Select(c => c.Name));
-            throw new ArgumentException($"Камеры {names} уже связаны с номинацией");
-        }
-
         nomination.Cameras.AddRange(cameras);
+
+        if (CheckPlatformsByIds(dto.Platforms.Select(p => p.PlatformId).ToList()).Result)
+        {
+            nomination.Platforms = dto.Platforms.Where(p => !string.IsNullOrWhiteSpace(p.Token)).Select(p => new NominationPlatform
+            {
+                PlatformId = p.PlatformId,
+                Token = p.Token,
+                IsActive = false
+            }).ToList();
+        }
 
         await _context.Nominations.AddAsync(nomination);
         await _context.SaveChangesAsync();
@@ -42,19 +44,28 @@ public class NominationService
     {
         var nominations = await _context.Nominations
             .Include(n => n.Cameras)
+            .Include(n => n.Platforms)
+            .ThenInclude(np => np.Platform)
             .AsNoTracking()
+            .Select(n => new GetNominationDto(
+                n.Id,
+                n.Name,
+                n.StreamUrl,
+                n.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList(),
+                n.Platforms.Select(np => new GetNominationPlatformDto(np.PlatformId, np.Platform.Name, np.Token))
+                    .ToList()
+            ))
             .ToListAsync();
 
-        return nominations.Select(n =>
-            new GetNominationDto(n.Id, n.Name,
-                n.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList())).ToList();
+        return nominations;
     }
 
     public async Task<GetNominationDto?> GetNominationWithCameras(int nominationId)
     {
         var nomination = await _context.Nominations
             .Include(n => n.Cameras)
-            .AsNoTracking()
+            .Include(n => n.Platforms)
+            .ThenInclude(np => np.Platform)
             .FirstOrDefaultAsync(n => n.Id == nominationId);
 
         if (nomination == null)
@@ -62,8 +73,14 @@ public class NominationService
             return null;
         }
 
-        return new GetNominationDto(nomination.Id, nomination.Name,
-            nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList());
+        return new GetNominationDto(
+            nomination.Id,
+            nomination.Name,
+            nomination.StreamUrl,
+            nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList(),
+            nomination.Platforms.Select(np => new GetNominationPlatformDto(np.PlatformId, np.Platform.Name, np.Token))
+                .ToList()
+        );
     }
 
     public async Task<List<NominationDto>> GetNominations()
@@ -93,6 +110,7 @@ public class NominationService
     {
         var nomination = await _context.Nominations
             .Include(n => n.Cameras)
+            .Include(n => n.Platforms)
             .FirstOrDefaultAsync(n => n.Id == nominationId);
 
         if (nomination == null)
@@ -101,24 +119,32 @@ public class NominationService
         }
 
         nomination.Name = dto.Name.Trim();
-
-        var cameras = await GetCamerasByIds(dto.CameraIds);
-
-        // Проверка, не связана ли уже какая-либо камера с номинацией
-        var alreadyNominated = await _context.Cameras
-            .Where(c => dto.CameraIds.Contains(c.Id) && c.NominationId != nominationId && c.NominationId != null)
-            .ToListAsync();
-
-        if (alreadyNominated.Count != 0)
-        {
-            var names = string.Join(", ", alreadyNominated.Select(c => c.Name));
-            throw new ArgumentException($"Камеры {names} уже связаны с номинацией");
-        }
+        nomination.StreamUrl = dto.StreamUrl.Trim();
 
         nomination.Cameras.Clear();
+        var cameras = await GetCamerasByIds(dto.CameraIds);
         nomination.Cameras.AddRange(cameras);
 
+        nomination.Platforms.Clear();
+        nomination.Platforms = dto.Platforms.Select(p => new NominationPlatform
+        {
+            PlatformId = p.PlatformId,
+            Token = p.Token,
+            IsActive = false
+        }).ToList();
+
         await _context.SaveChangesAsync();
+    }
+
+    private async Task<bool> CheckPlatformsByIds(List<int> platformIds)
+    {
+        var platforms = await _context.Platforms.Where(p => platformIds.Contains(p.Id)).ToListAsync();
+        if (platforms.Count != platformIds.Count)
+        {
+            throw new ArgumentException("Некоторые платформы не найдены");
+        }
+
+        return true;
     }
 
     private async Task<List<Camera>> GetCamerasByIds(List<int> cameraIds)
@@ -137,8 +163,21 @@ public class NominationService
     }
 }
 
-public record AddNominationDto(string Name, List<int> CameraIds);
+public record AddNominationDto(
+    string Name,
+    string StreamUrl,
+    List<int> CameraIds,
+    List<NominationPlatformDto> Platforms);
 
-public record GetNominationDto(int Id, string Name, List<GetCameraDto> Cameras);
+public record GetNominationDto(
+    int Id,
+    string Name,
+    string StreamUrl,
+    List<GetCameraDto> Cameras,
+    List<GetNominationPlatformDto> Platforms);
 
 public record NominationDto(int Id, string Name);
+
+public record GetNominationPlatformDto(int PlatformId, string PlatformName, string? Token);
+
+public record NominationPlatformDto(int PlatformId, string? Token);

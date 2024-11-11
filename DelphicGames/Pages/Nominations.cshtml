@@ -17,12 +17,16 @@
             <table class="table table-secondary table-hover align-middle mt-2">
                 <tr class="table-secondary">
                     <th class="table-secondary">Номинация</th>
-                    <th class="table-secondary">Содержание (Перечень потоков)</th>
+                    <th class="table-secondary">URL потока</th>
+                    <th class="table-secondary">Камеры</th>
                     <th class="table-secondary">Действия</th>
                 </tr>
                 <tbody id="table-body" class="table-group-divider">
                     <tr class="d-none">
                         <td>Танцы</td>
+                        <td>
+                            <a>https://streamurl.com</a>
+                        </td>
                         <td>
                             <a>https://example1.com</a><br />
                             <a>https://example2.com</a>
@@ -60,7 +64,6 @@
     </div>
 </div>
 
-<!-- Модальное окно -->
 <div class="modal fade" id="addGroupModal" tabindex="-1" aria-labelledby="addGroupModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -71,41 +74,54 @@
             <div class="modal-body">
                 <form>
                     <div class="mb-3">
-                        <label for="groupName" class="form-label">Укажите название номинации</label>
-                        <input type="text" class="form-control" id="groupName" placeholder="Введите название номинации"
-                            required />
+                        <label for="groupName" class="form-label fw-medium">Название номинации</label>
+                        <input type="text" class="form-control" id="groupName" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="streamUrl" class="form-label fw-medium">URL потока</label>
+                        <input type="text" class="form-control" id="streamUrl" required />
+                    </div>
+                    <div class="mb-3">
+                        <p class="fw-medium">Токены платформ</p>
+                        <div id="platformTokensContainer">
+                            <!-- Динамически добавляемые поля -->
+                        </div>
                     </div>
                     <h6 class="mb-3">Фильтры</h6>
                     <div class="border p-3 mb-3">
                         <div class="mb-3 d-flex flex-wrap">
                             <div class="me-3">
-                                <label for="filterUrl" class="form-label">URL</label>
-                                <input type="text" class="form-control" id="filterUrl" placeholder="" />
+                                <label for="filterUrlModal" class="form-label">URL</label>
+                                <select id="filterUrlModal" class="form-select" aria-label="Фильтр по URL">
+                                    <option value="">Все</option>
+                                </select>
                             </div>
                             <div class="me-3">
-                                <label for="filterName" class="form-label">Название камеры</label>
-                                <input type="text" class="form-control" id="filterName" placeholder="" />
+                                <label for="filterNameModal" class="form-label">Название камеры</label>
+                                <select id="filterNameModal" class="form-select" aria-label="Фильтр по названию камеры">
+                                    <option value="">Все</option>
+                                </select>
                             </div>
                         </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>URL</th>
-                                    <th>Название камеры</th>
-                                    <th class="text-center">Выбрать</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr style="height: 30px">
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>URL</th>
+                                        <th>Название камеры</th>
+                                        <th class="text-center">Выбрать</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="height: 30px">
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -116,6 +132,15 @@
         </div>
     </div>
 </div>
+
+@section Head {
+    <style>
+        table ul {
+            padding: 1rem;
+            margin: 0;
+        }
+    </style>
+}
 
 @section Scripts
 {

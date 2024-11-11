@@ -1,5 +1,48 @@
 let currentNominationId = null;
 let selectedCameraIds = [];
+let platforms = [];
+
+async function loadPlatforms() {
+  try {
+    const response = await fetch("/api/platforms");
+    platforms = await response.json();
+  } catch (error) {
+    console.error("Ошибка загрузки платформ:", error);
+  }
+}
+
+function displayPlatformTokens(nominationPlatforms = []) {
+  const container = document.getElementById("platformTokensContainer");
+  container.innerHTML = "";
+
+  platforms.forEach((platform) => {
+    const div = document.createElement("div");
+    div.classList.add("mb-2");
+
+    const label = document.createElement("label");
+    label.textContent = platform.name;
+    label.classList.add("form-label");
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.classList.add("form-control");
+    input.name = `platformToken_${platform.id}`;
+    input.dataset.platformId = platform.id;
+
+    // Если редактируем номинацию, предзаполняем токен
+    const existingPlatform = nominationPlatforms.find(
+      (np) => np.platformId === platform.id
+    );
+    if (existingPlatform) {
+      input.value = existingPlatform.token || "";
+    }
+
+    div.appendChild(label);
+    div.appendChild(input);
+
+    container.appendChild(div);
+  });
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   await loadNominations();
@@ -12,11 +55,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Filter cameras by URL or name
-  document.getElementById("filterUrl").addEventListener("input", filterCameras);
+  // Filter cameras by URL or name using dropdowns
   document
-    .getElementById("filterName")
-    .addEventListener("input", filterCameras);
+    .getElementById("filterUrlModal")
+    .addEventListener("change", filterCameras);
+  document
+    .getElementById("filterNameModal")
+    .addEventListener("change", filterCameras);
 
   // Handle checkbox changes
   document
@@ -35,38 +80,84 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 });
 
-// Open modal for adding a new nomination
+// Обработчик открытия модального окна для добавления номинации
 document
   .querySelector('[data-bs-target="#addGroupModal"]')
-  .addEventListener("click", () => {
-    // Clear inputs and selections
+  .addEventListener("click", async () => {
+    currentNominationId = null;
     document.getElementById("groupName").value = "";
+    document.getElementById("streamUrl").value = "";
     selectedCameraIds = [];
-    // Set save button action for adding
-    document.getElementById("notification-save").onclick = addNomination;
-    // Clear filters
-    document.getElementById("filterUrl").value = "";
-    document.getElementById("filterName").value = "";
-    // Clear camera table
-    const tableBody = document.querySelector("#addGroupModal table tbody");
-    tableBody.innerHTML = "";
+    document.getElementById("platformTokensContainer").innerHTML = "";
 
-    loadCameras();
+    await loadPlatforms();
+    await loadCameras();
+    await populateFilterDropdowns();
+    displayPlatformTokens(await loadPlatforms());
+
+    // Устанавливаем обработчик сохранения для добавления
+    document.getElementById("notification-save").onclick = addNomination;
   });
 
-// Function to add a new nomination
+async function populateFilterDropdowns() {
+  try {
+    const response = await fetch("/api/cameras");
+    const cameras = await response.json();
+
+    const filterUrlModal = document.getElementById("filterUrlModal");
+    const filterNameModal = document.getElementById("filterNameModal");
+
+    // Get unique URLs and camera names
+    const uniqueUrls = [...new Set(cameras.map((camera) => camera.url))];
+    const uniqueNames = [...new Set(cameras.map((camera) => camera.name))];
+
+    // Populate URL filter
+    uniqueUrls.forEach((url) => {
+      const option = document.createElement("option");
+      option.value = url;
+      option.textContent = url;
+      filterUrlModal.appendChild(option);
+    });
+
+    // Populate camera name filter
+    uniqueNames.forEach((name) => {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      filterNameModal.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error populating filter dropdowns:", error);
+  }
+}
+
 async function addNomination() {
   const nominationName = document.getElementById("groupName").value.trim();
-  if (!nominationName) {
-    alert("Пожалуйста, введите название номинации.");
+  const streamUrl = document.getElementById("streamUrl").value.trim();
+
+  if (!nominationName || !streamUrl) {
+    alert("Пожалуйста, заполните все поля.");
     return;
   }
 
-  const selectedCameras = selectedCameraIds;
+  const platformTokens = [];
+  document
+    .querySelectorAll("#platformTokensContainer input")
+    .forEach((input) => {
+      const token = input.value.trim();
+      if (token) {
+        platformTokens.push({
+          platformId: parseInt(input.dataset.platformId),
+          token: token,
+        });
+      }
+    });
 
   const nominationData = {
     name: nominationName,
-    cameraIds: selectedCameras,
+    streamUrl: streamUrl,
+    cameraIds: selectedCameraIds,
+    platforms: platformTokens,
   };
 
   try {
@@ -94,32 +185,39 @@ async function addNomination() {
   }
 }
 
-// Handle edit button click
-document.getElementById("table-body").addEventListener("click", (event) => {
-  if (event.target.id === "editBtn") {
-    const nominationId = event.target.dataset.id;
-    openEditModal(nominationId);
-  }
-});
+// Обработчик кнопки редактирования номинации
+document
+  .getElementById("table-body")
+  .addEventListener("click", async (event) => {
+    if (event.target.id === "editBtn") {
+      const nominationId = event.target.dataset.id;
+      await openEditModal(nominationId);
+    }
+  });
 
-// Open modal for editing a nomination
 async function openEditModal(nominationId) {
   currentNominationId = nominationId;
-
-  // clear filters
-  document.getElementById("filterUrl").value = "";
-  document.getElementById("filterName").value = "";
+  document.getElementById("groupName").value = "";
+  document.getElementById("streamUrl").value = "";
+  selectedCameraIds = [];
+  document.getElementById("platformTokensContainer").innerHTML = "";
 
   try {
     const response = await fetch(`/api/nominations/${nominationId}`);
     const nomination = await response.json();
 
     document.getElementById("groupName").value = nomination.name;
+    document.getElementById("streamUrl").value = nomination.streamUrl || "";
     selectedCameraIds = nomination.cameras.map((camera) => camera.id);
 
-    await loadCameras({ nominationId });
+    await loadPlatforms();
 
-    // Set save button action for updating
+    // Отображаем платформы с предзаполненными токенами
+    displayPlatformTokens(nomination.platforms);
+
+    await loadCameras({ nominationId });
+    await populateFilterDropdowns();
+
     document.getElementById("notification-save").onclick = () =>
       updateNomination(nominationId);
 
@@ -129,19 +227,33 @@ async function openEditModal(nominationId) {
   }
 }
 
-// Function to update a nomination
 async function updateNomination(nominationId) {
   const nominationName = document.getElementById("groupName").value.trim();
-  if (!nominationName) {
-    alert("Пожалуйста, введите название номинации.");
+  const streamUrl = document.getElementById("streamUrl").value.trim();
+
+  if (!nominationName || !streamUrl) {
+    alert("Пожалуйста, заполните все поля.");
     return;
   }
 
-  const selectedCameras = selectedCameraIds;
+  const platformTokens = [];
+  document
+    .querySelectorAll("#platformTokensContainer input")
+    .forEach((input) => {
+      const token = input.value.trim();
+      if (token) {
+        platformTokens.push({
+          platformId: parseInt(input.dataset.platformId),
+          token: token,
+        });
+      }
+    });
 
   const nominationData = {
     name: nominationName,
-    cameraIds: selectedCameras,
+    streamUrl: streamUrl,
+    cameraIds: selectedCameraIds,
+    platforms: platformTokens,
   };
 
   try {
@@ -158,14 +270,10 @@ async function updateNomination(nominationId) {
       await loadNominations();
     } else {
       const errorData = await response.json();
-      alert(
-        `Ошибка при обновлении номинации: ${
-          errorData.Error || response.statusText
-        }`
-      );
+      alert("Ошибка при обновлении номинации: " + errorData.error);
     }
   } catch (error) {
-    console.error("Error updating nomination:", error);
+    console.error("Ошибка при обновлении номинации:", error);
   }
 }
 
@@ -189,6 +297,10 @@ function populateNominationsTable(nominations) {
     const nameTd = document.createElement("td");
     nameTd.textContent = nomination.name;
     tr.appendChild(nameTd);
+
+    const streamTd = document.createElement("td");
+    streamTd.textContent = nomination.streamUrl;
+    tr.appendChild(streamTd);
 
     const contentTd = document.createElement("td");
     const cameraUl = document.createElement("ul");
@@ -280,32 +392,29 @@ function populateCameraTable(cameras) {
   });
 }
 
-// Filter cameras based on selected filters
+// Filter cameras based on selected dropdown values
 function filterCameras() {
-  const urlFilter = document.getElementById("filterUrl").value.toLowerCase();
-  const nameFilter = document.getElementById("filterName").value.toLowerCase();
+  const urlFilter = document
+    .getElementById("filterUrlModal")
+    .value.toLowerCase();
+  const nameFilter = document
+    .getElementById("filterNameModal")
+    .value.toLowerCase();
   const rows = document.querySelectorAll("#addGroupModal table tbody tr");
 
   rows.forEach((row) => {
-    const rowUrl = row
-      .querySelector("td:nth-child(2)")
-      .textContent.toLowerCase();
-    const rowName = row
-      .querySelector("td:nth-child(3)")
-      .textContent.toLowerCase();
+    const url = row.cells[0].textContent.toLowerCase();
+    const name = row.cells[1].textContent.toLowerCase();
 
-    const matchesUrl = rowUrl.includes(urlFilter);
-    const matchesName = rowName.includes(nameFilter);
-
-    if (matchesUrl && matchesName) {
-      row.style.display = "";
-    } else {
-      row.style.display = "none";
-    }
+    const matchesUrl = !urlFilter || url === urlFilter;
+    const matchesName = !nameFilter || name === nameFilter;
+    row.style.display = matchesUrl && matchesName ? "" : "none";
   });
 }
 
 $("#addGroupModal").on("hidden.bs.modal", function () {
   currentNominationId = null;
   selectedCameraIds = [];
+  document.getElementById("filterUrlModal").options.length = 1;
+  document.getElementById("filterNameModal").options.length = 1;
 });

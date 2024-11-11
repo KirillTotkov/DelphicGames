@@ -18,101 +18,97 @@ public class StreamService
         _logger = logger;
     }
 
-    // Запуск трансляции для определенной камеры на определенной платформе
+    // Запуск трансляции для определенной номинации на определенной платформе
     // Если трансляция уже запущена, то она будет перезапущена
     // Если токен не пустой, то он будет обновлен
     public void StartStream(AddStreamDto streamDto)
     {
         try
         {
-            var cameraPlatform = _context.CameraPlatforms
-                .Include(cp => cp.Camera)
-                .Include(cp => cp.Platform)
-                .FirstOrDefault(cp => cp.CameraId == streamDto.CameraId && cp.PlatformId == streamDto.PlatformId);
+            var nominationPlatform = _context.NominationPlatforms
+                .Include(np => np.Nomination)
+                .Include(np => np.Platform)
+                .FirstOrDefault(
+                    np => np.NominationId == streamDto.NominationId && np.PlatformId == streamDto.PlatformId);
 
-            if (cameraPlatform != null)
+            if (nominationPlatform != null)
             {
-                if (!string.IsNullOrEmpty(streamDto.Token) && cameraPlatform.Token != streamDto.Token)
+                if (!string.IsNullOrEmpty(streamDto.Token) && nominationPlatform.Token != streamDto.Token)
                 {
-                    cameraPlatform.Token = streamDto.Token.Trim();
+                    nominationPlatform.Token = streamDto.Token.Trim();
                 }
 
-                _streamManager.StartStream(cameraPlatform);
-                cameraPlatform.IsActive = true;
+                _streamManager.StartStream(nominationPlatform);
+                nominationPlatform.IsActive = true;
                 _context.SaveChanges();
             }
             else
             {
-                var camera = _context.Cameras.FirstOrDefault(c => c.Id == streamDto.CameraId);
+                var nomination = _context.Nominations.FirstOrDefault(n => n.Id == streamDto.NominationId);
                 var platform = _context.Platforms.FirstOrDefault(p => p.Id == streamDto.PlatformId);
 
-                if (camera == null || platform == null)
+                if (nomination == null || platform == null)
                 {
                     _logger.LogWarning(
-                        "Камера или платформа не найдены для CameraId: {CameraId}, PlatformId: {PlatformId}",
-                        streamDto.CameraId, streamDto.PlatformId);
+                        "Номинация или платформа не найдены для NominationId: {NominationId}, PlatformId: {PlatformId}",
+                        streamDto.NominationId, streamDto.PlatformId);
 
-                    throw new InvalidOperationException("Камера или платформа не найдены.");
+                    throw new InvalidOperationException("Номинация или платформа не найдены.");
                 }
 
-                cameraPlatform = new CameraPlatform
+                nominationPlatform = new NominationPlatform
                 {
-                    Camera = camera,
+                    Nomination = nomination,
                     Platform = platform,
                     IsActive = true,
                 };
 
                 if (!string.IsNullOrEmpty(streamDto.Token))
                 {
-                    cameraPlatform.Token = streamDto.Token.Trim();
+                    nominationPlatform.Token = streamDto.Token.Trim();
                 }
 
-                _streamManager.StartStream(cameraPlatform);
+                _streamManager.StartStream(nominationPlatform);
 
-                _context.CameraPlatforms.Add(cameraPlatform);
+                _context.NominationPlatforms.Add(nominationPlatform);
 
                 _context.SaveChanges();
 
-                _logger.LogInformation("Трансляция начата для CameraId: {CameraId}, PlatformId: {PlatformId}",
-                    streamDto.CameraId, streamDto.PlatformId);
+                _logger.LogInformation("Трансляция начата для NominationId: {NominationId}, PlatformId: {PlatformId}",
+                    streamDto.NominationId, streamDto.PlatformId);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при запуске трансляции для CameraId: {CameraId}, PlatformId: {PlatformId}",
-                streamDto.CameraId, streamDto.PlatformId);
+            _logger.LogError(ex, "Ошибка при запуске трансляции.");
             throw;
         }
     }
 
-    // Остановка трансляции для определенной камеры на определенной платформе
-    public void StopStream(int cameraId, int platformId)
+    // Остановка трансляции для определенной номинации на определенной платформе
+    public void StopStream(int nominationId, int platformId)
     {
         try
         {
-            var cameraPlatform = _context.CameraPlatforms
-                .Include(cp => cp.Camera)
-                .Include(cp => cp.Platform)
-                .FirstOrDefault(cp => cp.CameraId == cameraId && cp.PlatformId == platformId);
+            var nominationPlatform = _context.NominationPlatforms
+                .FirstOrDefault(np => np.NominationId == nominationId && np.PlatformId == platformId);
 
-            if (cameraPlatform != null)
+            if (nominationPlatform != null)
             {
-                _streamManager.StopStream(cameraPlatform);
-                cameraPlatform.IsActive = false;
+                _streamManager.StopStream(nominationPlatform);
+                nominationPlatform.IsActive = false;
                 _context.SaveChanges();
             }
             else
             {
-                _logger.LogWarning("CameraPlatform не найдена для CameraId: {CameraId}, PlatformId: {PlatformId}",
-                    cameraId, platformId);
-
-                throw new InvalidOperationException("Камера или платформа не найдены.");
+                _logger.LogWarning(
+                    "Трансляция не найдена для NominationId: {NominationId}, PlatformId: {PlatformId}",
+                    nominationId, platformId);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при остановке трансляции для CameraId: {CameraId}, PlatformId: {PlatformId}",
-                cameraId, platformId);
+            _logger.LogError(ex, "Ошибка при остановке трансляции.");
             throw;
         }
     }
@@ -122,19 +118,18 @@ public class StreamService
     {
         try
         {
-            var cameraPlatforms = _context.CameraPlatforms
-                .Include(cp => cp.Camera)
-                .Where(cp => !string.IsNullOrEmpty(cp.Token))
+            var activePlatforms = _context.NominationPlatforms
+                .Include(np => np.Nomination)
+                .Include(np => np.Platform)
+                .Where(np => !string.IsNullOrEmpty(np.Token) && np.IsActive)
                 .ToList();
 
-            _streamManager.StartAllStreams(cameraPlatforms);
-
-            foreach (var cp in cameraPlatforms)
+            foreach (var np in activePlatforms)
             {
-                cp.IsActive = true;
+                _streamManager.StartStream(np);
             }
 
-            _context.SaveChanges();
+            _logger.LogInformation("Все трансляции запущены.");
         }
         catch (Exception ex)
         {
@@ -148,15 +143,18 @@ public class StreamService
     {
         try
         {
-            _streamManager.StopAllStreams();
-            var cameraPlatforms = _context.CameraPlatforms.ToList();
+            var activePlatforms = _context.NominationPlatforms
+                .Where(np => np.IsActive)
+                .ToList();
 
-            foreach (var cp in cameraPlatforms)
+            foreach (var np in activePlatforms)
             {
-                cp.IsActive = false;
+                _streamManager.StopStream(np);
+                np.IsActive = false;
             }
 
             _context.SaveChanges();
+            _logger.LogInformation("Все трансляции остановлены.");
         }
         catch (Exception ex)
         {
@@ -170,28 +168,30 @@ public class StreamService
     {
         try
         {
-            var cameraPlatforms = _context.CameraPlatforms
-                .Include(cp => cp.Camera)
-                .Include(cp => cp.Platform)
-                .Where(cp => cp.PlatformId == platformId && !string.IsNullOrEmpty(cp.Token))
+            var cameraPlatforms = _context.NominationPlatforms
+                .Include(np => np.Nomination)
+                .Include(np => np.Platform)
+                .Where(np => np.PlatformId == platformId && !string.IsNullOrEmpty(np.Token))
                 .ToList();
 
             if (cameraPlatforms == null || cameraPlatforms.Count == 0)
             {
-                throw new InvalidOperationException($"Камеры для платформы с ID {platformId} не найдены.");
+                _logger.LogWarning("Нет трансляций для платформы с PlatformId: {PlatformId}", platformId);
+                return;
             }
 
-            foreach (var cp in cameraPlatforms)
+            foreach (var np in cameraPlatforms)
             {
-                _streamManager.StartStream(cp);
-                cp.IsActive = true;
+                _streamManager.StartStream(np);
+                np.IsActive = true;
             }
 
             _context.SaveChanges();
+            _logger.LogInformation("Трансляции для платформы {PlatformId} запущены.", platformId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при запуске трансляций на PlatformId: {PlatformId}", platformId);
+            _logger.LogError(ex, "Ошибка при запуске трансляций для платформы.");
             throw;
         }
     }
@@ -201,208 +201,119 @@ public class StreamService
     {
         try
         {
-            var cameraPlatforms = _context.CameraPlatforms
-                .Include(cp => cp.Camera)
-                .Include(cp => cp.Platform)
-                .Where(cp => cp.PlatformId == platformId)
+            var cameraPlatforms = _context.NominationPlatforms
+                .Where(np => np.PlatformId == platformId && np.IsActive)
                 .ToList();
 
-            if (cameraPlatforms == null || cameraPlatforms.Count == 0)
+            foreach (var np in cameraPlatforms)
             {
-                throw new InvalidOperationException($"Камеры для платформы с ID {platformId} не найдены.");
-            }
-
-            foreach (var cp in cameraPlatforms)
-            {
-                _streamManager.StopStream(cp);
-                cp.IsActive = false;
+                _streamManager.StopStream(np);
+                np.IsActive = false;
             }
 
             _context.SaveChanges();
+            _logger.LogInformation("Трансляции для платформы {PlatformId} остановлены.", platformId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при остановке трансляций на PlatformId: {PlatformId}", platformId);
+            _logger.LogError(ex, "Ошибка при остановке трансляций для платформы.");
             throw;
         }
     }
 
-    // Запуск трансляций для определенной камеры на всех платформах
-    public void StartCameraStreams(int cameraId)
+    // Запуск трансляций для определенной номинации на всех платформах
+    public void StartNominationStreams(int nominationId)
     {
         try
         {
-            var cameraPlatforms = _context.CameraPlatforms
-                .Include(cp => cp.Camera)
-                .Include(cp => cp.Platform)
-                .Where(cp => cp.CameraId == cameraId && !string.IsNullOrEmpty(cp.Token))
-                .ToList();
+            var nomination = _context.Nominations
+                .Include(n => n.Platforms)
+                .FirstOrDefault(n => n.Id == nominationId);
 
-            if (cameraPlatforms == null || cameraPlatforms.Count == 0)
+            if (nomination == null)
             {
-                throw new InvalidOperationException($"Платформы для камеры с ID {cameraId} не найдены.");
+                _logger.LogWarning("Номинация с Id: {NominationId} не найдена.", nominationId);
+                return;
             }
 
-            foreach (var cp in cameraPlatforms)
+            if (nomination.Platforms == null || nomination.Platforms.Count == 0)
             {
-                _streamManager.StartStream(cp);
-                cp.IsActive = true;
+                _logger.LogWarning("Номинация с Id: {NominationId} не привязана ни к одной платформе.", nominationId);
+                return;
             }
 
-            _context.SaveChanges();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Ошибка при запуске трансляций для CameraId: {CameraId}", cameraId);
-            throw;
-        }
-    }
-
-    // Остановка трансляций для определенной камеры на всех платформах
-    public void StopCameraStreams(int cameraId)
-    {
-        try
-        {
-            var cameraPlatforms = _context.CameraPlatforms
-                .Include(cp => cp.Camera)
-                .Include(cp => cp.Platform)
-                .Where(cp => cp.CameraId == cameraId)
-                .ToList();
-
-            if (cameraPlatforms == null || cameraPlatforms.Count == 0)
+            foreach (var np in nomination.Platforms)
             {
-                throw new InvalidOperationException($"Платформы для камеры с ID {cameraId} не найдены.");
-            }
-
-            foreach (var cp in cameraPlatforms)
-            {
-                _streamManager.StopStream(cp);
-                cp.IsActive = false;
+                if (!string.IsNullOrEmpty(np.Token))
+                {
+                    _streamManager.StartStream(np);
+                    np.IsActive = true;
+                }
             }
 
             _context.SaveChanges();
+            _logger.LogInformation("Трансляции для номинации {NominationId} запущены на всех платформах.",
+                nominationId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при остановке трансляций для CameraId: {CameraId}", cameraId);
+            _logger.LogError(ex, "Ошибка при запуске трансляций для номинации.");
             throw;
         }
-    }
-
-    // Запуск трансляций для определенной номинации
-    public void StartNominationStreamsAsync(int nominationId)
-    {
-        var cameras = _context.Cameras
-            .Where(c => c.Nomination != null && c.Nomination.Id == nominationId)
-            .ToList();
-
-        if (cameras == null || cameras.Count == 0)
-        {
-            throw new InvalidOperationException($"Камеры для номинации с ID {nominationId} не найдены.");
-        }
-
-        var cameraPlatforms = _context.CameraPlatforms
-            .Include(cp => cp.Camera)
-            .Include(cp => cp.Platform)
-            .Where(cp => cameras.Contains(cp.Camera) && !string.IsNullOrEmpty(cp.Token))
-            .ToList();
-
-        if (cameraPlatforms == null || cameraPlatforms.Count == 0)
-        {
-            throw new InvalidOperationException("Платформы для указанных камер не найдены.");
-        }
-
-        foreach (var cp in cameraPlatforms)
-        {
-            try
-            {
-                _streamManager.StartStream(cp);
-                cp.IsActive = true;
-            }
-            catch (Exception ex)
-            {
-                // Логирование ошибки и продолжение цикла
-                _logger.LogError(ex, "Ошибка запуска трансляции для камеры {CameraId} на платформе {PlatformId}",
-                    cp.CameraId, cp.PlatformId);
-            }
-        }
-
-        _context.SaveChanges();
     }
 
     // Остановка трансляций для определенной номинации
     public void StopNominationStreams(int nominationId)
     {
-        var cameras = _context.Cameras
-            .Where(c => c.Nomination != null && c.Nomination.Id == nominationId)
-            .ToList();
-
-        if (cameras == null || cameras.Count == 0)
+        try
         {
-            throw new InvalidOperationException($"Камеры для номинации с ID {nominationId} не найдены.");
-        }
+            var nominationPlatforms = _context.NominationPlatforms
+                .Where(np => np.NominationId == nominationId && np.IsActive)
+                .ToList();
 
-        var cameraPlatforms = _context.CameraPlatforms
-            .Include(cp => cp.Camera)
-            .Include(cp => cp.Platform)
-            .Where(cp => cameras.Contains(cp.Camera))
-            .ToList();
-
-        if (cameraPlatforms == null || cameraPlatforms.Count == 0)
-        {
-            throw new InvalidOperationException("Платформы для указанных камер не найдены.");
-        }
-
-        foreach (var cp in cameraPlatforms)
-        {
-            try
+            foreach (var np in nominationPlatforms)
             {
-                _streamManager.StopStream(cp);
-                cp.IsActive = false;
+                _streamManager.StopStream(np);
+                np.IsActive = false;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Ошибка остановки трансляции для камеры {CameraId} на платформе {PlatformId}",
-                    cp.CameraId, cp.PlatformId);
-            }
-        }
 
-        _context.SaveChanges();
+            _context.SaveChanges();
+            _logger.LogInformation("Трансляции для номинации {NominationId} остановлены.", nominationId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при остановке трансляций для номинации.");
+            throw;
+        }
     }
 
     // Получение всех трансляций
     public async Task<List<BroadcastDto>> GetAllStreams()
     {
-        var broadcasts = await _context.CameraPlatforms
-            .Include(cp => cp.Camera)
-                .ThenInclude(c => c.Nomination)
-            .Include(cp => cp.Platform)
-            .Where(cp => cp.Token != null && cp.Token != "")
-            .AsNoTracking()
-            .ToListAsync();
+        try
+        {
+            var streams = await _context.NominationPlatforms
+                .Include(np => np.Nomination)
+                .Include(np => np.Platform)
+                .Select(np => new BroadcastDto(
+                    np.Platform.Url,
+                    np.NominationId,
+                    np.Nomination.Name,
+                    np.PlatformId,
+                    np.Platform.Name,
+                    new List<PlatformStatusDto>
+                    {
+                        new PlatformStatusDto(np.PlatformId, np.Platform.Name, np.IsActive)
+                    }))
+                .ToListAsync();
 
-        var groupedBroadcasts = broadcasts
-            .GroupBy(cp => cp.CameraId)
-            .Select(g =>
-            {
-                var camera = g.First().Camera;
-                return new BroadcastDto(
-                    camera.Url,
-                    camera.Nomination?.Id ?? 0,
-                    camera.Nomination?.Name ?? "N/A",
-                    camera.Id,
-                    camera.Name,
-                    g.Select(cp => new PlatformStatusDto(
-                        cp.Platform.Id,
-                        cp.Platform.Name,
-                        cp.IsActive
-                    )).ToList()
-                );
-            })
-            .OrderBy(b => b.Nomination)
-            .ToList();
-
-        return groupedBroadcasts;
+            return streams;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при получении всех трансляций.");
+            throw;
+        }
     }
 }
 
@@ -410,8 +321,8 @@ public record BroadcastDto(
     string Url,
     int NominationId,
     string Nomination,
-    int CameraId,
-    string CameraName,
+    int PlatformId,
+    string PlatformName,
     List<PlatformStatusDto> PlatformStatuses
 );
 
@@ -422,7 +333,7 @@ public record PlatformStatusDto(
 );
 
 public record AddStreamDto(
-    int CameraId,
+    int NominationId,
     int PlatformId,
     string? Token
 );

@@ -53,7 +53,7 @@ public class StreamsController : ControllerBase
     {
         try
         {
-            _streamService.StopStream(streamDto.CameraId, streamDto.PlatformId);
+            _streamService.StopStream(streamDto.NominationId, streamDto.PlatformId);
             return Ok("Трансляция остановлена.");
         }
         catch (InvalidOperationException ex)
@@ -118,12 +118,12 @@ public class StreamsController : ControllerBase
         }
     }
 
-    [HttpPost("start/camera")]
-    public IActionResult StartCameraStreams([FromQuery] int cameraId)
+    [HttpPost("start/nomination")]
+    public IActionResult StartNominationStreams([FromQuery] int nominationId)
     {
         try
         {
-            _streamService.StartCameraStreams(cameraId);
+            _streamService.StartNominationStreams(nominationId);
             return Ok($"Трансляции для камеры начаты.");
         }
         catch (InvalidOperationException ex)
@@ -132,12 +132,12 @@ public class StreamsController : ControllerBase
         }
     }
 
-    [HttpPost("stop/camera")]
-    public IActionResult StopCameraStreams([FromQuery] int cameraId)
+    [HttpPost("stop/nomination")]
+    public IActionResult StopNominationStreams([FromQuery] int nominationId)
     {
         try
         {
-            _streamService.StopCameraStreams(cameraId);
+            _streamService.StopNominationStreams(nominationId);
             return Ok($"Трансляции для камеры остановлены.");
         }
         catch (InvalidOperationException ex)

@@ -111,31 +111,6 @@ public class CameraService
         return true;
     }
 
-    // Добавление платформы к камере 
-    public async Task AddPlatformToCamera(int cameraId, int platformId)
-    {
-        var camera = await _context.Cameras.FindAsync(cameraId);
-        if (camera == null)
-        {
-            throw new InvalidOperationException($"Камера с ID не найдена.");
-        }
-
-        var platform = await _context.Platforms.FindAsync(platformId);
-        if (platform == null)
-        {
-            throw new InvalidOperationException($"Платформа с ID не найдена.");
-        }
-
-        var cameraPlatform = new CameraPlatform
-        {
-            Camera = camera,
-            Platform = platform
-        };
-
-        _context.CameraPlatforms.Add(cameraPlatform);
-        await _context.SaveChangesAsync();
-    }
-
     //  камеры, у которых нет номинации или у которых номинация совпадает с переданным ID
     public async Task<List<GetCameraDto>> GetCamerasByNomination(int? nominationId = null)
     {

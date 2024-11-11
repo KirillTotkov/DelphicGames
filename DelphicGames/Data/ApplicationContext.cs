@@ -12,23 +12,23 @@ public class ApplicationContext : IdentityDbContext<User>
 
     public DbSet<Camera> Cameras { get; set; }
     public DbSet<Platform> Platforms { get; set; }
-    public DbSet<CameraPlatform> CameraPlatforms { get; set; }
+    public DbSet<NominationPlatform> NominationPlatforms { get; set; }
     public DbSet<Nomination> Nominations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Связь многие ко многим между камерами и платформами
-        modelBuilder.Entity<CameraPlatform>()
-            .HasKey(cp => new { cp.CameraId, cp.PlatformId }); // Составной ключ
+        // Связь многие ко многим между номинациями и платформами
+        modelBuilder.Entity<NominationPlatform>()
+            .HasKey(cp => new { cp.NominationId, cp.PlatformId }); // Составной ключ
 
-        modelBuilder.Entity<CameraPlatform>()
-            .HasOne(cp => cp.Camera)
-            .WithMany(c => c.CameraPlatforms)
-            .HasForeignKey(cp => cp.CameraId);
+        modelBuilder.Entity<NominationPlatform>()
+            .HasOne(cp => cp.Nomination)
+            .WithMany(c => c.Platforms)
+            .HasForeignKey(cp => cp.NominationId);
 
-        modelBuilder.Entity<CameraPlatform>()
+        modelBuilder.Entity<NominationPlatform>()
             .HasOne(cp => cp.Platform)
             .WithMany(p => p.CameraPlatforms)
             .HasForeignKey(cp => cp.PlatformId);
@@ -46,7 +46,7 @@ public class ApplicationContext : IdentityDbContext<User>
         {
             new() { Name = "ВК", Url = "rtmp://ovsu.mycdn.me/input/" },
             new() { Name = "ОК", Url = "rtmp://vsu.mycdn.me/input/" },
-            new() { Name = "RT", Url = "rtmp://rtmp-lb.m9.rutube.ru/live_push" },
+            new() { Name = "RT", Url = "rtmp://rtmp-lb.m9.rutube.ru/live_push/" },
             new() { Name = "TG", Url = "rtmps://dc4-1.rtmp.t.me/s/" },
         };
 

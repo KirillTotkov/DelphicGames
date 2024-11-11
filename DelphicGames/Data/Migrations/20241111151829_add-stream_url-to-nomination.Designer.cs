@@ -3,6 +3,7 @@ using System;
 using DelphicGames.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DelphicGames.Data.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20241111151829_add-stream_url-to-nomination")]
+    partial class addstream_urltonomination
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -62,6 +65,33 @@ namespace DelphicGames.Data.Migrations
                     b.ToTable("cameras", (string)null);
                 });
 
+            modelBuilder.Entity("DelphicGames.Data.Models.CameraPlatform", b =>
+                {
+                    b.Property<int>("CameraId")
+                        .HasColumnType("integer")
+                        .HasColumnName("camera_id");
+
+                    b.Property<int>("PlatformId")
+                        .HasColumnType("integer")
+                        .HasColumnName("platform_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Token")
+                        .HasColumnType("text")
+                        .HasColumnName("token");
+
+                    b.HasKey("CameraId", "PlatformId")
+                        .HasName("pk_camera_platforms");
+
+                    b.HasIndex("PlatformId")
+                        .HasDatabaseName("ix_camera_platforms_platform_id");
+
+                    b.ToTable("camera_platforms", (string)null);
+                });
+
             modelBuilder.Entity("DelphicGames.Data.Models.Nomination", b =>
                 {
                     b.Property<int>("Id")
@@ -85,33 +115,6 @@ namespace DelphicGames.Data.Migrations
                         .HasName("pk_nominations");
 
                     b.ToTable("nominations", (string)null);
-                });
-
-            modelBuilder.Entity("DelphicGames.Data.Models.NominationPlatform", b =>
-                {
-                    b.Property<int>("NominationId")
-                        .HasColumnType("integer")
-                        .HasColumnName("nomination_id");
-
-                    b.Property<int>("PlatformId")
-                        .HasColumnType("integer")
-                        .HasColumnName("platform_id");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
-
-                    b.Property<string>("Token")
-                        .HasColumnType("text")
-                        .HasColumnName("token");
-
-                    b.HasKey("NominationId", "PlatformId")
-                        .HasName("pk_nomination_platforms");
-
-                    b.HasIndex("PlatformId")
-                        .HasDatabaseName("ix_nomination_platforms_platform_id");
-
-                    b.ToTable("nomination_platforms", (string)null);
                 });
 
             modelBuilder.Entity("DelphicGames.Data.Models.Platform", b =>
@@ -403,23 +406,23 @@ namespace DelphicGames.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DelphicGames.Data.Models.NominationPlatform", b =>
+            modelBuilder.Entity("DelphicGames.Data.Models.CameraPlatform", b =>
                 {
-                    b.HasOne("DelphicGames.Data.Models.Nomination", "Nomination")
-                        .WithMany("Platforms")
-                        .HasForeignKey("NominationId")
+                    b.HasOne("DelphicGames.Data.Models.Camera", "Camera")
+                        .WithMany("CameraPlatforms")
+                        .HasForeignKey("CameraId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_nomination_platforms_nominations_nomination_id");
+                        .HasConstraintName("fk_camera_platforms_cameras_camera_id");
 
                     b.HasOne("DelphicGames.Data.Models.Platform", "Platform")
                         .WithMany("CameraPlatforms")
                         .HasForeignKey("PlatformId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_nomination_platforms_platforms_platform_id");
+                        .HasConstraintName("fk_camera_platforms_platforms_platform_id");
 
-                    b.Navigation("Nomination");
+                    b.Navigation("Camera");
 
                     b.Navigation("Platform");
                 });
@@ -481,11 +484,14 @@ namespace DelphicGames.Data.Migrations
                         .HasConstraintName("fk_asp_net_user_tokens_asp_net_users_user_id");
                 });
 
+            modelBuilder.Entity("DelphicGames.Data.Models.Camera", b =>
+                {
+                    b.Navigation("CameraPlatforms");
+                });
+
             modelBuilder.Entity("DelphicGames.Data.Models.Nomination", b =>
                 {
                     b.Navigation("Cameras");
-
-                    b.Navigation("Platforms");
                 });
 
             modelBuilder.Entity("DelphicGames.Data.Models.Platform", b =>

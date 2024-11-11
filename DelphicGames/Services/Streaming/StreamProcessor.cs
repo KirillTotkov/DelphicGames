@@ -19,24 +19,24 @@ public class StreamProcessor : IStreamProcessor
         _logger = logger;
     }
 
-    public Stream StartStreamForPlatform(CameraPlatform cameraPlatform)
+    public Stream StartStreamForPlatform(NominationPlatform nominationPlatform)
     {
-        ArgumentNullException.ThrowIfNull(cameraPlatform);
+        ArgumentNullException.ThrowIfNull(nominationPlatform);
 
-        if (string.IsNullOrWhiteSpace(cameraPlatform.Token))
+        if (string.IsNullOrWhiteSpace(nominationPlatform.Token))
         {
             throw new InvalidOperationException("Токен для трансляции не указан.");
         }
 
-        var ffmpegArguments = GenerateFfmpegArguments(cameraPlatform);
+        var ffmpegArguments = GenerateFfmpegArguments(nominationPlatform);
 
         // Создание директории для логов камеры
-        var cameraId = cameraPlatform.CameraId;
-        var logDirectory = Path.Combine("Logs", $"Camera_{cameraId}");
+        var nominationId = nominationPlatform.NominationId;
+        var logDirectory = Path.Combine("Logs", $"Camera_{nominationId}");
         Directory.CreateDirectory(logDirectory);
 
         // Генерация уникального имени файла лога с временной меткой
-        var logFileName = $"ffmpeg_{cameraPlatform.PlatformId}_{DateTime.Now:yyyyMMdd_HHmmss}.log";
+        var logFileName = $"ffmpeg_{nominationPlatform.PlatformId}_{DateTime.Now:yyyyMMdd_HHmmss}.log";
 
         // Настройка Serilog для записи логов ffmpeg
         var logger = new LoggerConfiguration()
@@ -93,11 +93,11 @@ public class StreamProcessor : IStreamProcessor
                 throw new InvalidOperationException("Процесс FFmpeg завершился неожиданно.");
             }
 
-            _logger.LogInformation("Запущен ffmpeg процесс для камеры {CameraId}", cameraId);
+            _logger.LogInformation("Запущен ffmpeg процесс для камеры {CameraId}", nominationId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при запуске процесса ffmpeg для камеры {CameraId}", cameraId);
+            _logger.LogError(ex, "Ошибка при запуске процесса ffmpeg для камеры {CameraId}", nominationId);
             process.OutputDataReceived -= outputHandler;
             process.ErrorDataReceived -= errorHandler;
             logger.Dispose();
@@ -106,9 +106,9 @@ public class StreamProcessor : IStreamProcessor
 
         var stream = new Stream
         {
-            CameraUrl = cameraPlatform.Camera.Url,
-            PlatformUrl = cameraPlatform.Platform.Url,
-            Token = cameraPlatform.Token,
+            NominationUrl = nominationPlatform.Nomination.StreamUrl,
+            PlatformUrl = nominationPlatform.Platform.Url,
+            Token = nominationPlatform.Token,
             Process = process,
             Logger = logger
         };
@@ -125,12 +125,12 @@ public class StreamProcessor : IStreamProcessor
                 stream.Process.Kill(true);
                 stream.Process.WaitForExit();
                 stream.Logger.Information("Трансляция остановлена.");
-                _logger.LogInformation("Остановлен ffmpeg процесс для камеры {CameraId}", stream.CameraUrl);
+                _logger.LogInformation("Остановлен ffmpeg процесс для камеры {CameraId}", stream.NominationUrl);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при остановке процесса ffmpeg для камеры {CameraId}", stream.CameraUrl);
+            _logger.LogError(ex, "Ошибка при остановке процесса ffmpeg для камеры {CameraId}", stream.NominationUrl);
         }
         finally
         {
@@ -161,12 +161,12 @@ public class StreamProcessor : IStreamProcessor
     /// </summary>
     /// <param name="stream"></param>
     /// <returns></returns>
-    private string GenerateFfmpegArguments(CameraPlatform stream)
+    private string GenerateFfmpegArguments(NominationPlatform stream)
     {
         var command =
             " -y -fflags +genpts -thread_queue_size 512 -probesize 5000000 -analyzeduration 5000000 -timeout 5000000 -rtsp_transport tcp ";
 
-        command += $"-i {stream.Camera.Url} -dn -sn -map 0:0 -codec:v copy -map 0:1 -codec:a aac -b:a 64k -shortest ";
+        command += $"-i {stream.Nomination.StreamUrl} -dn -sn -map 0:0 -codec:v copy -map 0:1 -codec:a aac -b:a 64k -shortest ";
 
         if (!stream.Platform.Url.EndsWith("/"))
         {

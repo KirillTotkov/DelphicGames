@@ -5,6 +5,6 @@ namespace DelphicGames.Services.Streaming;
 
 public interface IStreamProcessor : IDisposable
 {
-    Stream StartStreamForPlatform(CameraPlatform cameraPlatform);
+    Stream StartStreamForPlatform(NominationPlatform nominationPlatform);
     void StopStreamForPlatform(Stream stream);
 }
