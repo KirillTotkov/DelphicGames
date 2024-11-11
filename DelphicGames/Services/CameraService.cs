@@ -162,8 +162,6 @@ public class CameraService
     }
 }
 
-public record CityCameraDto(int Id, string Name, string Url);
-
 public record AddCameraDto(string Name, string Url);
 
 public record UpdateCameraDto(string Url);
