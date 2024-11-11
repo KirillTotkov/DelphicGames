@@ -24,13 +24,15 @@ public class NominationService
         var cameras = await GetCamerasByIds(dto.CameraIds);
         nomination.Cameras.AddRange(cameras);
 
-        var platforms = await GetPlatformsByIds(dto.Platforms.Select(p => p.PlatformId).ToList());
-        nomination.Platforms = dto.Platforms.Select(p => new NominationPlatform
+        if (CheckPlatformsByIds(dto.Platforms.Select(p => p.PlatformId).ToList()).Result)
         {
-            PlatformId = p.PlatformId,
-            Token = p.Token,
-            IsActive = true
-        }).ToList();
+            nomination.Platforms = dto.Platforms.Where(p => !string.IsNullOrWhiteSpace(p.Token)).Select(p => new NominationPlatform
+            {
+                PlatformId = p.PlatformId,
+                Token = p.Token,
+                IsActive = false
+            }).ToList();
+        }
 
         await _context.Nominations.AddAsync(nomination);
         await _context.SaveChangesAsync();
@@ -128,13 +130,13 @@ public class NominationService
         {
             PlatformId = p.PlatformId,
             Token = p.Token,
-            IsActive = true
+            IsActive = false
         }).ToList();
 
         await _context.SaveChangesAsync();
     }
 
-    private async Task<List<Platform>> GetPlatformsByIds(List<int> platformIds)
+    private async Task<bool> CheckPlatformsByIds(List<int> platformIds)
     {
         var platforms = await _context.Platforms.Where(p => platformIds.Contains(p.Id)).ToListAsync();
         if (platforms.Count != platformIds.Count)
@@ -142,7 +144,7 @@ public class NominationService
             throw new ArgumentException("Некоторые платформы не найдены");
         }
 
-        return platforms;
+        return true;
     }
 
     private async Task<List<Camera>> GetCamerasByIds(List<int> cameraIds)
