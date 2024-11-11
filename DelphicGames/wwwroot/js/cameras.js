@@ -1,78 +1,16 @@
-const fetchRegions = async () => {
-  try {
-    const response = await fetch("/api/regions", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (response.ok) {
-      const regions = await response.json();
-      const regionSelect = document.getElementById("addCameraRegion");
-      const filterRegionSelect = document.getElementById("filterRegion");
-
-      regions.forEach((region) => {
-        const option = document.createElement("option");
-        option.value = region.id;
-        option.textContent = region.name;
-        regionSelect.appendChild(option);
-
-        const filterOption = document.createElement("option");
-        filterOption.value = region.id;
-        filterOption.textContent = region.name;
-        filterRegionSelect.appendChild(filterOption);
-      });
-    }
-  } catch (error) {
-    console.error("Error fetching regions:", error);
-  }
-};
-
-const fetchCities = async (regionId, citySelectId) => {
-  try {
-    const response = await fetch(`/api/regions/${regionId}/cities`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (response.ok) {
-      const cities = await response.json();
-      const citySelect = document.getElementById(citySelectId);
-      citySelect.innerHTML = '<option value="">Выберите город</option>';
-
-      cities.forEach((city) => {
-        const option = document.createElement("option");
-        option.value = city.id;
-        option.textContent = city.name;
-        citySelect.appendChild(option);
-      });
-    }
-  } catch (error) {
-    console.error("Error fetching cities:", error);
-  }
-};
-
 const createCamera = async () => {
-  const regionSelect = document.getElementById("addCameraRegion");
-  const citySelect = document.getElementById("addCameraCity");
   const cameraNameInput = document.getElementById("addCameraName");
   const cameraUrlInput = document.getElementById("addCameraUrl");
-
-  const regionId = regionSelect.value;
-  const cityId = citySelect.value;
+  
   const cameraName = cameraNameInput.value.trim();
   const cameraUrl = cameraUrlInput.value.trim();
 
-  if (!regionId || !cityId || !cameraName || !cameraUrl) {
+  if (!cameraName || !cameraUrl) {
     alert("Пожалуйста, заполните все поля.");
     return;
   }
 
   const createCameraData = {
-    city: parseInt(cityId),
     name: cameraName,
     url: cameraUrl,
   };
@@ -100,8 +38,6 @@ const createCamera = async () => {
     document.getElementById("addCameraModal")
   );
   addCameraModal.hide();
-  regionSelect.value = "";
-  citySelect.innerHTML = '<option value="">Выберите город</option>';
   cameraNameInput.value = "";
   cameraUrlInput.value = "";
 };
@@ -147,10 +83,6 @@ const drawCameraTable = async () => {
     cameras.forEach((camera) => {
       const tr = document.createElement("tr");
 
-      const cityId = document.createElement("td");
-      cityId.textContent = camera.city;
-      tr.appendChild(cityId);
-
       const nameTd = document.createElement("td");
       nameTd.textContent = camera.name;
       tr.appendChild(nameTd);
@@ -184,21 +116,14 @@ const drawCameraTable = async () => {
       tbody.appendChild(tr);
     });
 
-    // Attach event listeners after updating the table
     attachEditButtonListeners();
   } catch (error) {
     console.error("Error drawing table:", error);
   }
 };
 document.addEventListener("DOMContentLoaded", async () => {
-  await fetchRegions();
   await drawCameraTable();
-
-  document.getElementById("addCameraRegion").addEventListener("change", (e) => {
-    const regionId = e.target.value;
-    fetchCities(regionId, "addCameraCity");
-  });
-
+  
   document
     .getElementById("addCameraButton")
     .addEventListener("click", async () => {

@@ -48,7 +48,7 @@ public class NominationController : ControllerBase
         try
         {
             var nomination = await _nominationService.AddNomination(dto);
-            var result = new GetNominationDto(nomination.Id, nomination.Name, nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url, c.City?.Name)).ToList());
+            var result = new GetNominationDto(nomination.Id, nomination.Name, nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList());
             return CreatedAtAction(nameof(GetNomination), new { id = nomination.Id }, result);
         }
         catch (ArgumentException ex)
