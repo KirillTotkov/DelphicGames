@@ -25,7 +25,6 @@ function displayPlatformTokens(nominationPlatforms = []) {
     const input = document.createElement("input");
     input.type = "text";
     input.classList.add("form-control");
-    input.placeholder = `Введите токен для ${platform.name}`;
     input.name = `platformToken_${platform.id}`;
     input.dataset.platformId = platform.id;
 
@@ -93,6 +92,7 @@ document
     await loadPlatforms();
     await loadCameras();
     await populateFilterDropdowns();
+    displayPlatformTokens(await loadPlatforms());
 
     // Устанавливаем обработчик сохранения для добавления
     document.getElementById("notification-save").onclick = addNomination;
