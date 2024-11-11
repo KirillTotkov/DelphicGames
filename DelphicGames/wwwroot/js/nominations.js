@@ -1,5 +1,48 @@
 let currentNominationId = null;
 let selectedCameraIds = [];
+let platforms = [];
+
+async function loadPlatforms() {
+  try {
+    const response = await fetch("/api/platforms");
+    platforms = await response.json();
+  } catch (error) {
+    console.error("Ошибка загрузки платформ:", error);
+  }
+}
+function displayPlatformTokens(nominationPlatforms = []) {
+  const container = document.getElementById("platformTokensContainer");
+  container.innerHTML = "";
+
+  platforms.forEach((platform) => {
+    const div = document.createElement("div");
+    div.classList.add("mb-2");
+
+    const label = document.createElement("label");
+    label.textContent = platform.name;
+    label.classList.add("form-label");
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.classList.add("form-control");
+    input.placeholder = `Введите токен для ${platform.name}`;
+    input.name = `platformToken_${platform.id}`;
+    input.dataset.platformId = platform.id;
+
+    // Если редактируем номинацию, предзаполняем токен
+    const existingPlatform = nominationPlatforms.find(
+      (np) => np.platformId === platform.id
+    );
+    if (existingPlatform) {
+      input.value = existingPlatform.token || "";
+    }
+
+    div.appendChild(label);
+    div.appendChild(input);
+
+    container.appendChild(div);
+  });
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   await loadNominations();
@@ -37,25 +80,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 });
 
-// Open modal for adding a new nomination
+// Обработчик открытия модального окна для добавления номинации
 document
   .querySelector('[data-bs-target="#addGroupModal"]')
   .addEventListener("click", async () => {
-    // Clear inputs and selections
+    currentNominationId = null;
     document.getElementById("groupName").value = "";
     document.getElementById("streamUrl").value = "";
     selectedCameraIds = [];
-    // Set save button action for adding
-    document.getElementById("notification-save").onclick = addNomination;
-    // Clear filters
-    document.getElementById("filterUrlModal").value = "";
-    document.getElementById("filterNameModal").value = "";
-    // Clear camera table
-    const tableBody = document.querySelector("#addGroupModal table tbody");
-    tableBody.innerHTML = "";
+    document.getElementById("platformTokensContainer").innerHTML = "";
 
+    await loadPlatforms();
     await loadCameras();
     await populateFilterDropdowns();
+
+    // Устанавливаем обработчик сохранения для добавления
+    document.getElementById("notification-save").onclick = addNomination;
   });
 
 async function populateFilterDropdowns() {
@@ -99,10 +139,21 @@ async function addNomination() {
     return;
   }
 
+  const platformTokens = [];
+  document
+    .querySelectorAll("#platformTokensContainer input")
+    .forEach((input) => {
+      platformTokens.push({
+        platformId: parseInt(input.dataset.platformId),
+        token: input.value.trim(),
+      });
+    });
+
   const nominationData = {
     name: nominationName,
     streamUrl: streamUrl,
     cameraIds: selectedCameraIds,
+    platforms: platformTokens,
   };
 
   try {
@@ -130,7 +181,7 @@ async function addNomination() {
   }
 }
 
-// Handle edit button click
+// Обработчик кнопки редактирования номинации
 document
   .getElementById("table-body")
   .addEventListener("click", async (event) => {
@@ -142,9 +193,10 @@ document
 
 async function openEditModal(nominationId) {
   currentNominationId = nominationId;
-
-  document.getElementById("filterUrlModal").options.length = 1;
-  document.getElementById("filterNameModal").options.length = 1;
+  document.getElementById("groupName").value = "";
+  document.getElementById("streamUrl").value = "";
+  selectedCameraIds = [];
+  document.getElementById("platformTokensContainer").innerHTML = "";
 
   try {
     const response = await fetch(`/api/nominations/${nominationId}`);
@@ -154,10 +206,14 @@ async function openEditModal(nominationId) {
     document.getElementById("streamUrl").value = nomination.streamUrl || "";
     selectedCameraIds = nomination.cameras.map((camera) => camera.id);
 
+    await loadPlatforms();
+
+    // Отображаем платформы с предзаполненными токенами
+    displayPlatformTokens(nomination.platforms);
+
     await loadCameras({ nominationId });
     await populateFilterDropdowns();
 
-    // Set save button action for updating
     document.getElementById("notification-save").onclick = () =>
       updateNomination(nominationId);
 
@@ -176,10 +232,21 @@ async function updateNomination(nominationId) {
     return;
   }
 
+  const platformTokens = [];
+  document
+    .querySelectorAll("#platformTokensContainer input")
+    .forEach((input) => {
+      platformTokens.push({
+        platformId: parseInt(input.dataset.platformId),
+        token: input.value.trim(),
+      });
+    });
+
   const nominationData = {
     name: nominationName,
     streamUrl: streamUrl,
     cameraIds: selectedCameraIds,
+    platforms: platformTokens,
   };
 
   try {
@@ -196,14 +263,10 @@ async function updateNomination(nominationId) {
       await loadNominations();
     } else {
       const errorData = await response.json();
-      alert(
-        `Ошибка при обновлении номинации: ${
-          errorData.Error || response.statusText
-        }`
-      );
+      alert("Ошибка при обновлении номинации: " + errorData.error);
     }
   } catch (error) {
-    console.error("Error updating nomination:", error);
+    console.error("Ошибка при обновлении номинации:", error);
   }
 }
 
