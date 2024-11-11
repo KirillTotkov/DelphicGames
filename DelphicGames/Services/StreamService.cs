@@ -376,7 +376,6 @@ public class StreamService
         var broadcasts = await _context.CameraPlatforms
             .Include(cp => cp.Camera)
                 .ThenInclude(c => c.Nomination)
-            .Include(cp => cp.Camera.City)
             .Include(cp => cp.Platform)
             .Where(cp => cp.Token != null && cp.Token != "")
             .AsNoTracking()
@@ -389,7 +388,6 @@ public class StreamService
                 var camera = g.First().Camera;
                 return new BroadcastDto(
                     camera.Url,
-                    camera.City?.Name ?? "N/A",
                     camera.Nomination?.Id ?? 0,
                     camera.Nomination?.Name ?? "N/A",
                     camera.Id,
@@ -402,7 +400,6 @@ public class StreamService
                 );
             })
             .OrderBy(b => b.Nomination)
-            .ThenBy(b => b.City)
             .ToList();
 
         return groupedBroadcasts;
@@ -411,7 +408,6 @@ public class StreamService
 
 public record BroadcastDto(
     string Url,
-    string City,
     int NominationId,
     string Nomination,
     int CameraId,

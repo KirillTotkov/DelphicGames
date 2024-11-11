@@ -13,13 +13,11 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.EntityFrameworkCore;
 
 namespace DelphicGames.Pages.Account;
 
 public class RegisterModel : PageModel
 {
-    private readonly ApplicationContext _context;
     private readonly IEmailSender _emailSender;
     private readonly IUserEmailStore<User> _emailStore;
     private readonly ILogger<RegisterModel> _logger;
@@ -34,8 +32,7 @@ public class RegisterModel : PageModel
         IUserStore<User> userStore,
         IEmailSender emailSender,
         ILogger<RegisterModel> logger,
-        RoleManager<IdentityRole> roleManager,
-        ApplicationContext context)
+        RoleManager<IdentityRole> roleManager)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -43,7 +40,6 @@ public class RegisterModel : PageModel
         _emailSender = emailSender;
         _logger = logger;
         _roleManager = roleManager;
-        _context = context;
         _emailStore = GetEmailStore();
     }
 
@@ -63,8 +59,6 @@ public class RegisterModel : PageModel
         if (ModelState.IsValid)
         {
             var user = CreateUser();
-            user.Region = await _context.Regions.FindAsync(Input.RegionId);
-            user.City = await _context.Cities.FindAsync(Input.CityId);
 
             if (!await _roleManager.RoleExistsAsync(nameof(UserRoles.Specialist)))
             {
@@ -157,11 +151,5 @@ public class RegisterModel : PageModel
         [Display(Name = "Confirm password")]
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; }
-
-        [Required]
-        [Display(Name = "Регион")]
-        public int RegionId { get; set; }
-
-        [Display(Name = "Город")] public int? CityId { get; set; }
     }
 }

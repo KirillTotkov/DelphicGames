@@ -14,8 +14,6 @@ public class ApplicationContext : IdentityDbContext<User>
     public DbSet<Platform> Platforms { get; set; }
     public DbSet<CameraPlatform> CameraPlatforms { get; set; }
     public DbSet<Nomination> Nominations { get; set; }
-    public DbSet<City> Cities { get; set; }
-    public DbSet<Region> Regions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

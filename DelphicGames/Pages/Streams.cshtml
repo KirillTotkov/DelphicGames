@@ -10,11 +10,9 @@
     <div class="card container col-md-9 col-sm-12" style="display: inline-block; border: none; margin: 0;">
         <div class="card-body table-responsive w-100 p-0">
             <table class="table table-light table-hover align-middle" id="main_table">
-                <!--Table's headers-->
                 <thead>
                     <tr class="table-light">
                         <th rowspan="2" class="table-light">URL</th>
-                        <th rowspan="2" class="table-light">Город</th>
                         <th rowspan="2" class="table-light">Номинация</th>
                         <th rowspan="2" class="table-light">Название камеры</th>
                         <th class="table-light platform_name">VK</th>
@@ -54,13 +52,6 @@
         </div>
         <div class="card-body gap-3">
             <div class="filter-block">
-                <label for="city_filter">Город</label>
-                <select multiple id="city_filter" class="form-select d-none" aria-label="Выберите позицию...">
-                    <option value="Москва">Москва</option>
-                    <option value="Санкт-Петербург">Санкт-Петербург</option>
-                </select>
-            </div>
-            <div class="filter-block">
                 <label for="nomination_filter">Номинация</label>
                 <select multiple id="nomination_filter" class="form-select d-none" aria-label="Выберите позицию...">
                     <option value="1">Один</option>
@@ -98,11 +89,7 @@
 
 @section Scripts
 {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
-        integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-
     <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
     

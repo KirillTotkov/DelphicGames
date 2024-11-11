@@ -15,9 +15,6 @@
         @if (User.IsInRole(nameof(UserRoles.Root)) || User.IsInRole(nameof(UserRoles.Admin)))
         {
             <li class="nav-item">
-                <a class="nav-link text-dark" asp-page="/AdminCameras">Управление камерами</a>
-            </li>
-            <li class="nav-item">
                 <a class="nav-link text-dark" asp-page="/Streams">Трансляции</a>
             </li>
             <li class="nav-item">

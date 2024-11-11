@@ -42,20 +42,18 @@ public class NominationService
     {
         var nominations = await _context.Nominations
             .Include(n => n.Cameras)
-            .ThenInclude(c => c.City)
             .AsNoTracking()
             .ToListAsync();
 
         return nominations.Select(n =>
             new GetNominationDto(n.Id, n.Name,
-                n.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url, c.City?.Name)).ToList())).ToList();
+                n.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList())).ToList();
     }
 
     public async Task<GetNominationDto?> GetNominationWithCameras(int nominationId)
     {
         var nomination = await _context.Nominations
             .Include(n => n.Cameras)
-            .ThenInclude(c => c.City)
             .AsNoTracking()
             .FirstOrDefaultAsync(n => n.Id == nominationId);
 
@@ -65,7 +63,7 @@ public class NominationService
         }
 
         return new GetNominationDto(nomination.Id, nomination.Name,
-            nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url, c.City?.Name)).ToList());
+            nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList());
     }
 
     public async Task<List<NominationDto>> GetNominations()
