@@ -1,4 +1,4 @@
-let nominationChoices, cameraChoices;
+let nominationChoices;
 const notyf = new Notyf({
     duration: 4000,
     position: {
@@ -49,7 +49,7 @@ function populateTable(platforms, broadcasts) {
     const headerRow1 = document.createElement("tr");
     const headerRow2 = document.createElement("tr");
 
-    const headers = ["URL", "Номинация", "Имя Камеры"];
+    const headers = ["URL", "Номинация"];
     headers.forEach((text) => {
         const th = document.createElement("th");
         th.rowSpan = 2;
@@ -81,7 +81,7 @@ function populateTable(platforms, broadcasts) {
     broadcasts.forEach((broadcast) => {
         const tr = document.createElement("tr");
 
-        ["url", "nomination", "cameraName"].forEach((key) => {
+        ["url", "nomination"].forEach((key) => {
             const td = document.createElement("td");
             td.textContent = broadcast[key];
             tr.appendChild(td);
@@ -91,7 +91,7 @@ function populateTable(platforms, broadcasts) {
             const td = document.createElement("td");
             const checkbox = document.createElement("input");
             checkbox.type = "checkbox";
-            checkbox.dataset.cameraId = broadcast.cameraId;
+            checkbox.dataset.nominationId = broadcast.nominationId;
             checkbox.dataset.platformId = platform.id;
 
             const platformStatus = broadcast.platformStatuses.find(
@@ -100,7 +100,7 @@ function populateTable(platforms, broadcasts) {
             if (platformStatus) {
                 checkbox.checked = platformStatus.isActive;
                 checkbox.addEventListener("change", () => {
-                    toggleBroadcast(broadcast.cameraId, platform.id, checkbox.checked);
+                    toggleBroadcast(broadcast.nominationId, platform.id, checkbox.checked);
                     updatePlatformHeaderCheckbox(platform.id);
                 });
             } else {
@@ -132,7 +132,7 @@ function populateTable(platforms, broadcasts) {
             search: "Поиск:",
         },
         columnDefs: [
-            {orderable: true, targets: [0, 1, 2]},
+            {orderable: true, targets: [0, 1]},
             {orderable: false, targets: "_all"},
         ],
     });
@@ -145,11 +145,6 @@ function populateFilterOptions(broadcasts) {
         "#nomination_filter",
         unique(broadcasts.map((b) => b.nomination)),
         "Выберите номинацию"
-    );
-    populateChoices(
-        "#camera_filter",
-        unique(broadcasts.map((b) => b.cameraName)),
-        "Выберите название"
     );
 }
 
@@ -170,13 +165,12 @@ function populateChoices(selector, options, placeholder) {
     });
 
     if (selector === "#nomination_filter") nominationChoices = choiceInstance;
-    if (selector === "#camera_filter") cameraChoices = choiceInstance;
 }
 
-async function toggleBroadcast(cameraId, platformId, isActive) {
+async function toggleBroadcast(nominationId, platformId, isActive) {
     const action = isActive ? "start" : "stop";
     const checkbox = document.querySelector(
-        `input[data-camera-id="${cameraId}"][data-platform-id="${platformId}"]`
+        `input[data-nomination-id="${nominationId}"][data-platform-id="${platformId}"]`
     );
 
     checkbox.style.accentColor = "yellow";
@@ -185,7 +179,7 @@ async function toggleBroadcast(cameraId, platformId, isActive) {
         const response = await fetch(`/api/streams/${action}`, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({cameraId, platformId}),
+            body: JSON.stringify({nominationId, platformId}),
         });
 
         if (!response.ok) {
@@ -193,7 +187,7 @@ async function toggleBroadcast(cameraId, platformId, isActive) {
         }
         checkbox.style.accentColor = "";
     } catch (error) {
-        console.error("Toggle broadcast failed:", error);
+        console.error("Toggle stream failed:", error);
         checkbox.style.accentColor = "red";
         notyf.error(
             isActive
@@ -241,21 +235,19 @@ function updateAllHeaderCheckboxes(platforms) {
 }
 
 function applyFilters() {
-    const [cityValues, nominationValues, cameraValues] = [
+    const [nominationValues] = [
         nominationChoices.getValue(true),
-        cameraChoices.getValue(true),
     ];
 
     $.fn.DataTable.ext.search = [];
 
     $.fn.DataTable.ext.search = [
         function (settings, data) {
-            const [, nomination, cameraName] = data;
+            const [, nomination] = data;
             return (
                 (nominationValues.length
                     ? nominationValues.includes(nomination)
-                    : true) &&
-                (cameraValues.length ? cameraValues.includes(cameraName) : true)
+                    : true)
             );
         },
     ];
@@ -264,7 +256,7 @@ function applyFilters() {
 }
 
 document
-    .querySelectorAll("#nomination_filter, #camera_filter")
+    .querySelectorAll("#nomination_filter")
     .forEach((element) => element.addEventListener("change", applyFilters));
 
 document.addEventListener("DOMContentLoaded", fetchData);

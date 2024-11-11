@@ -91,6 +91,8 @@ public class StreamService
         try
         {
             var nominationPlatform = _context.NominationPlatforms
+                .Include(np => np.Nomination)
+                .Include(np => np.Platform)
                 .FirstOrDefault(np => np.NominationId == nominationId && np.PlatformId == platformId);
 
             if (nominationPlatform != null)
@@ -144,6 +146,8 @@ public class StreamService
         try
         {
             var activePlatforms = _context.NominationPlatforms
+                .Include(np => np.Nomination)
+                .Include(np => np.Platform)
                 .Where(np => np.IsActive)
                 .ToList();
 
@@ -202,6 +206,8 @@ public class StreamService
         try
         {
             var cameraPlatforms = _context.NominationPlatforms
+                .Include(np => np.Nomination)
+                .Include(np => np.Platform)
                 .Where(np => np.PlatformId == platformId && np.IsActive)
                 .ToList();
 
@@ -268,6 +274,8 @@ public class StreamService
         try
         {
             var nominationPlatforms = _context.NominationPlatforms
+                .Include(np => np.Nomination)
+                .Include(np => np.Platform)
                 .Where(np => np.NominationId == nominationId && np.IsActive)
                 .ToList();
 
@@ -296,7 +304,7 @@ public class StreamService
                 .Include(np => np.Nomination)
                 .Include(np => np.Platform)
                 .Select(np => new BroadcastDto(
-                    np.Platform.Url,
+                    np.Nomination.StreamUrl,
                     np.NominationId,
                     np.Nomination.Name,
                     np.PlatformId,
