@@ -18,12 +18,14 @@ public class CameraController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)}")]
+    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)},{nameof(UserRoles.Admin)}")]
     public async Task<IActionResult> AddCamera([FromBody] AddCameraDto dto)
     {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
         try
         {
-            var camera = await _cameraService.CreateCamera(dto);
+            var camera = await _cameraService.CreateCamera(dto, userId);
             return CreatedAtAction(nameof(GetCamera), new { Id = camera.Id }, camera);
         }
         catch (InvalidOperationException e)
@@ -36,7 +38,10 @@ public class CameraController : ControllerBase
     [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)},{nameof(UserRoles.Admin)}")]
     public async Task<IActionResult> GetAllCameras()
     {
-        var cameras = await _cameraService.GetCameras();
+        var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        var cameras = await _cameraService.GetCameras(userRoles, userId);
         return Ok(cameras);
     }
 
@@ -54,7 +59,7 @@ public class CameraController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)}")]
+    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)},{nameof(UserRoles.Admin)}")]
     public async Task<IActionResult> UpdateCamera(int id, [FromBody] UpdateCameraDto dto)
     {
         try
@@ -69,7 +74,7 @@ public class CameraController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)}")]
+    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)},{nameof(UserRoles.Admin)}")]
     public async Task<IActionResult> DeleteCamera(int id)
     {
         try

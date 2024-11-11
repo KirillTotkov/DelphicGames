@@ -15,7 +15,7 @@ public class CameraService
         _logger = logger;
     }
 
-    public async Task<GetCameraDto> CreateCamera(AddCameraDto dto)
+    public async Task<GetCameraDto> CreateCamera(AddCameraDto dto, string userId)
     {
         if (await _context.Cameras.AnyAsync(c => c.Name == dto.Name))
         {
@@ -31,6 +31,7 @@ public class CameraService
         {
             Name = dto.Name,
             Url = dto.Url,
+            UserId = userId
         };
 
         _context.Cameras.Add(camera);
@@ -61,10 +62,16 @@ public class CameraService
         return new GetCameraDto(camera.Id, camera.Name, camera.Url);
     }
 
-    public async Task<List<GetCameraDto>> GetCameras()
+    public async Task<List<GetCameraDto>> GetCameras(List<string> userRoles, string userId)
     {
-        var camerasDb = await _context.Cameras
-            .OrderBy(c => c.Id)
+        IQueryable<Camera> query = _context.Cameras;
+
+        if (userRoles.Contains(nameof(UserRoles.Specialist)))
+        {
+            query = query.Where(c => c.UserId == userId);
+        }
+
+        var camerasDb = await query.OrderBy(c => c.Id)
             .AsNoTracking()
             .ToListAsync();
 
