@@ -1,14 +1,19 @@
+const notyf = new Notyf({
+  duration: 4000,
+  position: {
+    x: "right",
+    y: "top",
+  },
+});
+
+let currentCameraId = null;
+
 const createCamera = async () => {
   const cameraNameInput = document.getElementById("addCameraName");
   const cameraUrlInput = document.getElementById("addCameraUrl");
-  
+
   const cameraName = cameraNameInput.value.trim();
   const cameraUrl = cameraUrlInput.value.trim();
-
-  if (!cameraName || !cameraUrl) {
-    alert("Пожалуйста, заполните все поля.");
-    return;
-  }
 
   const createCameraData = {
     name: cameraName,
@@ -26,20 +31,20 @@ const createCamera = async () => {
 
     if (response.ok) {
       await drawCameraTable();
+      const addCameraModal = bootstrap.Modal.getInstance(
+        document.getElementById("addCameraModal")
+      );
+      addCameraModal.hide();
+
+      cameraNameInput.value = "";
+      cameraUrlInput.value = "";
     } else {
       const errorData = await response.json();
-      alert(errorData.Error || "Ошибка при создании камеры.");
+      notyf.error(errorData.error || "Ошибка при создании камеры.");
     }
   } catch (error) {
     console.error("Error creating camera:", error);
   }
-
-  const addCameraModal = bootstrap.Modal.getInstance(
-    document.getElementById("addCameraModal")
-  );
-  addCameraModal.hide();
-  cameraNameInput.value = "";
-  cameraUrlInput.value = "";
 };
 
 const deleteCameraPlatform = async (id) => {
@@ -62,6 +67,7 @@ const deleteCameraPlatform = async (id) => {
     console.error("Error deleting camera:", error);
   }
 };
+
 const drawCameraTable = async () => {
   try {
     const response = await fetch("api/cameras", {
@@ -82,6 +88,7 @@ const drawCameraTable = async () => {
 
     cameras.forEach((camera) => {
       const tr = document.createElement("tr");
+      tr.dataset.id = camera.id;
 
       const nameTd = document.createElement("td");
       nameTd.textContent = camera.name;
@@ -106,8 +113,6 @@ const drawCameraTable = async () => {
       editButton.type = "button";
       editButton.className = "btn btn-warning btn-sm edit-camera-button";
       editButton.textContent = "Изменить";
-      editButton.dataset.id = camera.id;
-      editButton.dataset.url = camera.url;
       editButton.setAttribute("data-bs-toggle", "modal");
       editButton.setAttribute("data-bs-target", "#editCameraModal");
       actionsTd.appendChild(editButton);
@@ -121,28 +126,45 @@ const drawCameraTable = async () => {
     console.error("Error drawing table:", error);
   }
 };
+
+const attachEditButtonListeners = () => {
+  document.querySelectorAll(".edit-camera-button").forEach((button) => {
+    button.removeEventListener("click", handleEditButtonClick);
+    button.addEventListener("click", handleEditButtonClick);
+  });
+};
+const handleEditButtonClick = (event) => {
+  const tr = event.currentTarget.closest("tr");
+  currentCameraId = tr.dataset.id;
+  const cameraUrl = tr.querySelector("td:nth-child(2)").textContent;
+
+  document.getElementById("editCameraUrl").value = cameraUrl;
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
   await drawCameraTable();
-  
+
+  const addCameraModalElement = document.getElementById("addCameraModal");
+  addCameraModalElement.addEventListener("hidden.bs.modal", () => {
+    document.getElementById("addCameraForm").reset();
+  });
+
   document
-    .getElementById("addCameraButton")
-    .addEventListener("click", async () => {
+    .getElementById("addCameraForm")
+    .addEventListener("submit", async (event) => {
+      event.preventDefault();
       await createCamera();
     });
 
   document
-    .getElementById("saveCameraChanges")
-    .addEventListener("click", async () => {
-      const cameraId = document.getElementById("editCameraId").value;
+    .getElementById("editCameraForm")
+    .addEventListener("submit", async (event) => {
+      event.preventDefault();
+
       const newUrl = document.getElementById("editCameraUrl").value.trim();
 
-      if (!newUrl) {
-        alert("URL не может быть пустым.");
-        return;
-      }
-
       try {
-        const response = await fetch(`/api/cameras/${cameraId}`, {
+        const response = await fetch(`/api/cameras/${currentCameraId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -156,25 +178,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.getElementById("editCameraModal")
           );
           editCameraModal.hide();
+          currentCameraId = null;
         } else {
           const errorData = await response.json();
-          alert(errorData.Error || "Ошибка при обновлении камеры.");
+          notyf.error(errorData.error || "Ошибка при обновлении камеры.");
         }
       } catch (error) {
         console.error("Error updating camera:", error);
+        notyf.error("Ошибка при обновлении камеры.");
       }
     });
 });
-const attachEditButtonListeners = () => {
-  document.querySelectorAll(".edit-camera-button").forEach((button) => {
-    button.removeEventListener("click", handleEditButtonClick);
-    button.addEventListener("click", handleEditButtonClick);
-  });
-};
-const handleEditButtonClick = (event) => {
-  const cameraId = event.currentTarget.dataset.id;
-  const cameraUrl = event.currentTarget.dataset.url;
-
-  document.getElementById("editCameraId").value = cameraId;
-  document.getElementById("editCameraUrl").value = cameraUrl;
-};

@@ -14,19 +14,6 @@
                     data-bs-target="#addCameraModal">Добавить камеру</button>
             </div>
 
-            <!-- Фильтры -->
-            @* <div class="border p-3 mb-3 rounded"> *@
-            @*     <h6 class="text-secondary">Фильтры</h6> *@
-            @*     <div class="row g-2"> *@
-            @*         <div class="col-md"> *@
-            @*             <input type="text" class="form-control" placeholder="Название камеры"> *@
-            @*         </div> *@
-            @*         <div class="col-md"> *@
-            @*             <input type="text" class="form-control" placeholder="URL-адрес"> *@
-            @*         </div> *@
-            @*     </div> *@
-            @* </div> *@
-
             <!-- Таблица с камерами -->
             <div class="table-responsive">
                 <table id="cameraTable" class="table table-striped table-hover">
@@ -43,9 +30,8 @@
                             <td>https://example.com</td>
                             <td>
                                 <button type="button" class="btn btn-danger btn-sm me-2">Удалить</button>
-                                <button type="button" class="btn btn-warning btn-sm edit-camera-button" data-id="1"
-                                    data-url="https://example.com" data-bs-toggle="modal"
-                                    data-bs-target="#editCameraModal">Изменить</button>
+                                <button type="button" class="btn btn-warning btn-sm edit-camera-button"
+                                    data-bs-toggle="modal" data-bs-target="#editCameraModal">Изменить</button>
                             </td>
                         </tr>
                     </tbody>
@@ -67,15 +53,15 @@
                 <form id="addCameraForm" method="post">
                     <div class="mb-3">
                         <label class="form-label text-secondary">Название камеры</label>
-                        <input type="text" class="form-control" id="addCameraName" required>
+                        <input type="text" class="form-control" id="addCameraName" size="50" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label text-secondary">URL-адрес</label>
-                        <input type="url" class="form-control" id="addCameraUrl" required>
+                        <input type="url" class="form-control" id="addCameraUrl" size="200" required>
                     </div>
                     <div class="modal-footer border-0">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-                        <button type="button" class="btn btn-success me-2" id="addCameraButton">Добавить камеру</button>
+                        <button type="submit" class="btn btn-success me-2" id="addCameraButton">Добавить камеру</button>
                     </div>
                 </form>
             </div>
@@ -93,18 +79,19 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="editCameraForm">
-                    <input type="hidden" id="editCameraId">
+                <form id="editCameraForm" method="post">
                     <div class="mb-3">
                         <label class="form-label text-secondary">URL-адрес</label>
-                        <input type="url" class="form-control" id="editCameraUrl" required>
+                        <input type="url" class="form-control" id="editCameraUrl" size="200" required>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-success" id="saveCameraChanges">Сохранить
+                            изменения</button>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-success" id="saveCameraChanges">Сохранить изменения</button>
-            </div>
+
         </div>
     </div>
 </div>
