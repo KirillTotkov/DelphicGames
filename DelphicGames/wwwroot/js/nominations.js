@@ -1,11 +1,13 @@
 class PlatformManager {
   constructor() {
     this.platforms = [];
+    this.container = document.getElementById("platformTokensContainer");
   }
 
   async loadPlatforms() {
     try {
       const response = await fetch("/api/platforms");
+      if (!response.ok) throw new Error("Ошибка загрузки платформ");
       this.platforms = await response.json();
     } catch (error) {
       console.error("Ошибка загрузки платформ:", error);
@@ -13,9 +15,7 @@ class PlatformManager {
   }
 
   displayPlatformTokens(nominationPlatforms = []) {
-    const container = document.getElementById("platformTokensContainer");
-    container.innerHTML = "";
-
+    this.container.innerHTML = "";
     this.platforms.forEach((platform) => {
       const div = document.createElement("div");
       div.classList.add("mb-2");
@@ -40,7 +40,7 @@ class PlatformManager {
       div.appendChild(label);
       div.appendChild(input);
 
-      container.appendChild(div);
+      this.container.appendChild(div);
     });
   }
 }
@@ -49,6 +49,7 @@ class CameraManager {
   constructor() {
     this.selectedCameraIds = [];
     this.cameras = [];
+    this.tableBody = document.querySelector("#addGroupModal table tbody");
   }
 
   async loadCameras(filter = {}) {
@@ -60,6 +61,7 @@ class CameraManager {
 
     try {
       const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch cameras");
       this.cameras = await response.json();
       this.populateCameraTable();
     } catch (error) {
@@ -68,8 +70,7 @@ class CameraManager {
   }
 
   populateCameraTable() {
-    const tableBody = document.querySelector("#addGroupModal table tbody");
-    tableBody.innerHTML = "";
+    this.tableBody.innerHTML = "";
 
     this.cameras.forEach((camera) => {
       const tr = document.createElement("tr");
@@ -95,7 +96,7 @@ class CameraManager {
       selectTd.appendChild(checkbox);
       tr.appendChild(selectTd);
 
-      tableBody.appendChild(tr);
+      this.tableBody.appendChild(tr);
     });
   }
 
@@ -114,6 +115,7 @@ class CameraManager {
     }
   }
 }
+
 class NominationManager {
   constructor() {
     this.currentNominationId = null;
@@ -130,10 +132,6 @@ class NominationManager {
 
   async init() {
     await this.loadNominations();
-
-    await this.platformManager.loadPlatforms();
-    await this.cameraManager.loadCameras();
-    await this.populateFilterDropdowns();
 
     document.getElementById("table-body").addEventListener("click", (event) => {
       if (event.target.id === "deleteBtn") {
@@ -182,6 +180,7 @@ class NominationManager {
   async loadNominations() {
     try {
       const response = await fetch("/api/nominations/with-cameras");
+      if (!response.ok) throw new Error("Failed to fetch nominations");
       const nominations = await response.json();
       this.populateNominationsTable(nominations);
     } catch (error) {
@@ -238,7 +237,10 @@ class NominationManager {
   async deleteNomination(id) {
     if (confirm("Вы действительно хотите удалить номинацию?")) {
       try {
-        await fetch(`/api/nominations/${id}`, { method: "DELETE" });
+        const response = await fetch(`/api/nominations/${id}`, {
+          method: "DELETE",
+        });
+        if (!response.ok) throw new Error("Delete failed");
         await this.loadNominations();
       } catch (error) {
         console.error("Error deleting nomination:", error);
@@ -248,23 +250,20 @@ class NominationManager {
 
   async openEditModal(nominationId) {
     this.currentNominationId = nominationId;
-    document.getElementById("groupName").value = "";
-    document.getElementById("streamUrl").value = "";
-    this.cameraManager.selectedCameraIds = [];
-    document.getElementById("platformTokensContainer").innerHTML = "";
+    this.resetForm();
 
     try {
       const response = await fetch(`/api/nominations/${nominationId}`);
+      if (!response.ok) throw new Error("Failed to fetch nomination");
       const nomination = await response.json();
 
       document.getElementById("groupName").value = nomination.name;
-      document.getElementById("streamUrl").value = nomination.streamUrl || "";
+      document.getElementById("streamUrl").value = nomination.streamUrl;
       this.cameraManager.selectedCameraIds = nomination.cameras.map(
         (camera) => camera.id
       );
 
       await this.platformManager.loadPlatforms();
-
       this.platformManager.displayPlatformTokens(nomination.platforms);
 
       await this.cameraManager.loadCameras({ nominationId });
@@ -281,29 +280,17 @@ class NominationManager {
     }
   }
 
+  resetForm() {
+    this.currentNominationId = null;
+    document.getElementById("groupName").value = "";
+    document.getElementById("streamUrl").value = "";
+    this.cameraManager.selectedCameraIds = [];
+    this.platformManager.container.innerHTML = "";
+    this.platformManager.displayPlatformTokens();
+  }
+
   async addNomination() {
-    const nominationName = document.getElementById("groupName").value.trim();
-    const streamUrl = document.getElementById("streamUrl").value.trim();
-
-    const platformTokens = [];
-    document
-      .querySelectorAll("#platformTokensContainer input")
-      .forEach((input) => {
-        const token = input.value.trim();
-        if (token) {
-          platformTokens.push({
-            platformId: parseInt(input.dataset.platformId),
-            token: token,
-          });
-        }
-      });
-
-    const nominationData = {
-      name: nominationName,
-      streamUrl: streamUrl,
-      cameraIds: this.cameraManager.selectedCameraIds,
-      platforms: platformTokens,
-    };
+    const nominationData = this.getNominationData();
 
     try {
       const response = await fetch("/api/nominations", {
@@ -328,28 +315,7 @@ class NominationManager {
   }
 
   async updateNomination(nominationId) {
-    const nominationName = document.getElementById("groupName").value.trim();
-    const streamUrl = document.getElementById("streamUrl").value.trim();
-
-    const platformTokens = [];
-    document
-      .querySelectorAll("#platformTokensContainer input")
-      .forEach((input) => {
-        const token = input.value.trim();
-        if (token) {
-          platformTokens.push({
-            platformId: parseInt(input.dataset.platformId),
-            token: token,
-          });
-        }
-      });
-
-    const nominationData = {
-      name: nominationName,
-      streamUrl: streamUrl,
-      cameraIds: this.cameraManager.selectedCameraIds,
-      platforms: platformTokens,
-    };
+    const nominationData = this.getNominationData();
 
     try {
       const response = await fetch(`/api/nominations/${nominationId}`, {
@@ -365,11 +331,29 @@ class NominationManager {
         await this.loadNominations();
       } else {
         const errorData = await response.json();
-        alert("Ошибка при обновлении номинации: " + errorData.error);
+        this.notyf.error(errorData.error || "Ошибка при обновлении номинации.");
       }
     } catch (error) {
       console.error("Ошибка при обновлении номинации:", error);
     }
+  }
+
+  getNominationData() {
+    const platformTokens = Array.from(
+      this.platformManager.container.querySelectorAll("input")
+    )
+      .map((input) => ({
+        platformId: parseInt(input.dataset.platformId),
+        token: input.value.trim(),
+      }))
+      .filter((pt) => pt.token);
+
+    return {
+      name: document.getElementById("groupName").value.trim(),
+      streamUrl: document.getElementById("streamUrl").value.trim(),
+      cameraIds: this.cameraManager.selectedCameraIds,
+      platforms: platformTokens,
+    };
   }
 
   async populateFilterDropdowns() {
@@ -411,14 +395,15 @@ class NominationManager {
     const nameFilter = document
       .getElementById("filterNameModal")
       .value.toLowerCase();
-    const rows = document.querySelectorAll("#addGroupModal table tbody tr");
+
+    const rows = this.cameraManager.tableBody.querySelectorAll("tr");
 
     rows.forEach((row) => {
-      const url = row.cells[0].textContent.toLowerCase();
-      const name = row.cells[1].textContent.toLowerCase();
-
-      const matchesUrl = !urlFilter || url === urlFilter;
-      const matchesName = !nameFilter || name === nameFilter;
+      const [url, name] = row.cells;
+      const matchesUrl =
+        !urlFilter || url.textContent.toLowerCase() === urlFilter;
+      const matchesName =
+        !nameFilter || name.textContent.toLowerCase() === nameFilter;
       row.style.display = matchesUrl && matchesName ? "" : "none";
     });
   }

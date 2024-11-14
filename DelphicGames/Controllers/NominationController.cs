@@ -59,7 +59,7 @@ public class NominationController : ControllerBase
             );
             return CreatedAtAction(nameof(GetNomination), new { id = nomination.Id }, result);
         }
-        catch (ArgumentException ex)
+        catch (Exception ex)
         {
             return BadRequest(new { Error = ex.Message });
         }
@@ -73,7 +73,7 @@ public class NominationController : ControllerBase
             await _nominationService.UpdateNomination(id, dto);
             return Ok();
         }
-        catch (ArgumentException ex)
+        catch (Exception ex)
         {
             return BadRequest(new { Error = ex.Message });
         }
