@@ -241,8 +241,14 @@ public class NominationService
 
             if (tokenInUse)
             {
+                var platform = await _context.Platforms.FirstOrDefaultAsync(p => p.Id == platformDto.PlatformId);
+                var platformName = platform?.Name ?? "Unknown";
+
+                var nomination = await query.FirstOrDefaultAsync();
+                var nominationName = nomination?.Name ?? "Unknown";
+
                 throw new InvalidOperationException(
-                    $"The token '{platformDto.Token}' is already in use for this platform.");
+                    $"Токен {platformDto.Token} уже используется для платформы {platformName} в номинации {nominationName}");
             }
         }
     }
