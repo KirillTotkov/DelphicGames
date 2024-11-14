@@ -1,5 +1,6 @@
 using DelphicGames.Data;
 using DelphicGames.Data.Models;
+using DelphicGames.Services.Streaming;
 using Microsoft.EntityFrameworkCore;
 
 namespace DelphicGames.Services;
@@ -7,31 +8,54 @@ namespace DelphicGames.Services;
 public class NominationService
 {
     private readonly ApplicationContext _context;
+    private readonly StreamService _streamService;
 
-    public NominationService(ApplicationContext context)
+    public NominationService(ApplicationContext context, StreamService streamService)
     {
         _context = context;
+        _streamService = streamService;
     }
 
     public async Task<Nomination> AddNomination(AddNominationDto dto)
     {
+        var name = dto.Name.Trim();
+        var streamUrl = dto.StreamUrl.Trim();
+
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(streamUrl))
+        {
+            throw new ArgumentException("Имя и ссылка на стрим не могут быть пустыми");
+        }
+
+        if (await _context.Nominations.AnyAsync(n => n.Name.ToLower() == name.ToLower()))
+        {
+            throw new ArgumentException($"Номинация с именем {name} уже существует");
+        }
+
+        if (await _context.Nominations.AnyAsync(n => n.StreamUrl.ToLower() == streamUrl.ToLower()))
+        {
+            throw new ArgumentException($"Номинация с ссылкой {streamUrl} уже существует");
+        }
+
         var nomination = new Nomination
         {
-            Name = dto.Name.Trim(),
-            StreamUrl = dto.StreamUrl.Trim()
+            Name = name,
+            StreamUrl = streamUrl,
         };
+
+        await ValidatePlatformTokens(dto.Platforms);
 
         var cameras = await GetCamerasByIds(dto.CameraIds);
         nomination.Cameras.AddRange(cameras);
 
         if (CheckPlatformsByIds(dto.Platforms.Select(p => p.PlatformId).ToList()).Result)
         {
-            nomination.Platforms = dto.Platforms.Where(p => !string.IsNullOrWhiteSpace(p.Token)).Select(p => new NominationPlatform
-            {
-                PlatformId = p.PlatformId,
-                Token = p.Token,
-                IsActive = false
-            }).ToList();
+            nomination.Platforms = dto.Platforms.Where(p => !string.IsNullOrWhiteSpace(p.Token)).Select(p =>
+                new NominationPlatform
+                {
+                    PlatformId = p.PlatformId,
+                    Token = p.Token,
+                    IsActive = false
+                }).ToList();
         }
 
         await _context.Nominations.AddAsync(nomination);
@@ -95,11 +119,25 @@ public class NominationService
 
     public async Task DeleteNomination(int nominationId)
     {
-        var nomination = await _context.Nominations.FirstOrDefaultAsync(n => n.Id == nominationId);
+        var nomination = await _context.Nominations
+            .Include(n => n.Platforms)
+            .FirstOrDefaultAsync(n => n.Id == nominationId);
 
         if (nomination == null)
         {
-            throw new ArgumentException($"Номинация с id {nominationId} не найдена");
+            throw new ArgumentException($"Nomination with id {nominationId} not found");
+        }
+
+        if (nomination.Platforms.Count == 0)
+        {
+            // Остановить трансляции
+            foreach (var nominationPlatform in nomination.Platforms)
+            {
+                if (nominationPlatform.IsActive)
+                {
+                    _streamService.StopNominationStreams(nominationId);
+                }
+            }
         }
 
         _context.Nominations.Remove(nomination);
@@ -118,8 +156,29 @@ public class NominationService
             throw new ArgumentException($"Номинация с id {nominationId} не найдена");
         }
 
-        nomination.Name = dto.Name.Trim();
-        nomination.StreamUrl = dto.StreamUrl.Trim();
+        var name = dto.Name.Trim();
+        var streamUrl = dto.StreamUrl.Trim();
+
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(streamUrl))
+        {
+            throw new ArgumentException("Имя и ссылка на стрим не могут быть пустыми");
+        }
+
+        if (await _context.Nominations.AnyAsync(n => n.Name.ToLower() == name.ToLower() && n.Id != nominationId))
+        {
+            throw new ArgumentException($"Номинация с именем {name} уже существует");
+        }
+
+        if (await _context.Nominations.AnyAsync(n =>
+                n.StreamUrl.ToLower() == streamUrl.ToLower() && n.Id != nominationId))
+        {
+            throw new ArgumentException($"Номинация с ссылкой {streamUrl} уже существует");
+        }
+
+        await ValidatePlatformTokens(dto.Platforms, nominationId);
+
+        nomination.Name = name;
+        nomination.StreamUrl = streamUrl;
 
         nomination.Cameras.Clear();
         var cameras = await GetCamerasByIds(dto.CameraIds);
@@ -160,6 +219,32 @@ public class NominationService
         }
 
         return cameras;
+    }
+
+    // проверка, используется ли токен для платформы
+    private async Task ValidatePlatformTokens(List<NominationPlatformDto> platforms, int? nominationId = null)
+    {
+        foreach (var platformDto in platforms)
+        {
+            if (string.IsNullOrWhiteSpace(platformDto.Token))
+                continue;
+
+            var query = _context.Nominations
+                 .Where(n => n.Platforms.Any(np => np.Token == platformDto.Token && np.PlatformId == platformDto.PlatformId));
+
+            if (nominationId.HasValue)
+            {
+                query = query.Where(n => n.Id != nominationId);
+            }
+
+            var tokenInUse = await query.AnyAsync();
+
+            if (tokenInUse)
+            {
+                throw new InvalidOperationException(
+                    $"The token '{platformDto.Token}' is already in use for this platform.");
+            }
+        }
     }
 }
 
