@@ -5,24 +5,25 @@
     ViewData["Title"] = "Создать пользователя";
 }
 
-<div class="container">
-    <h1>Создать пользователя</h1>
+<div class="container mt-4" style="max-width: 500px;">
+    <h1 class="mb-4">Создать пользователя</h1>
 
     <form method="post">
-        <div>
-            <label>Email</label>
-            <input asp-for="Input.Email"/>
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3" role="alert"></div>
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input asp-for="Input.Email" type="email" class="form-control" required />
         </div>
-        <div>
-            <label>Пароль</label>
-            <input asp-for="Input.Password" type="password"/>
+        <div class="mb-3">
+            <label class="form-label">Пароль</label>
+            <input asp-for="Input.Password" type="password" class="form-control" required />
         </div>
-        <div>
-            <label>Роль</label>
-            <select asp-for="Input.Role" asp-items="Model.Roles">
+        <div class="mb-3">
+            <label class="form-label">Роль</label>
+            <select asp-for="Input.Role" asp-items="Model.Roles" class="form-select">
                 <option value="">-- Выберите роль --</option>
             </select>
         </div>
-        <button type="submit">Создать</button>
+        <button type="submit" class="btn btn-success">Создать</button>
     </form>
 </div>
