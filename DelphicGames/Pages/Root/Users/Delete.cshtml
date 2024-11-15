@@ -5,12 +5,12 @@
     ViewData["Title"] = "Удалить пользователя";
 }
 
-<div class="container">
-    <h1>Удалить пользователя</h1>
+<div class="container mt-4">
+    <h1 class="mb-4">Удалить пользователя</h1>
 
     <form method="post">
         <p>Вы уверены, что хотите удалить пользователя @Model.User.UserName?</p>
-        <button type="submit">Удалить</button>
-        <a asp-page="Index">Отмена</a>
+        <button type="submit" class="btn btn-danger">Удалить</button>
+        <a asp-page="Index" class="btn btn-secondary">Отмена</a>
     </form>
 </div>

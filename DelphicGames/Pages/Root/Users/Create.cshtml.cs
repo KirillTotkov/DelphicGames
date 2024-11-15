@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
 namespace DelphicGames.Pages.Root.Users;
 
@@ -28,7 +29,8 @@ public class CreateModel : PageModel
 
     public async Task OnGetAsync()
     {
-        Roles = _roleManager.Roles.Select(r => new SelectListItem { Value = r.Name, Text = r.Name }).ToList();
+        Roles = await _roleManager.Roles.Select(r => new SelectListItem { Value = r.Name, Text = r.Name })
+            .ToListAsync();
     }
 
     public async Task<IActionResult> OnPostAsync()
@@ -50,10 +52,10 @@ public class CreateModel : PageModel
                 {
                     user.EmailConfirmed = true;
                 }
-                
+
                 await _userManager.AddToRoleAsync(user, Input.Role);
             }
-            
+
             _logger.LogInformation("Пользователь создан и назначена роль.");
             return RedirectToPage("Index");
         }
