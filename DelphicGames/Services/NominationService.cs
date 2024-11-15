@@ -211,7 +211,7 @@ public class NominationService
         return cameras;
     }
 
-    // проверка, используется ли токен для платформы
+    // проверка, используется ли токен
     private async Task ValidatePlatformTokens(List<NominationPlatformDto> platforms, int? nominationId = null)
     {
         foreach (var platformDto in platforms)
@@ -220,26 +220,27 @@ public class NominationService
                 continue;
 
             var query = _context.Nominations
-                .Where(n => n.Platforms.Any(np =>
-                    np.Token == platformDto.Token && np.PlatformId == platformDto.PlatformId));
+                .Include(n => n.Platforms).ThenInclude(nominationPlatform => nominationPlatform.Platform)
+                .Where(n => n.Platforms.Any(np => np.Token == platformDto.Token));
 
             if (nominationId.HasValue)
             {
                 query = query.Where(n => n.Id != nominationId);
             }
 
-            var tokenInUse = await query.AnyAsync();
+            var nomination = await query.FirstOrDefaultAsync();
 
-            if (tokenInUse)
+            if (nomination != null)
             {
-                var platform = await _context.Platforms.FirstOrDefaultAsync(p => p.Id == platformDto.PlatformId);
-                var platformName = platform?.Name ?? "Unknown";
+                var platform = await _context.Platforms.FindAsync(platformDto.PlatformId);
+                var existingPlatform = nomination.Platforms.First(np => np.Token == platformDto.Token).Platform;
+                if (platform == null)
+                {
+                    throw new ArgumentException($"Платформа с id {platformDto.PlatformId} не найдена");
+                }
 
-                var nomination = await query.FirstOrDefaultAsync();
-                var nominationName = nomination?.Name ?? "Unknown";
-
-                throw new InvalidOperationException(
-                    $"Токен {platformDto.Token} уже используется для платформы {platformName} в номинации {nominationName}");
+                throw new ArgumentException(
+                    $"Токен  платформы '{platform.Name}' уже используется в номинации '{nomination.Name}' для платформы '{existingPlatform.Name}'");
             }
         }
     }
