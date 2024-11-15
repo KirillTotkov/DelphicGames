@@ -17,7 +17,7 @@ public class StreamsController : ControllerBase
     {
         _streamService = streamService;
     }
-
+    
     [HttpGet]
     public async Task<IActionResult> GetAllStreams()
     {
@@ -63,11 +63,11 @@ public class StreamsController : ControllerBase
     }
 
     [HttpPost("start/all")]
-    public IActionResult StartAllStreams()
+    public async Task<IActionResult> StartAllStreams()
     {
         try
         {
-            _streamService.StartAllStreams();
+            await _streamService.StartAllStreams();
             return Ok("Все трансляции начаты.");
         }
         catch (InvalidOperationException ex)
@@ -77,11 +77,11 @@ public class StreamsController : ControllerBase
     }
 
     [HttpPost("stop/all")]
-    public IActionResult StopAllStreams()
+    public async Task<IActionResult> StopAllStreams()
     {
         try
         {
-            _streamService.StopAllStreams();
+            await _streamService.StopAllStreams();
             return Ok("Все трансляции остановлены.");
         }
         catch (InvalidOperationException ex)
@@ -91,11 +91,11 @@ public class StreamsController : ControllerBase
     }
 
     [HttpPost("start/platform")]
-    public IActionResult StartPlatformStreams([FromQuery] int platformId)
+    public async Task<IActionResult> StartPlatformStreams([FromQuery] int platformId)
     {
         try
         {
-            _streamService.StartPlatformStreams(platformId);
+            await _streamService.StartPlatformStreams(platformId);
             return Ok($"Трансляции на платформе начаты.");
         }
         catch (InvalidOperationException ex)
@@ -105,11 +105,11 @@ public class StreamsController : ControllerBase
     }
 
     [HttpPost("stop/platform")]
-    public IActionResult StopPlatformStreams([FromQuery] int platformId)
+    public async Task<IActionResult> StopPlatformStreams([FromQuery] int platformId)
     {
         try
         {
-            _streamService.StopPlatformStreams(platformId);
+            await _streamService.StopPlatformStreams(platformId);
             return Ok($"Трансляции на платформе остановлены.");
         }
         catch (InvalidOperationException ex)
@@ -145,6 +145,4 @@ public class StreamsController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
-
-
 }
