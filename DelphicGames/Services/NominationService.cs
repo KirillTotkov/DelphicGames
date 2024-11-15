@@ -71,6 +71,7 @@ public class NominationService
             .Include(n => n.Platforms)
             .ThenInclude(np => np.Platform)
             .AsNoTracking()
+            .AsSplitQuery()
             .Select(n => new GetNominationDto(
                 n.Id,
                 n.Name,
@@ -90,20 +91,15 @@ public class NominationService
             .Include(n => n.Cameras)
             .Include(n => n.Platforms)
             .ThenInclude(np => np.Platform)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(n => n.Id == nominationId);
 
-        if (nomination == null)
-        {
-            return null;
-        }
-
-        return new GetNominationDto(
+        return nomination == null ? null : new GetNominationDto(
             nomination.Id,
             nomination.Name,
             nomination.StreamUrl,
             nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList(),
-            nomination.Platforms.Select(np => new GetNominationPlatformDto(np.PlatformId, np.Platform.Name, np.Token))
-                .ToList()
+            nomination.Platforms.Select(np => new GetNominationPlatformDto(np.PlatformId, np.Platform.Name, np.Token)).ToList()
         );
     }
 
@@ -214,6 +210,11 @@ public class NominationService
     // проверка, используется ли токен
     private async Task ValidatePlatformTokens(List<NominationPlatformDto> platforms, int? nominationId = null)
     {
+        if (platforms.Select(p => p.Token).Distinct().Count() != platforms.Count)
+        {
+            throw new ArgumentException("Токены платформ не должны повторяться");
+        }
+
         foreach (var platformDto in platforms)
         {
             if (string.IsNullOrWhiteSpace(platformDto.Token))
@@ -225,7 +226,7 @@ public class NominationService
 
             if (nominationId.HasValue)
             {
-                query = query.Where(n => n.Id != nominationId);
+                query = query.Where(n => n.Id != nominationId.Value);
             }
 
             var nomination = await query.FirstOrDefaultAsync();
