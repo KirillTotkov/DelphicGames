@@ -1,4 +1,3 @@
-let nominationChoices;
 const notyf = new Notyf({
   duration: 4000,
   position: {
@@ -7,36 +6,26 @@ const notyf = new Notyf({
   },
 });
 
-const choicesOptions = {
-  noResultsText: "Нет доступных вариантов",
-  noChoicesText: "Нет доступных вариантов для выбора",
-  removeItemButton: true,
-  searchEnabled: true,
-  placeholder: true,
-};
-
 const pendingStreams = {};
 
 async function fetchData() {
   try {
-    const [platformsResponse, broadcastsResponse] = await Promise.all([
-      fetch("/api/platforms"),
-      fetch("/api/streams"),
+    const [platforms, broadcasts] = await Promise.all([
+      fetchJson("/api/platforms"),
+      fetchJson("/api/streams"),
     ]);
-
-    if (!platformsResponse.ok || !broadcastsResponse.ok) {
-      throw new Error("Network response was not ok");
-    }
-
-    const platforms = await platformsResponse.json();
-    const broadcasts = await broadcastsResponse.json();
-
     populateTable(platforms, broadcasts);
     updateAllHeaderCheckboxes(platforms);
   } catch (error) {
     console.error("Failed to fetch data:", error);
     notyf.error("Не удалось загрузить данные");
   }
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Network response was not ok");
+  return response.json();
 }
 
 function populateTable(platforms, broadcasts) {
@@ -104,7 +93,8 @@ function populateTable(platforms, broadcasts) {
           toggleBroadcast(
             broadcast.nominationId,
             platform.id,
-            checkbox.checked
+            checkbox.checked,
+            checkbox
           );
           updatePlatformHeaderCheckbox(platform.id);
         });
@@ -119,7 +109,10 @@ function populateTable(platforms, broadcasts) {
     tbody.appendChild(tr);
   });
 
-  // Initialize or Reinitialize DataTable
+  initializeDataTable();
+}
+
+function initializeDataTable() {
   if ($.fn.DataTable.isDataTable("#main_table")) {
     $("#main_table").DataTable().destroy();
   }
@@ -129,7 +122,7 @@ function populateTable(platforms, broadcasts) {
     ordering: true,
     language: {
       info: "Показано c _START_ по _END_ из _TOTAL_ записей",
-      lengthMenu: "_MENU_&nbsp;записей на страницу",
+      lengthMenu: "_MENU_ записей на страницу",
       emptyTable: "Нет данных",
       zeroRecords: "Нет совпадений",
       infoEmpty: "",
@@ -143,12 +136,9 @@ function populateTable(platforms, broadcasts) {
   });
 }
 
-async function toggleBroadcast(nominationId, platformId, isActive) {
+async function toggleBroadcast(nominationId, platformId, isActive, checkbox) {
   const action = isActive ? "start" : "stop";
   const key = `${nominationId}_${platformId}`;
-  const checkbox = document.querySelector(
-    `input[data-nomination-id="${nominationId}"][data-platform-id="${platformId}"]`
-  );
 
   if (pendingStreams[key] === "starting" && !isActive) {
     notyf.warning(
@@ -161,6 +151,8 @@ async function toggleBroadcast(nominationId, platformId, isActive) {
   pendingStreams[key] = isActive ? "starting" : "stopping";
   checkbox.disabled = true;
   checkbox.style.accentColor = "yellow";
+
+  updatePlatformHeaderCheckbox(platformId);
 
   try {
     const response = await fetch(`/api/streams/${action}`, {
@@ -194,55 +186,41 @@ async function toggleBroadcast(nominationId, platformId, isActive) {
 }
 
 async function toggleAllPlatforms(platformId, isChecked) {
-  const checkboxes = document.querySelectorAll(
-    `input[data-platform-id="${platformId}"]`
-  );
-  const headerCheckbox = document.getElementById(`${platformId}_all`);
+  const table = $("#main_table").DataTable();
+  const checkboxes = table
+    .$("input[data-platform-id='" + platformId + "']", { page: "all" })
+    .toArray();
 
-  // Disable all checkboxes at start
-  checkboxes.forEach((cb) => {
-    if (!cb.disabled) {
-      cb.disabled = true;
-      cb.style.accentColor = "yellow";
-    }
-  });
-  headerCheckbox.disabled = true;
+  const promises = checkboxes
+    .filter((cb) => cb.checked !== isChecked && !cb.disabled)
+    .map((cb) => {
+      const nominationId = cb.dataset.nominationId;
+      const key = `${nominationId}_${platformId}`;
+      pendingStreams[key] = isChecked ? "starting" : "stopping";
+      cb.checked = isChecked;
+      return toggleBroadcast(nominationId, platformId, isChecked, cb);
+    });
 
   try {
-    for (const checkbox of checkboxes) {
-      if (checkbox.checked !== isChecked) {
-        const key = `${checkbox.dataset.nominationId}_${platformId}`;
-        pendingStreams[key] = isChecked ? "starting" : "stopping";
-
-        checkbox.checked = isChecked;
-        await toggleBroadcast(
-          checkbox.dataset.nominationId,
-          platformId,
-          isChecked
-        );
-      }
-    }
+    await Promise.all(promises);
   } catch (error) {
+    console.error("Toggle all streams failed:", error);
     notyf.error("Произошла ошибка при обработке трансляций");
-  } finally {
-    // Re-enable all checkboxes after completion
-    checkboxes.forEach((cb) => {
-      cb.disabled = false;
-      cb.style.accentColor = "";
-    });
-    headerCheckbox.disabled = false;
-    updatePlatformHeaderCheckbox(platformId);
   }
 }
 
 function updatePlatformHeaderCheckbox(platformId) {
-  const checkboxes = document.querySelectorAll(
-    `input[data-platform-id="${platformId}"]`
+  const table = $("#main_table").DataTable();
+  const checkboxes = table
+    .$("input[data-platform-id='" + platformId + "']", { page: "all" })
+    .toArray();
+
+  const allChecked = checkboxes.every((cb) => cb.checked || cb.disabled);
+  const allDisabled = checkboxes.every((cb) => cb.disabled);
+  const waiting = checkboxes.some(
+    (cb) => pendingStreams[`${cb.dataset.nominationId}_${platformId}`]
   );
-  const allChecked = Array.from(checkboxes).every(
-    (cb) => cb.checked || cb.disabled
-  );
-  const allDisabled = Array.from(checkboxes).every((cb) => cb.disabled);
+
   const headerCheckbox = document.getElementById(`${platformId}_all`);
 
   if (headerCheckbox) {
@@ -250,6 +228,10 @@ function updatePlatformHeaderCheckbox(platformId) {
     headerCheckbox.disabled = allDisabled;
     if (allDisabled) {
       headerCheckbox.checked = false;
+    }
+
+    if (waiting) {
+      headerCheckbox.disabled = true;
     }
   }
 }
