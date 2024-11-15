@@ -334,6 +334,12 @@ public class StreamService
             throw;
         }
     }
+
+    // HasActiveStreams
+    public bool HasActiveStreams(int nominationId)
+    {
+        return _streamManager.HasActiveStreams(nominationId);
+    }
 }
 
 public record BroadcastDto(

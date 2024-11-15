@@ -99,6 +99,12 @@ public class StreamManager
         NominationStreams.Clear();
     }
 
+    // Проверка наличия активных потоков для номинации
+    public bool HasActiveStreams(int nominationId)
+    {
+        return NominationStreams.TryGetValue(nominationId, out var streams) && streams.Any();
+    }
+
     public void Dispose()
     {
         StopAllStreams();

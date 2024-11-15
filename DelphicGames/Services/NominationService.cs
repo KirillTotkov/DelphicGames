@@ -142,6 +142,12 @@ public class NominationService
             throw new ArgumentException($"Номинация с id {nominationId} не найдена");
         }
 
+        // Проверка активных потоков
+        if (nomination.Platforms.Any(np => np.IsActive))
+        {
+            throw new ArgumentException("Нельзя изменить номинацию, пока она транслируется");
+        }
+
         var name = dto.Name.Trim();
         var streamUrl = dto.StreamUrl.Trim();
 
