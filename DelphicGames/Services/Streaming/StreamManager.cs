@@ -8,6 +8,7 @@ public class StreamManager
     public Dictionary<int, List<Stream>> NominationStreams { get; } = new();
     private readonly ILogger<StreamManager> _logger;
     private readonly IStreamProcessor _streamProcessor;
+    private bool _disposed;
 
     public StreamManager(IStreamProcessor streamProcessor, ILogger<StreamManager> logger)
     {
@@ -107,7 +108,21 @@ public class StreamManager
 
     public void Dispose()
     {
-        StopAllStreams();
-        _streamProcessor.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed) return;
+
+        if (disposing)
+        {
+            StopAllStreams();
+            _streamProcessor.Dispose();
+        }
+
+        _disposed = true;
+    }
+
 }
