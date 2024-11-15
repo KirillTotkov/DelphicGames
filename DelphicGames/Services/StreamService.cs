@@ -1,5 +1,4 @@
 ﻿using DelphicGames.Data;
-using DelphicGames.Data.Models;
 using DelphicGames.Services.Streaming;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,6 +22,7 @@ public class StreamService
     // Если токен не пустой, то он будет обновлен
     public void StartStream(AddStreamDto streamDto)
     {
+        // TODO Использовать транзакции
         try
         {
             var nominationPlatform = _context.NominationPlatforms
@@ -33,49 +33,12 @@ public class StreamService
 
             if (nominationPlatform != null)
             {
-                if (!string.IsNullOrEmpty(streamDto.Token) && nominationPlatform.Token != streamDto.Token)
+                if (!string.IsNullOrEmpty(nominationPlatform.Token))
                 {
-                    nominationPlatform.Token = streamDto.Token.Trim();
+                    _streamManager.StartStream(nominationPlatform);
+                    nominationPlatform.IsActive = true;
+                    _context.SaveChanges();
                 }
-
-                _streamManager.StartStream(nominationPlatform);
-                nominationPlatform.IsActive = true;
-                _context.SaveChanges();
-            }
-            else
-            {
-                var nomination = _context.Nominations.FirstOrDefault(n => n.Id == streamDto.NominationId);
-                var platform = _context.Platforms.FirstOrDefault(p => p.Id == streamDto.PlatformId);
-
-                if (nomination == null || platform == null)
-                {
-                    _logger.LogWarning(
-                        "Номинация или платформа не найдены для NominationId: {NominationId}, PlatformId: {PlatformId}",
-                        streamDto.NominationId, streamDto.PlatformId);
-
-                    throw new InvalidOperationException("Номинация или платформа не найдены.");
-                }
-
-                nominationPlatform = new NominationPlatform
-                {
-                    Nomination = nomination,
-                    Platform = platform,
-                    IsActive = true,
-                };
-
-                if (!string.IsNullOrEmpty(streamDto.Token))
-                {
-                    nominationPlatform.Token = streamDto.Token.Trim();
-                }
-
-                _streamManager.StartStream(nominationPlatform);
-
-                _context.NominationPlatforms.Add(nominationPlatform);
-
-                _context.SaveChanges();
-
-                _logger.LogInformation("Трансляция начата для NominationId: {NominationId}, PlatformId: {PlatformId}",
-                    streamDto.NominationId, streamDto.PlatformId);
             }
         }
         catch (Exception ex)
@@ -116,20 +79,18 @@ public class StreamService
     }
 
     // Запуск всех трансляций у которых есть токен
-    public void StartAllStreams()
+    public async Task StartAllStreams()
     {
         try
         {
-            var activePlatforms = _context.NominationPlatforms
+            var activePlatforms = await _context.NominationPlatforms
                 .Include(np => np.Nomination)
                 .Include(np => np.Platform)
                 .Where(np => !string.IsNullOrEmpty(np.Token) && np.IsActive)
-                .ToList();
+                .ToListAsync();
 
-            foreach (var np in activePlatforms)
-            {
-                _streamManager.StartStream(np);
-            }
+            var startTasks = activePlatforms.Select(np => Task.Run(() => _streamManager.StartStream(np)));
+            await Task.WhenAll(startTasks);
 
             _logger.LogInformation("Все трансляции запущены.");
         }
@@ -141,23 +102,19 @@ public class StreamService
     }
 
     // Остановка всех трансляций
-    public void StopAllStreams()
+    public async Task StopAllStreams()
     {
         try
         {
-            var activePlatforms = _context.NominationPlatforms
+            var activePlatforms = await _context.NominationPlatforms
                 .Include(np => np.Nomination)
                 .Include(np => np.Platform)
                 .Where(np => np.IsActive)
-                .ToList();
+                .ToListAsync();
 
-            foreach (var np in activePlatforms)
-            {
-                _streamManager.StopStream(np);
-                np.IsActive = false;
-            }
+            var stopTasks = activePlatforms.Select(np => Task.Run(() => _streamManager.StopStream(np)));
+            await Task.WhenAll(stopTasks);
 
-            _context.SaveChanges();
             _logger.LogInformation("Все трансляции остановлены.");
         }
         catch (Exception ex)
@@ -168,15 +125,15 @@ public class StreamService
     }
 
     // Запуск трансляций на определенной платформе
-    public void StartPlatformStreams(int platformId)
+    public async Task StartPlatformStreams(int platformId)
     {
         try
         {
-            var cameraPlatforms = _context.NominationPlatforms
+            var cameraPlatforms = await _context.NominationPlatforms
                 .Include(np => np.Nomination)
                 .Include(np => np.Platform)
-                .Where(np => np.PlatformId == platformId && !string.IsNullOrEmpty(np.Token))
-                .ToList();
+                .Where(np => np.PlatformId == platformId && !string.IsNullOrEmpty(np.Token) && !np.IsActive)
+                .ToListAsync();
 
             if (cameraPlatforms == null || cameraPlatforms.Count == 0)
             {
@@ -184,13 +141,15 @@ public class StreamService
                 return;
             }
 
-            foreach (var np in cameraPlatforms)
+            var startTasks = cameraPlatforms.Select(np => Task.Run(() =>
             {
                 _streamManager.StartStream(np);
                 np.IsActive = true;
-            }
+            }));
 
-            _context.SaveChanges();
+            await Task.WhenAll(startTasks);
+
+            await _context.SaveChangesAsync();
             _logger.LogInformation("Трансляции для платформы {PlatformId} запущены.", platformId);
         }
         catch (Exception ex)
@@ -201,23 +160,25 @@ public class StreamService
     }
 
     // Остановка трансляций на определенной платформе
-    public void StopPlatformStreams(int platformId)
+    public async Task StopPlatformStreams(int platformId)
     {
         try
         {
-            var cameraPlatforms = _context.NominationPlatforms
+            var platformStreams = await _context.NominationPlatforms
                 .Include(np => np.Nomination)
                 .Include(np => np.Platform)
                 .Where(np => np.PlatformId == platformId && np.IsActive)
-                .ToList();
+                .ToListAsync();
 
-            foreach (var np in cameraPlatforms)
+            var stopTasks = platformStreams.Select(np => Task.Run(() =>
             {
                 _streamManager.StopStream(np);
                 np.IsActive = false;
-            }
+            }));
 
-            _context.SaveChanges();
+            await Task.WhenAll(stopTasks);
+
+            await _context.SaveChangesAsync();
             _logger.LogInformation("Трансляции для платформы {PlatformId} остановлены.", platformId);
         }
         catch (Exception ex)
@@ -333,6 +294,12 @@ public class StreamService
             _logger.LogError(ex, "Ошибка при получении всех трансляций.");
             throw;
         }
+    }
+
+    // HasActiveStreams
+    public bool HasActiveStreams(int nominationId)
+    {
+        return _streamManager.HasActiveStreams(nominationId);
     }
 }
 
