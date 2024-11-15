@@ -128,17 +128,7 @@ public class NominationService
             throw new ArgumentException($"Nomination with id {nominationId} not found");
         }
 
-        if (nomination.Platforms.Count == 0)
-        {
-            // Остановить трансляции
-            foreach (var nominationPlatform in nomination.Platforms)
-            {
-                if (nominationPlatform.IsActive)
-                {
-                    _streamService.StopNominationStreams(nominationId);
-                }
-            }
-        }
+        _streamService.StopNominationStreams(nominationId);
 
         _context.Nominations.Remove(nomination);
         await _context.SaveChangesAsync();
@@ -230,7 +220,8 @@ public class NominationService
                 continue;
 
             var query = _context.Nominations
-                 .Where(n => n.Platforms.Any(np => np.Token == platformDto.Token && np.PlatformId == platformDto.PlatformId));
+                .Where(n => n.Platforms.Any(np =>
+                    np.Token == platformDto.Token && np.PlatformId == platformDto.PlatformId));
 
             if (nominationId.HasValue)
             {
