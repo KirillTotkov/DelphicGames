@@ -50,7 +50,7 @@ function populateTable(platforms, broadcasts) {
   const headerRow1 = document.createElement("tr");
   const headerRow2 = document.createElement("tr");
 
-  const headers = ["URL", "Номинация"];
+  const headers = ["Номинация", "URL"];
   headers.forEach((text) => {
     const th = document.createElement("th");
     th.rowSpan = 2;
@@ -82,7 +82,7 @@ function populateTable(platforms, broadcasts) {
   broadcasts.forEach((broadcast) => {
     const tr = document.createElement("tr");
 
-    ["url", "nomination"].forEach((key) => {
+    ["nomination", "url"].forEach((key) => {
       const td = document.createElement("td");
       td.textContent = broadcast[key];
       tr.appendChild(td);
