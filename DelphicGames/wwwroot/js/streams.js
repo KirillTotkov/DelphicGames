@@ -32,7 +32,6 @@ async function fetchData() {
     const broadcasts = await broadcastsResponse.json();
 
     populateTable(platforms, broadcasts);
-    populateFilterOptions(broadcasts);
     updateAllHeaderCheckboxes(platforms);
   } catch (error) {
     console.error("Failed to fetch data:", error);
@@ -142,35 +141,6 @@ function populateTable(platforms, broadcasts) {
       { orderable: false, targets: "_all" },
     ],
   });
-}
-
-function populateFilterOptions(broadcasts) {
-  const unique = (arr) => [...new Set(arr)].sort();
-
-  populateChoices(
-    "#nomination_filter",
-    unique(broadcasts.map((b) => b.nomination)),
-    "Выберите номинацию"
-  );
-}
-
-function populateChoices(selector, options, placeholder) {
-  const select = document.querySelector(selector);
-  select.innerHTML = "";
-
-  options.forEach((option) => {
-    const opt = document.createElement("option");
-    opt.value = option;
-    opt.textContent = option;
-    select.appendChild(opt);
-  });
-
-  const choiceInstance = new Choices(selector, {
-    ...choicesOptions,
-    placeholderValue: placeholder,
-  });
-
-  if (selector === "#nomination_filter") nominationChoices = choiceInstance;
 }
 
 async function toggleBroadcast(nominationId, platformId, isActive) {
@@ -289,26 +259,5 @@ function updateAllHeaderCheckboxes(platforms) {
     updatePlatformHeaderCheckbox(platform.id);
   });
 }
-
-function applyFilters() {
-  const [nominationValues] = [nominationChoices.getValue(true)];
-
-  $.fn.DataTable.ext.search = [];
-
-  $.fn.DataTable.ext.search = [
-    function (settings, data) {
-      const [, nomination] = data;
-      return nominationValues.length
-        ? nominationValues.includes(nomination)
-        : true;
-    },
-  ];
-
-  $("#main_table").DataTable().draw();
-}
-
-document
-  .querySelectorAll("#nomination_filter")
-  .forEach((element) => element.addEventListener("change", applyFilters));
 
 document.addEventListener("DOMContentLoaded", fetchData);

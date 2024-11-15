@@ -7,7 +7,7 @@
 
 <div class="row col-md-12 col-xs-12" style="padding: 15px; margin: 0 auto;">
     <h3>Монитор трансляций</h3>
-    <div class="card container col-md-9 col-sm-12" style="display: inline-block; border: none; margin: 0;">
+    <div class="card container col-sm-12" style="display: inline-block; border: none; margin: 0;">
         <div class="card-body table-responsive w-100 p-0">
             <table class="table table-light table-hover align-middle" id="main_table">
                 <thead>
@@ -42,31 +42,12 @@
 
         </div>
     </div>
-
-    <!--FILTERS-->
-    <div class="filters-container card col-md-3 col-sm-12"
-        style="display: inline-block; margin: 0; padding: 0; float: right;">
-        <div class="card-header">
-            <h5 class="">Фильтры</h5>
-        </div>
-        <div class="card-body gap-3">
-            <div class="filter-block">
-                <label for="nomination_filter">Номинация</label>
-                <select multiple id="nomination_filter" class="form-select d-none" aria-label="Выберите позицию...">
-                    <option value="1">Один</option>
-                    <option value="2">Два</option>
-                    <option value="3">Три</option>
-                </select>
-            </div>
-        </div>
-    </div>
 </div>
 
 @section Head
 {
     <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
     
     <style>
         input[type="checkbox"]{
@@ -80,7 +61,6 @@
 {
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
     <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
     
     <script src="js/streams.js" asp-append-version="true"></script>
 }
