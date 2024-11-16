@@ -78,6 +78,11 @@ public class CameraService
 
     public async Task<Camera?> UpdateCamera(int id, UpdateCameraDto camera)
     {
+        if (await _context.Nominations.AnyAsync())
+        {
+            throw new InvalidOperationException("Невозможно обновить камеры после добавления номинаций.");
+        }
+
         if (string.IsNullOrEmpty(camera.Url) || camera.Url.Trim().Length > MaxUrlLength)
         {
             throw new ArgumentException($"URL-адрес не может быть пустым или длиннее, чем {MaxUrlLength} символов");
@@ -109,6 +114,11 @@ public class CameraService
 
     public async Task<bool> DeleteCamera(int id)
     {
+        if (await _context.Nominations.AnyAsync())
+        {
+            throw new InvalidOperationException("Невозможно удалить камеры после добавления номинаций.");
+        }
+
         try
         {
             var camera = await _context.Cameras.FindAsync(id);
