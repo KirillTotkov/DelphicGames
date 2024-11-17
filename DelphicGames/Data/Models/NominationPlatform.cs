@@ -7,5 +7,6 @@ public class NominationPlatform
     public int PlatformId { get; set; }
     public Platform Platform { get; set; }
     public string? Token { get; set; }
+    public int Day { get; set; }
     public bool IsActive { get; set; }
 }
