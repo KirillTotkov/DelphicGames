@@ -1,4 +1,5 @@
 ﻿using DelphicGames.Data;
+using DelphicGames.Data.Models;
 using DelphicGames.Services.Streaming;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,41 @@ public class StreamService
         _logger = logger;
     }
 
+    public async Task AddStream(AddStreamDto streamDto)
+    {
+        try
+        {
+            var nomination = await _context.Nominations
+                .Include(n => n.Streams)
+                .FirstOrDefaultAsync(n => n.Id == streamDto.NominationId);
+
+            if (nomination == null)
+            {
+                throw new InvalidOperationException("Nomination not found.");
+            }
+
+            var streams = streamDto.DayStreams.Select(dayStream =>
+            {
+                var stream = new StreamEntity
+                {
+                    NominationId = streamDto.NominationId,
+                    PlatformName = dayStream.PlatformName,
+                    PlatformUrl = dayStream.PlatformUrl,
+                    Token = dayStream.Token,
+                    Day = streamDto.Day,
+                    IsActive = false
+                };
+
+                return stream;
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding stream.");
+            throw;
+        }
+    }
+
     // Запуск трансляции для определенной номинации на определенной платформе
     // Если трансляция уже запущена, то она будет перезапущена
     // Если токен не пустой, то он будет обновлен
@@ -24,26 +60,29 @@ public class StreamService
     {
         try
         {
-            var stream = _context.Streams
-                .Include(s => s.Nomination)
-                .FirstOrDefault(s => s.NominationId == streamDto.NominationId &&
-                                     s.PlatformName == streamDto.PlatformName);
-
-            if (stream != null)
+            foreach (var dayStream in streamDto.DayStreams)
             {
-                if (!string.IsNullOrEmpty(streamDto.Token))
+                var stream = _context.Streams
+                    .Include(s => s.Nomination)
+                    .FirstOrDefault(s => s.NominationId == streamDto.NominationId &&
+                                         s.PlatformName == dayStream.PlatformName);
+
+                if (stream != null)
                 {
-                    stream.Token = streamDto.Token;
+                    if (!string.IsNullOrEmpty(dayStream.Token))
+                    {
+                        stream.Token = dayStream.Token;
+                        _context.SaveChanges();
+                    }
+
+                    _streamManager.StartStream(stream);
+                    stream.IsActive = true;
                     _context.SaveChanges();
                 }
-
-                _streamManager.StartStream(stream);
-                stream.IsActive = true;
-                _context.SaveChanges();
-            }
-            else
-            {
-                throw new InvalidOperationException("Stream not found.");
+                else
+                {
+                    throw new InvalidOperationException("Stream not found.");
+                }
             }
         }
         catch (Exception ex)
@@ -227,12 +266,6 @@ public class StreamService
             throw;
         }
     }
-
-    // HasActiveStreams
-    public bool HasActiveStreams(int nominationId)
-    {
-        return _streamManager.HasActiveStreams(nominationId);
-    }
 }
 
 public record BroadcastDto(
@@ -249,6 +282,12 @@ public record PlatformStatusDto(
 
 public record AddStreamDto(
     int NominationId,
+    int Day,
+    List<DayStreamDto> DayStreams
+);
+
+public record DayStreamDto(
     string PlatformName,
-    string? Token
+    string PlatformUrl,
+    string Token
 );
