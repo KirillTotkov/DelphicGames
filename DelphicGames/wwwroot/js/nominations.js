@@ -1,50 +1,3 @@
-class PlatformManager {
-  constructor() {
-    this.platforms = [];
-    this.container = document.getElementById("platformTokensContainer");
-  }
-
-  async loadPlatforms() {
-    try {
-      const response = await fetch("/api/platforms");
-      if (!response.ok) throw new Error("Ошибка загрузки платформ");
-      this.platforms = await response.json();
-    } catch (error) {
-      console.error("Ошибка загрузки платформ:", error);
-    }
-  }
-
-  displayPlatformTokens(nominationPlatforms = []) {
-    this.container.innerHTML = "";
-    this.platforms.forEach((platform) => {
-      const div = document.createElement("div");
-      div.classList.add("mb-2");
-
-      const label = document.createElement("label");
-      label.textContent = platform.name;
-      label.classList.add("form-label");
-
-      const input = document.createElement("input");
-      input.type = "text";
-      input.classList.add("form-control");
-      input.name = `platformToken_${platform.id}`;
-      input.dataset.platformId = platform.id;
-
-      const existingPlatform = nominationPlatforms.find(
-        (np) => np.platformId === platform.id
-      );
-      if (existingPlatform) {
-        input.value = existingPlatform.token || "";
-      }
-
-      div.appendChild(label);
-      div.appendChild(input);
-
-      this.container.appendChild(div);
-    });
-  }
-}
-
 class CameraManager {
   constructor() {
     this.selectedCameraIds = [];
@@ -119,7 +72,6 @@ class CameraManager {
 class NominationManager {
   constructor() {
     this.currentNominationId = null;
-    this.platformManager = new PlatformManager();
     this.cameraManager = new CameraManager();
     this.notyf = new Notyf({
       duration: 4000,
@@ -150,12 +102,9 @@ class NominationManager {
         document.getElementById("groupName").value = "";
         document.getElementById("streamUrl").value = "";
         this.cameraManager.selectedCameraIds = [];
-        document.getElementById("platformTokensContainer").innerHTML = "";
 
-        await this.platformManager.loadPlatforms();
         await this.cameraManager.loadCameras();
         await this.populateFilterDropdowns();
-        this.platformManager.displayPlatformTokens();
 
         document.getElementById("nominationForm").onsubmit = (e) => {
           e.preventDefault();
@@ -263,9 +212,6 @@ class NominationManager {
         (camera) => camera.id
       );
 
-      await this.platformManager.loadPlatforms();
-      this.platformManager.displayPlatformTokens(nomination.platforms);
-
       await this.cameraManager.loadCameras({ nominationId });
       await this.populateFilterDropdowns();
 
@@ -285,8 +231,6 @@ class NominationManager {
     document.getElementById("groupName").value = "";
     document.getElementById("streamUrl").value = "";
     this.cameraManager.selectedCameraIds = [];
-    this.platformManager.container.innerHTML = "";
-    this.platformManager.displayPlatformTokens();
   }
 
   async addNomination() {
@@ -339,20 +283,10 @@ class NominationManager {
   }
 
   getNominationData() {
-    const platformTokens = Array.from(
-      this.platformManager.container.querySelectorAll("input")
-    )
-      .map((input) => ({
-        platformId: parseInt(input.dataset.platformId),
-        token: input.value.trim(),
-      }))
-      .filter((pt) => pt.token);
-
     return {
       name: document.getElementById("groupName").value.trim(),
       streamUrl: document.getElementById("streamUrl").value.trim(),
       cameraIds: this.cameraManager.selectedCameraIds,
-      platforms: platformTokens,
     };
   }
 
