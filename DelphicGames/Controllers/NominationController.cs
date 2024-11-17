@@ -53,9 +53,7 @@ public class NominationController : ControllerBase
                 nomination.Id,
                 nomination.Name,
                 nomination.StreamUrl,
-                nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList(),
-                nomination.Platforms.Select(np => new GetNominationPlatformDto(np.PlatformId, np.Platform.Name, np.Token))
-                    .ToList()
+                nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList()
             );
             return CreatedAtAction(nameof(GetNomination), new { id = nomination.Id }, result);
         }

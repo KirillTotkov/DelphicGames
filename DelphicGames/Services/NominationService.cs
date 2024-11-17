@@ -42,21 +42,8 @@ public class NominationService
             StreamUrl = streamUrl,
         };
 
-        await ValidatePlatformTokens(dto.Platforms);
-
         var cameras = await GetCamerasByIds(dto.CameraIds);
         nomination.Cameras.AddRange(cameras);
-
-        if (CheckPlatformsByIds(dto.Platforms.Select(p => p.PlatformId).ToList()).Result)
-        {
-            nomination.Platforms = dto.Platforms.Where(p => !string.IsNullOrWhiteSpace(p.Token)).Select(p =>
-                new NominationPlatform
-                {
-                    PlatformId = p.PlatformId,
-                    Token = p.Token,
-                    IsActive = false
-                }).ToList();
-        }
 
         await _context.Nominations.AddAsync(nomination);
         await _context.SaveChangesAsync();
@@ -68,17 +55,13 @@ public class NominationService
     {
         var nominations = await _context.Nominations
             .Include(n => n.Cameras)
-            .Include(n => n.Platforms)
-            .ThenInclude(np => np.Platform)
+            .Include(n => n.Streams)
             .AsNoTracking()
-            .AsSplitQuery()
             .Select(n => new GetNominationDto(
                 n.Id,
                 n.Name,
                 n.StreamUrl,
-                n.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList(),
-                n.Platforms.Select(np => new GetNominationPlatformDto(np.PlatformId, np.Platform.Name, np.Token))
-                    .ToList()
+                n.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList()
             ))
             .ToListAsync();
 
@@ -89,18 +72,17 @@ public class NominationService
     {
         var nomination = await _context.Nominations
             .Include(n => n.Cameras)
-            .Include(n => n.Platforms)
-            .ThenInclude(np => np.Platform)
-            .AsSplitQuery()
+            .Include(n => n.Streams)
             .FirstOrDefaultAsync(n => n.Id == nominationId);
 
-        return nomination == null ? null : new GetNominationDto(
-            nomination.Id,
-            nomination.Name,
-            nomination.StreamUrl,
-            nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList(),
-            nomination.Platforms.Select(np => new GetNominationPlatformDto(np.PlatformId, np.Platform.Name, np.Token)).ToList()
-        );
+        return nomination == null
+            ? null
+            : new GetNominationDto(
+                nomination.Id,
+                nomination.Name,
+                nomination.StreamUrl,
+                nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList()
+            );
     }
 
     public async Task<List<NominationDto>> GetNominations()
@@ -116,7 +98,7 @@ public class NominationService
     public async Task DeleteNomination(int nominationId)
     {
         var nomination = await _context.Nominations
-            .Include(n => n.Platforms)
+            .Include(n => n.Streams)
             .FirstOrDefaultAsync(n => n.Id == nominationId);
 
         if (nomination == null)
@@ -134,7 +116,7 @@ public class NominationService
     {
         var nomination = await _context.Nominations
             .Include(n => n.Cameras)
-            .Include(n => n.Platforms)
+            .Include(n => n.Streams)
             .FirstOrDefaultAsync(n => n.Id == nominationId);
 
         if (nomination == null)
@@ -143,7 +125,7 @@ public class NominationService
         }
 
         // Проверка активных потоков
-        if (nomination.Platforms.Any(np => np.IsActive))
+        if (nomination.Streams.Any(np => np.IsActive))
         {
             throw new ArgumentException("Нельзя изменить номинацию, пока она транслируется");
         }
@@ -167,8 +149,6 @@ public class NominationService
             throw new ArgumentException($"Номинация с ссылкой {streamUrl} уже существует");
         }
 
-        await ValidatePlatformTokens(dto.Platforms, nominationId);
-
         nomination.Name = name;
         nomination.StreamUrl = streamUrl;
 
@@ -176,26 +156,7 @@ public class NominationService
         var cameras = await GetCamerasByIds(dto.CameraIds);
         nomination.Cameras.AddRange(cameras);
 
-        nomination.Platforms.Clear();
-        nomination.Platforms = dto.Platforms.Select(p => new NominationPlatform
-        {
-            PlatformId = p.PlatformId,
-            Token = p.Token,
-            IsActive = false
-        }).ToList();
-
         await _context.SaveChangesAsync();
-    }
-
-    private async Task<bool> CheckPlatformsByIds(List<int> platformIds)
-    {
-        var platforms = await _context.Platforms.Where(p => platformIds.Contains(p.Id)).ToListAsync();
-        if (platforms.Count != platformIds.Count)
-        {
-            throw new ArgumentException("Некоторые платформы не найдены");
-        }
-
-        return true;
     }
 
     private async Task<List<Camera>> GetCamerasByIds(List<int> cameraIds)
@@ -212,62 +173,19 @@ public class NominationService
 
         return cameras;
     }
-
-    // проверка, используется ли токен
-    private async Task ValidatePlatformTokens(List<NominationPlatformDto> platforms, int? nominationId = null)
-    {
-        if (platforms.Select(p => p.Token).Distinct().Count() != platforms.Count)
-        {
-            throw new ArgumentException("Токены платформ не должны повторяться");
-        }
-
-        foreach (var platformDto in platforms)
-        {
-            if (string.IsNullOrWhiteSpace(platformDto.Token))
-                continue;
-
-            var query = _context.Nominations
-                .Include(n => n.Platforms).ThenInclude(nominationPlatform => nominationPlatform.Platform)
-                .Where(n => n.Platforms.Any(np => np.Token == platformDto.Token));
-
-            if (nominationId.HasValue)
-            {
-                query = query.Where(n => n.Id != nominationId.Value);
-            }
-
-            var nomination = await query.FirstOrDefaultAsync();
-
-            if (nomination != null)
-            {
-                var platform = await _context.Platforms.FindAsync(platformDto.PlatformId);
-                var existingPlatform = nomination.Platforms.First(np => np.Token == platformDto.Token).Platform;
-                if (platform == null)
-                {
-                    throw new ArgumentException($"Платформа с id {platformDto.PlatformId} не найдена");
-                }
-
-                throw new ArgumentException(
-                    $"Токен  платформы '{platform.Name}' уже используется в номинации '{nomination.Name}' для платформы '{existingPlatform.Name}'");
-            }
-        }
-    }
 }
 
 public record AddNominationDto(
     string Name,
     string StreamUrl,
-    List<int> CameraIds,
-    List<NominationPlatformDto> Platforms);
+    List<int> CameraIds
+);
 
 public record GetNominationDto(
     int Id,
     string Name,
     string StreamUrl,
-    List<GetCameraDto> Cameras,
-    List<GetNominationPlatformDto> Platforms);
+    List<GetCameraDto> Cameras
+);
 
 public record NominationDto(int Id, string Name);
-
-public record GetNominationPlatformDto(int PlatformId, string PlatformName, string? Token);
-
-public record NominationPlatformDto(int PlatformId, string? Token);
