@@ -3,7 +3,7 @@ using Serilog.Core;
 
 namespace DelphicGames.Models;
 
-public class Stream : IDisposable
+public class StreamInfo : IDisposable
 {
     public string NominationUrl { get; set; }
     public string PlatformUrl { get; set; }
