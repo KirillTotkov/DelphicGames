@@ -74,7 +74,6 @@ try
     builder.Services.AddSingleton<StreamManager>();
     builder.Services.AddScoped<CameraService>();
     builder.Services.AddScoped<StreamService>();
-    builder.Services.AddScoped<PlatformService>();
     builder.Services.AddScoped<NominationService>();
 
     var rootUserConfig = builder.Configuration.GetSection("RootUser").Get<RootUserConfig>();
@@ -112,7 +111,6 @@ try
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
         Log.Information("Applying migrations...");
         dbContext.Database.Migrate();
-        dbContext.EnsurePlatforms();
         Log.Information("Migrations applied");
     }
 
