@@ -53,7 +53,7 @@ public class StreamsController : ControllerBase
     {
         try
         {
-            _streamService.StopStream(streamDto.NominationId, streamDto.PlatformId);
+            _streamService.StopStream(streamDto.NominationId, streamDto.PlatformName);
             return Ok("Трансляция остановлена.");
         }
         catch (InvalidOperationException ex)
@@ -83,34 +83,6 @@ public class StreamsController : ControllerBase
         {
             await _streamService.StopAllStreams();
             return Ok("Все трансляции остановлены.");
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
-
-    [HttpPost("start/platform")]
-    public async Task<IActionResult> StartPlatformStreams([FromQuery] int platformId)
-    {
-        try
-        {
-            await _streamService.StartPlatformStreams(platformId);
-            return Ok($"Трансляции на платформе начаты.");
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
-
-    [HttpPost("stop/platform")]
-    public async Task<IActionResult> StopPlatformStreams([FromQuery] int platformId)
-    {
-        try
-        {
-            await _streamService.StopPlatformStreams(platformId);
-            return Ok($"Трансляции на платформе остановлены.");
         }
         catch (InvalidOperationException ex)
         {
