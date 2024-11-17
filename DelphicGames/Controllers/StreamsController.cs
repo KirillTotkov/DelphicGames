@@ -48,19 +48,19 @@ public class StreamsController : ControllerBase
     }
 
 
-    [HttpPost("stop")]
-    public IActionResult StopStream([FromBody] AddStreamDto streamDto)
-    {
-        try
-        {
-            _streamService.StopStream(streamDto.NominationId, streamDto.PlatformName);
-            return Ok("Трансляция остановлена.");
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
+    // [HttpPost("stop")]
+    // public IActionResult StopStream([FromBody] AddStreamDto streamDto)
+    // {
+    //     try
+    //     {
+    //         _streamService.StopStream(streamDto.NominationId, streamDto.PlatformName);
+    //         return Ok("Трансляция остановлена.");
+    //     }
+    //     catch (InvalidOperationException ex)
+    //     {
+    //         return BadRequest(ex.Message);
+    //     }
+    // }
 
     [HttpPost("start/all")]
     public async Task<IActionResult> StartAllStreams()
