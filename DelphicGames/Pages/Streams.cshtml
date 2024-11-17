@@ -69,22 +69,14 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label for="platformSelect" class="form-label">Платформа</label>
-                            <div class="d-flex align-items-center">
-                                <select id="platformSelect" class="form-select me-2" required>
-                                    <option value="">--Выберите платформу--</option>
-                                </select>
-                                <button class="btn btn-primary" data-bs-toggle="modal"
-                                    data-bs-target="#addModalPlatform" data-bs-backdrop="static"
-                                    data-bs-keyboard="false">+
-                                </button>
-                            </div>
+                            <label class="form-label">Платформа</label>
+                            <input type="text" class="form-control" placeholder="Введите название" required>
                         </div>
                     </div>
                     <br />
                     <div class="row g-3 align-items-center">
                         <div class="col-md-6">
-                            <label for="urlInput" class="form-label">URL Потока</label>
+                            <label for="urlInput" class="form-label">URL Платформы</label>
                             <input type="url" class="form-control" id="urlInput" placeholder="Введите URL" required>
                         </div>
                         <div class="col-md-6">
@@ -119,45 +111,11 @@
     </div>
 </div>
 
-<!-- Добавление платформы -->
-<div class="modal fade" id="addModalPlatform" tabindex="-1" aria-labelledby="confirmAddModalPlatform"
-    aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="confirmAddModalPlatform">Добавление платформы</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-            </div>
-            <div class="modal-body">
-                <form id="confirmActionForm">
-                    <div class="mb-3">
-                        <label for="newPlatformName" class="form-label">Введите название новой платформы:</label>
-                        <input type="text" class="form-control" id="newPlatformName" required />
-                    </div>
-                    <div class="mb-3">
-                        <label for="newPlatformToken" class="form-label">Введите токен:</label>
-                        <input type="text" class="form-control" id="newPlatformToken" required />
-                    </div>
-                    <div class="mb-3">
-                        <label for="newPlatformUrl" class="form-label">Введите URL:</label>
-                        <input type="text" class="form-control" id="newPlatformUrl" required />
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="submit" form="confirmActionForm" class="btn btn-primary">OK</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 
 @section Head
 {
     <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
-
     <style>
         input[type="checkbox"] {
             width: 15px;
