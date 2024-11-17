@@ -2,6 +2,7 @@
 
 public class StreamEntity
 {
+    public int Id { get; set; }
     public int NominationId { get; set; }
     public Nomination Nomination { get; set; }
     public string PlatformName { get; set; }
