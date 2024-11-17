@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using DelphicGames.Data.Models;
+using DelphicGames.Models;
 using Serilog;
-using Stream = DelphicGames.Models.Stream;
 
 namespace DelphicGames.Services.Streaming;
 
@@ -19,24 +19,24 @@ public class StreamProcessor : IStreamProcessor
         _logger = logger;
     }
 
-    public Stream StartStreamForPlatform(NominationPlatform nominationPlatform)
+    public StreamInfo StartStreamForPlatform(StreamEntity streamEntity)
     {
-        ArgumentNullException.ThrowIfNull(nominationPlatform);
+        ArgumentNullException.ThrowIfNull(streamEntity);
 
-        if (string.IsNullOrWhiteSpace(nominationPlatform.Token))
+        if (string.IsNullOrWhiteSpace(streamEntity.Token))
         {
             throw new InvalidOperationException("Токен для трансляции не указан.");
         }
 
-        var ffmpegArguments = GenerateFfmpegArguments(nominationPlatform);
+        var ffmpegArguments = GenerateFfmpegArguments(streamEntity);
 
         // Создание директории для логов камеры
-        var nominationId = nominationPlatform.NominationId;
+        var nominationId = streamEntity.NominationId;
         var logDirectory = Path.Combine("Logs", $"Camera_{nominationId}");
         Directory.CreateDirectory(logDirectory);
 
         // Генерация уникального имени файла лога с временной меткой
-        var logFileName = $"ffmpeg_{nominationPlatform.PlatformId}_{DateTime.Now:yyyyMMdd_HHmmss}.log";
+        var logFileName = $"ffmpeg_{streamEntity.PlatformName}_{DateTime.Now:yyyyMMdd_HHmmss}.log";
 
         // Настройка Serilog для записи логов ffmpeg
         var logger = new LoggerConfiguration()
@@ -104,11 +104,11 @@ public class StreamProcessor : IStreamProcessor
             throw new InvalidOperationException("Не удалось начать трансляцию.", ex);
         }
 
-        var stream = new Stream
+        var stream = new StreamInfo
         {
-            NominationUrl = nominationPlatform.Nomination.StreamUrl,
-            PlatformUrl = nominationPlatform.Platform.Url,
-            Token = nominationPlatform.Token,
+            NominationUrl = streamEntity.Nomination.StreamUrl,
+            PlatformUrl = streamEntity.PlatformUrl,
+            Token = streamEntity.Token,
             Process = process,
             Logger = logger
         };
@@ -116,28 +116,28 @@ public class StreamProcessor : IStreamProcessor
         return stream;
     }
 
-    public void StopStreamForPlatform(Stream stream)
+    public void StopStreamForPlatform(StreamInfo streamInfo)
     {
         try
         {
-            if (!stream.Process.HasExited)
+            if (!streamInfo.Process.HasExited)
             {
-                stream.Process.Kill(true);
-                stream.Process.WaitForExit();
-                stream.Logger.Information("Трансляция остановлена.");
-                _logger.LogInformation("Остановлен ffmpeg процесс для камеры {CameraId}", stream.NominationUrl);
+                streamInfo.Process.Kill(true);
+                streamInfo.Process.WaitForExit();
+                streamInfo.Logger.Information("Трансляция остановлена.");
+                _logger.LogInformation("Остановлен ffmpeg процесс для камеры {CameraId}", streamInfo.NominationUrl);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при остановке процесса ffmpeg для камеры {CameraId}", stream.NominationUrl);
+            _logger.LogError(ex, "Ошибка при остановке процесса ffmpeg для камеры {CameraId}", streamInfo.NominationUrl);
         }
         finally
         {
-            stream.Process.OutputDataReceived -= null;
-            stream.Process.ErrorDataReceived -= null;
-            stream.Process.Dispose();
-            stream.Logger.Dispose();
+            streamInfo.Process.OutputDataReceived -= null;
+            streamInfo.Process.ErrorDataReceived -= null;
+            streamInfo.Process.Dispose();
+            streamInfo.Logger.Dispose();
         }
     }
 
@@ -159,21 +159,21 @@ public class StreamProcessor : IStreamProcessor
     /// -shortest: Гарантирует, что вывод заканчивается, когда заканчивается самый короткий входной поток.
     /// -f flv rtmp://url/key: выводит поток в формате FLV на указанный RTMP-сервер.
     /// </summary>
-    /// <param name="stream"></param>
+    /// <param name="streamEntity"></param>
     /// <returns></returns>
-    private string GenerateFfmpegArguments(NominationPlatform stream)
+    private string GenerateFfmpegArguments(StreamEntity streamEntity)
     {
         var command =
             " -y -fflags +genpts -thread_queue_size 512 -probesize 5000000 -analyzeduration 5000000 -timeout 5000000 -rtsp_transport tcp ";
 
-        command += $"-i {stream.Nomination.StreamUrl} -dn -sn -map 0:0 -codec:v copy -map 0:1 -codec:a aac -b:a 64k -shortest ";
+        command += $"-i {streamEntity.Nomination.StreamUrl} -dn -sn -map 0:0 -codec:v copy -map 0:1 -codec:a aac -b:a 64k -shortest ";
 
-        if (!stream.Platform.Url.EndsWith("/"))
+        if (!streamEntity.PlatformUrl.EndsWith("/"))
         {
-            stream.Platform.Url += "/";
+            streamEntity.PlatformUrl += "/";
         }
 
-        var url = stream.Platform.Url + stream.Token;
+        var url = streamEntity.PlatformUrl + streamEntity.Token;
 
         command += $"-f flv {url} ";
 

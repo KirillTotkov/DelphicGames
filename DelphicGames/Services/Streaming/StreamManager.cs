@@ -1,11 +1,11 @@
 using DelphicGames.Data.Models;
-using Stream = DelphicGames.Models.Stream;
+using DelphicGames.Models;
 
 namespace DelphicGames.Services.Streaming;
 
 public class StreamManager
 {
-    public Dictionary<int, List<Stream>> NominationStreams { get; } = new();
+    public Dictionary<int, List<StreamInfo>> NominationStreams { get; } = new();
     private readonly ILogger<StreamManager> _logger;
     private readonly IStreamProcessor _streamProcessor;
     private bool _disposed;
@@ -17,19 +17,19 @@ public class StreamManager
     }
 
     // Запуск потока для определённой камеры и платформы
-    public void StartStream(NominationPlatform nominationPlatform)
+    public void StartStream(StreamEntity streamEntity)
     {
         try
         {
-            var nominationId = nominationPlatform.NominationId;
+            var nominationId = streamEntity.NominationId;
 
             if (!NominationStreams.TryGetValue(nominationId, out var streams))
             {
-                streams = new List<Stream>();
+                streams = new List<StreamInfo>();
                 NominationStreams[nominationId] = streams;
             }
 
-            var stream = _streamProcessor.StartStreamForPlatform(nominationPlatform);
+            var stream = _streamProcessor.StartStreamForPlatform(streamEntity);
             streams.Add(stream);
         }
         catch (Exception ex)
@@ -39,16 +39,16 @@ public class StreamManager
     }
 
     // Остановка потока для определённой камеры и платформы
-    public void StopStream(NominationPlatform nominationPlatform)
+    public void StopStream(StreamEntity streamEntity)
     {
         try
         {
-            var nominationId = nominationPlatform.NominationId;
+            var nominationId = streamEntity.NominationId;
 
             if (NominationStreams.TryGetValue(nominationId, out var streams))
             {
                 var stream = streams.FirstOrDefault(s =>
-                    s.PlatformUrl == nominationPlatform.Platform.Url && s.Token == nominationPlatform.Token);
+                    s.PlatformUrl == streamEntity.PlatformUrl && s.Token == streamEntity.Token);
 
                 if (stream != null)
                 {
@@ -65,20 +65,20 @@ public class StreamManager
         catch (FfmpegProcessException ex)
         {
             _logger.LogError(ex,
-                "FFmpeg ошибка при запуске потока для номинации {NominationId} на платформе {PlatformId}",
-                nominationPlatform.NominationId, nominationPlatform.PlatformId);
+                "FFmpeg ошибка при запуске потока для номинации {NominationId} на платформе {PlatformName}",
+                streamEntity.NominationId, streamEntity.PlatformName);
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при остановке потока для номинации {NominationId} на платформе {PlatformId}",
-                nominationPlatform.NominationId, nominationPlatform.PlatformId);
+            _logger.LogError(ex, "Ошибка при остановке потока для номинации {NominationId} на платформе {PlatformName}",
+                streamEntity.NominationId, streamEntity.PlatformName);
             throw;
         }
     }
 
     // Запуск всех потоков
-    public void StartAllStreams(IEnumerable<NominationPlatform> cameraPlatformsList)
+    public void StartAllStreams(IEnumerable<Data.Models.StreamEntity> cameraPlatformsList)
     {
         foreach (var cameraPlatform in cameraPlatformsList)
         {

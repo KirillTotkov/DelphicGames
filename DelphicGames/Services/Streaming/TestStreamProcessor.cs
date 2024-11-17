@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using DelphicGames.Data.Models;
+using DelphicGames.Models;
 using Serilog;
-using Stream = DelphicGames.Models.Stream;
 
 namespace DelphicGames.Services.Streaming;
 
@@ -18,9 +18,9 @@ public class TestStreamProcessor : IStreamProcessor
         _logger = logger;
     }
 
-    public Stream StartStreamForPlatform(NominationPlatform nominationPlatform)
+    public StreamInfo StartStreamForPlatform(StreamEntity streamEntity)
     {
-        ArgumentNullException.ThrowIfNull(nominationPlatform);
+        ArgumentNullException.ThrowIfNull(streamEntity);
 
         var process = new Process
         {
@@ -36,10 +36,10 @@ public class TestStreamProcessor : IStreamProcessor
             EnableRaisingEvents = true
         };
 
-        var logDirectory = Path.Combine("Logs", $"Camera_{nominationPlatform.NominationId}");
+        var logDirectory = Path.Combine("Logs", $"Camera_{streamEntity.NominationId}");
         Directory.CreateDirectory(logDirectory);
 
-        var logFileName = $"test_process_{nominationPlatform.PlatformId}_{DateTime.Now:yyyyMMdd_HHmmss}.log";
+        var logFileName = $"test_process_{streamEntity.PlatformName}_{DateTime.Now:yyyyMMdd_HHmmss}.log";
         var logger = new LoggerConfiguration()
             .WriteTo.File(Path.Combine(logDirectory, logFileName))
             .CreateLogger();
@@ -71,24 +71,24 @@ public class TestStreamProcessor : IStreamProcessor
                 throw new InvalidOperationException("Процесс FFmpeg завершился неожиданно.");
             }
 
-            _logger.LogInformation("Запущен ffmpeg тестовый процесс для номинации {NominationId} на платформе {PlatformId}",
-                nominationPlatform.NominationId, nominationPlatform.PlatformId);
+            _logger.LogInformation("Запущен ffmpeg тестовый процесс для номинации {NominationId} на платформе {PlatformName}",
+                streamEntity.NominationId, streamEntity.PlatformName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при запуске тестового процесса для номинации {NominationId} на платформе {PlatformId}",
-                nominationPlatform.NominationId, nominationPlatform.PlatformId);
+            _logger.LogError(ex, "Ошибка при запуске тестового процесса для номинации {NominationId} на платформе {PlatformName}",
+                streamEntity.NominationId, streamEntity.PlatformName);
             process.OutputDataReceived -= null;
             process.ErrorDataReceived -= null;
             logger.Dispose();
             throw;
         }
 
-        var stream = new Stream
+        var stream = new StreamInfo
         {
-            NominationUrl = nominationPlatform.Nomination.StreamUrl,
-            PlatformUrl = nominationPlatform.Platform.Url,
-            Token = nominationPlatform.Token,
+            NominationUrl = streamEntity.Nomination.StreamUrl,
+            PlatformUrl = streamEntity.PlatformUrl,
+            Token = streamEntity.Token,
             Process = process,
             Logger = logger
         };
@@ -96,28 +96,28 @@ public class TestStreamProcessor : IStreamProcessor
         return stream;
     }
 
-    public void StopStreamForPlatform(Stream stream)
+    public void StopStreamForPlatform(StreamInfo streamInfo)
     {
         try
         {
-            if (!stream.Process.HasExited)
+            if (!streamInfo.Process.HasExited)
             {
-                stream.Process.Kill(true);
-                stream.Process.WaitForExit();
-                stream.Logger.Information("Тестовая трансляция остановлена.");
-                _logger.LogInformation("Остановлен тестовый процесс для камеры {CameraId}", stream.NominationUrl);
+                streamInfo.Process.Kill(true);
+                streamInfo.Process.WaitForExit();
+                streamInfo.Logger.Information("Тестовая трансляция остановлена.");
+                _logger.LogInformation("Остановлен тестовый процесс для камеры {CameraId}", streamInfo.NominationUrl);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при остановке тестового процесса для камеры {CameraId}", stream.NominationUrl);
+            _logger.LogError(ex, "Ошибка при остановке тестового процесса для камеры {CameraId}", streamInfo.NominationUrl);
         }
         finally
         {
-            stream.Process.OutputDataReceived -= null;
-            stream.Process.ErrorDataReceived -= null;
-            stream.Process.Dispose();
-            stream.Logger.Dispose();
+            streamInfo.Process.OutputDataReceived -= null;
+            streamInfo.Process.ErrorDataReceived -= null;
+            streamInfo.Process.Dispose();
+            streamInfo.Logger.Dispose();
         }
     }
 

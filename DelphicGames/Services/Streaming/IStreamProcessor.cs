@@ -1,10 +1,10 @@
 using DelphicGames.Data.Models;
-using Stream = DelphicGames.Models.Stream;
+using DelphicGames.Models;
 
 namespace DelphicGames.Services.Streaming;
 
 public interface IStreamProcessor : IDisposable
 {
-    Stream StartStreamForPlatform(NominationPlatform nominationPlatform);
-    void StopStreamForPlatform(Stream stream);
+    StreamInfo StartStreamForPlatform(Data.Models.StreamEntity streamEntity);
+    void StopStreamForPlatform(StreamInfo streamInfo);
 }
