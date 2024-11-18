@@ -101,7 +101,7 @@ public class NominationController : ControllerBase
         {
             n.Name,
             n.StreamUrl,
-            Cameras = string.Join(", ", n.Cameras.Select(c => c.Name))
+            Cameras = string.Join(", ", n.Cameras.Select(c => c.Url))
         }).ToList();
 
         var memoryStream = new MemoryStream();
