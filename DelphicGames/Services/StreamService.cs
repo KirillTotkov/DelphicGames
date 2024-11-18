@@ -18,33 +18,40 @@ public class StreamService
         _logger = logger;
     }
 
-    public async Task AddStream(AddStreamDto streamDto)
+    public async Task AddDay(AddDayDto dayDto)
     {
         try
         {
             var nomination = await _context.Nominations
                 .Include(n => n.Streams)
-                .FirstOrDefaultAsync(n => n.Id == streamDto.NominationId);
+                .FirstOrDefaultAsync(n => n.Id == dayDto.NominationId);
 
             if (nomination == null)
             {
                 throw new InvalidOperationException("Nomination not found.");
             }
 
-            var streams = streamDto.DayStreams.Select(dayStream =>
+            var streams = dayDto.DayStreams.Select(dayStream =>
             {
                 var stream = new StreamEntity
                 {
-                    NominationId = streamDto.NominationId,
+                    NominationId = dayDto.NominationId,
                     PlatformName = dayStream.PlatformName,
                     PlatformUrl = dayStream.PlatformUrl,
                     Token = dayStream.Token,
-                    Day = streamDto.Day,
+                    Day = dayDto.Day,
                     IsActive = false
                 };
 
                 return stream;
             }).ToList();
+
+            await _context.Streams.AddRangeAsync(streams);
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Добавлены трансляции для номинации {NominationId} на день {Day}.",
+                dayDto.NominationId, dayDto.Day);
         }
         catch (Exception ex)
         {
@@ -53,18 +60,69 @@ public class StreamService
         }
     }
 
-    // Запуск трансляции для определенной номинации на определенной платформе
-    // Если трансляция уже запущена, то она будет перезапущена
-    // Если токен не пустой, то он будет обновлен
-    public void StartStream(AddStreamDto streamDto)
+    public async Task DeleteStream(int streamId)
     {
         try
         {
-            foreach (var dayStream in streamDto.DayStreams)
+            var stream = await _context.Streams
+                .FirstOrDefaultAsync(s => s.Id == streamId);
+
+            if (stream == null)
+            {
+                throw new InvalidOperationException("Stream not found.");
+            }
+
+            _context.Streams.Remove(stream);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Удалена трансляция {StreamId}.", streamId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing stream.");
+            throw;
+        }
+    }
+
+    public async Task UpdateStream(int nominationId, int streamId, string token)
+    {
+        try
+        {
+            var stream = await _context.Streams
+                .FirstOrDefaultAsync(s => s.NominationId == nominationId && s.Id == streamId);
+
+            if (stream == null)
+            {
+                throw new InvalidOperationException("Stream not found.");
+            }
+
+            stream.Token = token;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Обновлен токен для трансляции {StreamId} для номинации {NominationId}.",
+                streamId, nominationId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating stream.");
+            throw;
+        }
+    }
+
+
+
+    // Запуск трансляции для определенной номинации на определенной платформе
+    // Если трансляция уже запущена, то она будет перезапущена
+    // Если токен не пустой, то он будет обновлен
+    public void StartStream(AddDayDto dayDto)
+    {
+        try
+        {
+            foreach (var dayStream in dayDto.DayStreams)
             {
                 var stream = _context.Streams
                     .Include(s => s.Nomination)
-                    .FirstOrDefault(s => s.NominationId == streamDto.NominationId &&
+                    .FirstOrDefault(s => s.NominationId == dayDto.NominationId &&
                                          s.PlatformName == dayStream.PlatformName);
 
                 if (stream != null)
@@ -230,43 +288,56 @@ public class StreamService
     }
 
     // Получение всех трансляций
-    public async Task<List<BroadcastDto>> GetAllStreams()
+    public async Task<List<GetStreamsDto>> GetAllStreams()
     {
         try
         {
-            var streams = await _context.Streams
-                .Include(np => np.Nomination)
-                .Where(cp => cp.Token != null && cp.Token != "")
+            var nominations = await _context.Nominations
+                .Include(n => n.Streams)
                 .AsNoTracking()
                 .ToListAsync();
 
-            var groupedSteams = streams
-                .GroupBy(cp => cp.NominationId)
-                .Select(g =>
-                {
-                    var nomination = g.First().Nomination;
-                    return new BroadcastDto(
-                        nomination.StreamUrl,
-                        nomination.Id,
-                        nomination.Name,
-                        g.Select(cp => new PlatformStatusDto(
-                            cp.PlatformName,
-                            cp.IsActive
-                        )).ToList()
-                    );
-                })
-                .OrderBy(b => b.Nomination)
+            var groupedStreams = nominations
+                .Select(nomination => new GetStreamsDto(
+                    nomination.Id,
+                    nomination.Name,
+                    nomination.Streams
+                        .Where(s => !string.IsNullOrEmpty(s.Token))
+                        .Select(s => new GetDayDto(
+                            s.Id,
+                            s.Day,
+                            s.PlatformName,
+                            s.PlatformUrl,
+                            s.Token
+                        ))
+                        .ToList()
+                ))
+                .OrderBy(dto => dto.Nomination)
                 .ToList();
 
-            return groupedSteams;
+            return groupedStreams;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при получении всех трансляций.");
+            _logger.LogError(ex, "Error fetching streams");
             throw;
         }
     }
 }
+
+public record GetStreamsDto(
+    int NominationId,
+    string Nomination,
+    List<GetDayDto> Days
+);
+
+public record GetDayDto(
+    int Id,
+    int Day,
+    string PlatformName,
+    string PlatformUrl,
+    string Token
+);
 
 public record BroadcastDto(
     string Url,
@@ -280,7 +351,7 @@ public record PlatformStatusDto(
     bool IsActive
 );
 
-public record AddStreamDto(
+public record AddDayDto(
     int NominationId,
     int Day,
     List<DayStreamDto> DayStreams
