@@ -17,5 +17,11 @@ public class ApplicationContext : IdentityDbContext<User>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Camera>()
+        .HasOne(c => c.Nomination)
+        .WithMany(n => n.Cameras)
+        .HasForeignKey(c => c.NominationId)
+        .OnDelete(DeleteBehavior.SetNull);
     }
 }
