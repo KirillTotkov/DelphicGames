@@ -11,53 +11,17 @@ public class ApplicationContext : IdentityDbContext<User>
     }
 
     public DbSet<Camera> Cameras { get; set; }
-    public DbSet<Platform> Platforms { get; set; }
-    public DbSet<NominationPlatform> NominationPlatforms { get; set; }
+    public DbSet<StreamEntity> Streams { get; set; }
     public DbSet<Nomination> Nominations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Связь многие ко многим между номинациями и платформами
-        modelBuilder.Entity<NominationPlatform>()
-            .HasKey(cp => new { cp.NominationId, cp.PlatformId }); // Составной ключ
-
-        modelBuilder.Entity<NominationPlatform>()
-            .HasOne(cp => cp.Nomination)
-            .WithMany(c => c.Platforms)
-            .HasForeignKey(cp => cp.NominationId);
-
-        modelBuilder.Entity<NominationPlatform>()
-            .HasOne(cp => cp.Platform)
-            .WithMany(p => p.CameraPlatforms)
-            .HasForeignKey(cp => cp.PlatformId);
-
         modelBuilder.Entity<Camera>()
-            .HasOne(c => c.Nomination)
-            .WithMany(n => n.Cameras)
-            .HasForeignKey(c => c.NominationId)
-            .OnDelete(DeleteBehavior.SetNull);
-    }
-
-    public void EnsurePlatforms()
-    {
-        var platforms = new List<Platform>
-        {
-            new() { Name = "ВК", Url = "rtmp://ovsu.mycdn.me/input/" },
-            new() { Name = "ОК", Url = "rtmp://vsu.mycdn.me/input/" },
-            new() { Name = "RT", Url = "rtmp://rtmp-lb.m9.rutube.ru/live_push/" },
-            new() { Name = "TG", Url = "rtmps://dc4-1.rtmp.t.me/s/" },
-        };
-
-        foreach (var platform in platforms)
-        {
-            if (!Platforms.Any(p => p.Name == platform.Name))
-            {
-                Platforms.Add(platform);
-            }
-        }
-
-        SaveChanges();
+        .HasOne(c => c.Nomination)
+        .WithMany(n => n.Cameras)
+        .HasForeignKey(c => c.NominationId)
+        .OnDelete(DeleteBehavior.SetNull);
     }
 }

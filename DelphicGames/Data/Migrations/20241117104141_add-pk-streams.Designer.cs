@@ -3,6 +3,7 @@ using System;
 using DelphicGames.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DelphicGames.Data.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20241117104141_add-pk-streams")]
+    partial class addpkstreams
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -380,7 +383,6 @@ namespace DelphicGames.Data.Migrations
                     b.HasOne("DelphicGames.Data.Models.Nomination", "Nomination")
                         .WithMany("Cameras")
                         .HasForeignKey("NominationId")
-                        .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_cameras_nominations_nomination_id");
 
                     b.HasOne("DelphicGames.Data.Models.User", "User")

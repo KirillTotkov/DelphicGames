@@ -2,6 +2,7 @@ using DelphicGames.Data.Models;
 using DelphicGames.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MiniExcelLibs;
 
 namespace DelphicGames.Controllers;
 
@@ -53,9 +54,7 @@ public class NominationController : ControllerBase
                 nomination.Id,
                 nomination.Name,
                 nomination.StreamUrl,
-                nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList(),
-                nomination.Platforms.Select(np => new GetNominationPlatformDto(np.PlatformId, np.Platform.Name, np.Token))
-                    .ToList()
+                nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList()
             );
             return CreatedAtAction(nameof(GetNomination), new { id = nomination.Id }, result);
         }
@@ -91,5 +90,26 @@ public class NominationController : ControllerBase
         {
             return BadRequest(new { Error = ex.Message });
         }
+    }
+
+
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportNominationsToExcel()
+    {
+        var nominations = await _nominationService.GetNominationsWithCameras();
+        var data = nominations.Select(n => new
+        {
+            n.Name,
+            n.StreamUrl,
+            Cameras = string.Join(", ", n.Cameras.Select(c => c.Url))
+        }).ToList();
+
+        var memoryStream = new MemoryStream();
+        memoryStream.SaveAs(data);
+        memoryStream.Seek(0, SeekOrigin.Begin);
+        return new FileStreamResult(memoryStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        {
+            FileDownloadName = "nominations.xlsx"
+        };
     }
 }

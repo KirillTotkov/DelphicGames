@@ -8,8 +8,11 @@
     <h3>Список созданных номинаций</h3>
     <div id="nominations-list" class="card col-md-12 col-sm-12" style=" border: none;">
         <div class="d-flex justify-content-end">
+            <button type="button" class="btn btn-primary me-2" id="exportExcelBtn">
+                Экспорт в Excel
+            </button>
             <button type="button" class="btn btn-success col-1 w-auto" data-bs-toggle="modal"
-                    data-bs-target="#addGroupModal">
+                data-bs-target="#addGroupModal">
                 Добавить
             </button>
         </div>
@@ -22,26 +25,26 @@
                     <th class="table-secondary">Действия</th>
                 </tr>
                 <tbody id="table-body" class="table-group-divider">
-                <tr class="d-none">
-                    <td>Танцы</td>
-                    <td>
-                        <a>https://streamurl.com</a>
-                    </td>
-                    <td>
-                        <a>https://example1.com</a><br/>
-                        <a>https://example2.com</a>
-                    </td>
-                    <td>
-                        <button class="btn btn-danger btn-sm" id="remove">Удалить</button>
-                        <button class="btn btn-warning btn-sm" id="change">Изменить</button>
-                    </td>
-                </tr>
+                    <tr class="d-none">
+                        <td>Танцы</td>
+                        <td>
+                            <a>https://streamurl.com</a>
+                        </td>
+                        <td>
+                            <a>https://example1.com</a><br />
+                            <a>https://example2.com</a>
+                        </td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" id="remove">Удалить</button>
+                            <button class="btn btn-warning btn-sm" id="change">Изменить</button>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
     <div class="filters-container card col-md-3 col-sm-12 border-light d-none"
-         style="display: inline-block; padding: 0; float: right;">
+        style="display: inline-block; padding: 0; float: right;">
         <div class="card-header">Фильтры</div>
         <div class="card-body text-secondary gap-3">
             <div class="filter-block">
@@ -75,17 +78,11 @@
                 <form id="nominationForm">
                     <div class="mb-3">
                         <label for="groupName" class="form-label fw-medium">Название номинации</label>
-                        <input type="text" class="form-control" id="groupName" required/>
+                        <input type="text" class="form-control" id="groupName" required />
                     </div>
                     <div class="mb-3">
                         <label for="streamUrl" class="form-label fw-medium">URL потока</label>
-                        <input type="url" class="form-control" id="streamUrl" required/>
-                    </div>
-                    <div class="mb-3">
-                        <p class="fw-medium">Токены платформ</p>
-                        <div id="platformTokensContainer">
-                            <!-- Динамически добавляемые поля -->
-                        </div>
+                        <input type="url" class="form-control" id="streamUrl" required />
                     </div>
                     <h6 class="mb-3">Фильтры</h6>
                     <div class="border p-3 mb-3">
@@ -106,19 +103,19 @@
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
-                                <tr>
-                                    <th>URL</th>
-                                    <th>Название камеры</th>
-                                    <th class="text-center">Выбрать</th>
-                                </tr>
+                                    <tr>
+                                        <th>URL</th>
+                                        <th>Название камеры</th>
+                                        <th class="text-center">Выбрать</th>
+                                    </tr>
                                 </thead>
                                 <tbody>
-                                <tr style="height: 30px">
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
+                                    <tr style="height: 30px">
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>

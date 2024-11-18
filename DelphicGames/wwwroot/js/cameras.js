@@ -62,6 +62,9 @@ const deleteCameraPlatform = async (id) => {
 
     if (response.ok) {
       await drawCameraTable();
+    } else {
+      const errorData = await response.json();
+      notyf.error(errorData.error || "Ошибка при удалении камеры.");
     }
   } catch (error) {
     console.error("Error deleting camera:", error);

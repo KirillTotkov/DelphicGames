@@ -6,5 +6,5 @@ public class Nomination
     public required string Name { get; set; }
     public required string StreamUrl { get; set; }
     public List<Camera> Cameras { get; set; } = [];
-    public List<NominationPlatform> Platforms { get; set; } = [];
+    public List<StreamEntity> Streams { get; set; } = [];
 }

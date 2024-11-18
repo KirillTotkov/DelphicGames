@@ -3,6 +3,7 @@ using System;
 using DelphicGames.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DelphicGames.Data.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20241117090254_add-day")]
+    partial class addday
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -87,14 +90,15 @@ namespace DelphicGames.Data.Migrations
                     b.ToTable("nominations", (string)null);
                 });
 
-            modelBuilder.Entity("DelphicGames.Data.Models.StreamEntity", b =>
+            modelBuilder.Entity("DelphicGames.Data.Models.NominationPlatform", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<int>("NominationId")
                         .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnName("nomination_id");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    b.Property<int>("PlatformId")
+                        .HasColumnType("integer")
+                        .HasColumnName("platform_id");
 
                     b.Property<int>("Day")
                         .HasColumnType("integer")
@@ -104,31 +108,42 @@ namespace DelphicGames.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
-                    b.Property<int>("NominationId")
-                        .HasColumnType("integer")
-                        .HasColumnName("nomination_id");
-
-                    b.Property<string>("PlatformName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("platform_name");
-
-                    b.Property<string>("PlatformUrl")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("platform_url");
-
                     b.Property<string>("Token")
                         .HasColumnType("text")
                         .HasColumnName("token");
 
+                    b.HasKey("NominationId", "PlatformId")
+                        .HasName("pk_nomination_platforms");
+
+                    b.HasIndex("PlatformId")
+                        .HasDatabaseName("ix_nomination_platforms_platform_id");
+
+                    b.ToTable("nomination_platforms", (string)null);
+                });
+
+            modelBuilder.Entity("DelphicGames.Data.Models.Platform", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("url");
+
                     b.HasKey("Id")
-                        .HasName("pk_streams");
+                        .HasName("pk_platforms");
 
-                    b.HasIndex("NominationId")
-                        .HasDatabaseName("ix_streams_nomination_id");
-
-                    b.ToTable("streams", (string)null);
+                    b.ToTable("platforms", (string)null);
                 });
 
             modelBuilder.Entity("DelphicGames.Data.Models.User", b =>
@@ -395,16 +410,25 @@ namespace DelphicGames.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DelphicGames.Data.Models.StreamEntity", b =>
+            modelBuilder.Entity("DelphicGames.Data.Models.NominationPlatform", b =>
                 {
                     b.HasOne("DelphicGames.Data.Models.Nomination", "Nomination")
-                        .WithMany("Streams")
+                        .WithMany("Platforms")
                         .HasForeignKey("NominationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_streams_nominations_nomination_id");
+                        .HasConstraintName("fk_nomination_platforms_nominations_nomination_id");
+
+                    b.HasOne("DelphicGames.Data.Models.Platform", "Platform")
+                        .WithMany("CameraPlatforms")
+                        .HasForeignKey("PlatformId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_nomination_platforms_platforms_platform_id");
 
                     b.Navigation("Nomination");
+
+                    b.Navigation("Platform");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -468,7 +492,12 @@ namespace DelphicGames.Data.Migrations
                 {
                     b.Navigation("Cameras");
 
-                    b.Navigation("Streams");
+                    b.Navigation("Platforms");
+                });
+
+            modelBuilder.Entity("DelphicGames.Data.Models.Platform", b =>
+                {
+                    b.Navigation("CameraPlatforms");
                 });
 
             modelBuilder.Entity("DelphicGames.Data.Models.User", b =>

@@ -6,240 +6,288 @@ const notyf = new Notyf({
   },
 });
 
-const pendingStreams = {};
+let currentNominationId = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+  fetchAndRenderNominations();
+  document
+    .getElementById("submitAddDayBtn")
+    .addEventListener("click", handleAddDay);
+
+  document
+    .getElementById("addPlatformBtn")
+    .addEventListener("click", addPlatform);
+
+  document
+    .getElementById("clearPlatformsBtn")
+    .addEventListener("click", clearPlatforms);
+
+  const modalElement = document.getElementById("addDayModal");
+  modalElement.addEventListener("hidden.bs.modal", () => {
+    document.getElementById("addDayForm").reset();
+    document.getElementById("addedPlatformsTable").innerHTML = "";
+    currentNominationId = null;
+  });
+
+  document
+    .getElementById("nominations-list")
+    .addEventListener("click", (event) => {
+      if (event.target && event.target.classList.contains("add-day-btn")) {
+        currentNominationId = event.target.getAttribute("data-nomination-id");
+      }
+    });
+
+  document
+    .getElementById("nominations-list")
+    .addEventListener("click", async (event) => {
+      if (event.target && event.target.classList.contains("btn-danger")) {
+        const row = event.target.closest("tr");
+        const streamId = row.getAttribute("data-id");
+
+        if (confirm("Вы уверены, что хотите удалить эту трансляцию?")) {
+          try {
+            const response = await fetch(`/api/streams?id=${streamId}`, {
+              method: "DELETE",
+            });
+
+            if (response.ok) {
+              notyf.success("Трансляция удалена.");
+              row.remove();
+            } else {
+              const error = await response.text();
+              notyf.error(error || "Ошибка при удалении трансляции.");
+            }
+          } catch (error) {
+            console.error("Error deleting stream:", error);
+            notyf.error("Ошибка при удалении трансляции.");
+          }
+        }
+      }
+    });
+});
+
+async function fetchAndRenderNominations() {
+  const data = await fetchData();
+  if (data) {
+    const nominationsList = document.getElementById("nominations-list");
+    nominationsList.innerHTML = "";
+    data.forEach((nomination) => {
+      const accordionItem = document.createElement("div");
+      accordionItem.className = "accordion-item";
+      accordionItem.innerHTML = `
+        <h2 class="accordion-header" id="heading${nomination.nominationId}">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+            data-bs-target="#collapse${
+              nomination.nominationId
+            }" aria-expanded="false"
+            aria-controls="collapse${nomination.nominationId}">
+            ${nomination.nomination}
+          </button>
+        </h2>
+        <div id="collapse${
+          nomination.nominationId
+        }" class="accordion-collapse collapse"
+          aria-labelledby="heading${nomination.nominationId}">
+          <div class="accordion-body">
+            <div class="d-flex justify-content-end mt-1">
+              <button class="btn btn-success add-day-btn" data-nomination-id="${
+                nomination.nominationId
+              }"
+                data-bs-toggle="modal" data-bs-target="#addDayModal">Добавить день</button>
+            </div>
+            <table id="table${
+              nomination.nominationId
+            }" class="table table-striped table-hover mt-3">
+              <thead class="table-light">
+                <tr>
+                  <th>День</th>
+                  <th>Платформа</th>
+                  <th>URL</th>
+                  <th>Token</th>
+                  <th>Действие</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${nomination.days
+                  .map(
+                    (day) => `
+                  <tr data-id="${day.id}">
+                    <td>${day.day}</td>
+                    <td>${day.platformName}</td>
+                    <td>${day.platformUrl}</td>
+                    <td>${day.token}</td>
+                    <td>
+                      <button class="btn btn-danger btn-sm">Удалить</button>
+                    </td>
+                  </tr>
+                `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      nominationsList.appendChild(accordionItem);
+
+      // $(document).ready(function () {
+      //   $(`#table${nomination.nominationId}`).DataTable({
+      //     order: [[0, "asc"]],
+      //     paging: false,
+      //     searching: false,
+      //     info: false,
+      //     columnDefs: [
+      //       { visible: false, targets: 0 },
+      //       { orderable: false, targets: 4 },
+      //     ],
+
+      //     drawCallback: function (settings) {
+      //       var api = this.api();
+      //       var rows = api.rows({ page: "current" }).nodes();
+      //       var last = null;
+
+      //       api
+      //         .column(0, { page: "current" })
+      //         .data()
+      //         .each(function (group, i) {
+      //           if (last !== group) {
+      //             $(rows)
+      //               .eq(i)
+      //               .before(
+      //                 `<tr class="table-primary"><td colspan="5">${group}</td></tr>`
+      //               );
+
+      //             last = group;
+      //           }
+      //         });
+      //     },
+      //   });
+      // });
+    });
+  }
+}
 
 async function fetchData() {
   try {
-    const [platforms, broadcasts] = await Promise.all([
-      fetchJson("/api/platforms"),
-      fetchJson("/api/streams"),
-    ]);
-    populateTable(platforms, broadcasts);
-    updateAllHeaderCheckboxes(platforms);
+    const response = await fetch("/api/streams");
+    if (!response.ok) {
+      throw new Error("Failed to fetch data");
+    }
+    const data = await response.json();
+    return data;
   } catch (error) {
     console.error("Failed to fetch data:", error);
     notyf.error("Не удалось загрузить данные");
   }
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Network response was not ok");
-  return response.json();
-}
+function addPlatform() {
+  const platformName = document
+    .getElementById("platformNameInput")
+    .value.trim();
+  const platformUrl = document.getElementById("urlInput").value.trim();
+  const token = document.getElementById("tokenInput").value.trim();
 
-function populateTable(platforms, broadcasts) {
-  const table = document.getElementById("main_table");
-  const thead = table.querySelector("thead");
-  const tbody = table.querySelector("tbody");
-
-  thead.innerHTML = "";
-  tbody.innerHTML = "";
-
-  const headerRow1 = document.createElement("tr");
-  const headerRow2 = document.createElement("tr");
-
-  const headers = ["Номинация", "URL"];
-  headers.forEach((text) => {
-    const th = document.createElement("th");
-    th.rowSpan = 2;
-    th.textContent = text;
-    headerRow1.appendChild(th);
-  });
-
-  // Platform headers
-  platforms.forEach((platform) => {
-    const th = document.createElement("th");
-    th.textContent = platform.name;
-    headerRow1.appendChild(th);
-
-    const thCheckbox = document.createElement("th");
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.id = `${platform.id}_all`;
-    checkbox.addEventListener("change", () =>
-      toggleAllPlatforms(platform.id, checkbox.checked)
-    );
-    thCheckbox.appendChild(checkbox);
-    headerRow2.appendChild(thCheckbox);
-  });
-
-  thead.appendChild(headerRow1);
-  thead.appendChild(headerRow2);
-
-  // Populate table body
-  broadcasts.forEach((broadcast) => {
-    const tr = document.createElement("tr");
-
-    ["nomination", "url"].forEach((key) => {
-      const td = document.createElement("td");
-      td.textContent = broadcast[key];
-      tr.appendChild(td);
-    });
-
-    platforms.forEach((platform) => {
-      const td = document.createElement("td");
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.dataset.nominationId = broadcast.nominationId;
-      checkbox.dataset.platformId = platform.id;
-
-      const platformStatus = broadcast.platformStatuses.find(
-        (ps) => ps.platformId === platform.id
-      );
-      if (platformStatus) {
-        checkbox.checked = platformStatus.isActive;
-        checkbox.addEventListener("change", () => {
-          toggleBroadcast(
-            broadcast.nominationId,
-            platform.id,
-            checkbox.checked,
-            checkbox
-          );
-          updatePlatformHeaderCheckbox(platform.id);
-        });
-      } else {
-        checkbox.disabled = true;
-      }
-
-      td.appendChild(checkbox);
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  });
-
-  initializeDataTable();
-}
-
-function initializeDataTable() {
-  if ($.fn.DataTable.isDataTable("#main_table")) {
-    $("#main_table").DataTable().destroy();
-  }
-
-  $("#main_table").DataTable({
-    searching: true,
-    ordering: true,
-    language: {
-      info: "Показано c _START_ по _END_ из _TOTAL_ записей",
-      lengthMenu: "_MENU_ записей на страницу",
-      emptyTable: "Нет данных",
-      zeroRecords: "Нет совпадений",
-      infoEmpty: "",
-      infoFiltered: "(отфильтровано из _MAX_ записей)",
-      search: "Поиск:",
-    },
-    columnDefs: [
-      { orderable: true, targets: [0, 1] },
-      { orderable: false, targets: "_all" },
-    ],
-  });
-}
-
-async function toggleBroadcast(nominationId, platformId, isActive, checkbox) {
-  const action = isActive ? "start" : "stop";
-  const key = `${nominationId}_${platformId}`;
-
-  if (pendingStreams[key] === "starting" && !isActive) {
-    notyf.warning(
-      "Трансляция запускается, дождитесь её запуска перед остановкой."
-    );
-    checkbox.checked = true;
+  if (!platformName || !platformUrl || !token) {
+    notyf.error("Пожалуйста, заполните все поля платформы");
     return;
   }
 
-  pendingStreams[key] = isActive ? "starting" : "stopping";
-  checkbox.disabled = true;
-  checkbox.style.accentColor = "yellow";
+  const table = document.getElementById("addedPlatformsTable");
+  const row = table.insertRow();
 
-  updatePlatformHeaderCheckbox(platformId);
+  row.innerHTML = `
+    <td>${platformName}</td>
+    <td>${platformUrl}</td>
+    <td>${token}</td>
+    <td>
+      <button class="btn btn-danger btn-sm remove-platform-btn">Удалить</button>
+    </td>
+  `;
 
-  try {
-    const response = await fetch(`/api/streams/${action}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nominationId, platformId }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-
-    checkbox.style.accentColor = "";
-    checkbox.disabled = false;
-    checkbox.checked = isActive;
-    updatePlatformHeaderCheckbox(platformId);
-  } catch (error) {
-    console.error("Toggle stream failed:", error);
-    checkbox.style.accentColor = "red";
-    checkbox.checked = !isActive;
-    notyf.error(
-      isActive
-        ? "Не удалось запустить трансляцию"
-        : "Не удалось остановить трансляцию"
-    );
-  } finally {
-    checkbox.disabled = false;
-    delete pendingStreams[key];
-    updatePlatformHeaderCheckbox(platformId);
-  }
-}
-
-async function toggleAllPlatforms(platformId, isChecked) {
-  const table = $("#main_table").DataTable();
-  const checkboxes = table
-    .$("input[data-platform-id='" + platformId + "']", { page: "all" })
-    .toArray();
-
-  const promises = checkboxes
-    .filter((cb) => cb.checked !== isChecked && !cb.disabled)
-    .map((cb) => {
-      const nominationId = cb.dataset.nominationId;
-      const key = `${nominationId}_${platformId}`;
-      pendingStreams[key] = isChecked ? "starting" : "stopping";
-      cb.checked = isChecked;
-      return toggleBroadcast(nominationId, platformId, isChecked, cb);
-    });
-
-  try {
-    await Promise.all(promises);
-  } catch (error) {
-    console.error("Toggle all streams failed:", error);
-    notyf.error("Произошла ошибка при обработке трансляций");
-  }
-}
-
-function updatePlatformHeaderCheckbox(platformId) {
-  const table = $("#main_table").DataTable();
-  const checkboxes = table
-    .$("input[data-platform-id='" + platformId + "']", { page: "all" })
-    .toArray();
-
-  const allChecked = checkboxes.every((cb) => cb.checked || cb.disabled);
-  const allDisabled = checkboxes.every((cb) => cb.disabled);
-  const waiting = checkboxes.some(
-    (cb) => pendingStreams[`${cb.dataset.nominationId}_${platformId}`]
-  );
-
-  const headerCheckbox = document.getElementById(`${platformId}_all`);
-
-  if (headerCheckbox) {
-    headerCheckbox.checked = allChecked;
-    headerCheckbox.disabled = allDisabled;
-    if (allDisabled) {
-      headerCheckbox.checked = false;
-    }
-
-    if (waiting) {
-      headerCheckbox.disabled = true;
-    }
-  }
-}
-
-function updateAllHeaderCheckboxes(platforms) {
-  platforms.forEach((platform) => {
-    updatePlatformHeaderCheckbox(platform.id);
+  row.querySelector(".remove-platform-btn").addEventListener("click", () => {
+    row.remove();
   });
+
+  // Clear input fields
+  document.getElementById("platformNameInput").value = "";
+  document.getElementById("urlInput").value = "";
+  document.getElementById("tokenInput").value = "";
 }
 
-document.addEventListener("DOMContentLoaded", fetchData);
+function clearPlatforms() {
+  document.getElementById("addedPlatformsTable").innerHTML = "";
+}
+
+async function handleAddDay(event) {
+  event.preventDefault();
+
+  if (!currentNominationId) {
+    notyf.error("Номинация не выбрана");
+    return;
+  }
+
+  const day = document.getElementById("dayDropdown").value;
+  if (!day) {
+    notyf.error("Пожалуйста, выберите день");
+    return;
+  }
+
+  const table = document.getElementById("addedPlatformsTable");
+  const rows = table.querySelectorAll("tr");
+  if (rows.length === 0) {
+    notyf.error("Пожалуйста, добавьте хотя бы одну платформу");
+    return;
+  }
+
+  const dayStreams = [];
+  rows.forEach((row) => {
+    const cols = row.querySelectorAll("td");
+    dayStreams.push({
+      platformName: cols[0].textContent,
+      platformUrl: cols[1].textContent,
+      token: cols[2].textContent,
+    });
+  });
+
+  const dayDto = {
+    nominationId: parseInt(currentNominationId),
+    day: parseInt(day),
+    dayStreams: dayStreams,
+  };
+
+  try {
+    const response = await fetch("/api/streams", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(dayDto),
+    });
+
+    if (response.ok) {
+      notyf.success("День добавлен успешно");
+      await fetchAndRenderNominations();
+
+      // Open the accordion for the current nominationId
+      const collapseElement = document.getElementById(
+        `collapse${currentNominationId}`
+      );
+      const bsCollapse = new bootstrap.Collapse(collapseElement, {
+        toggle: true,
+      });
+      $("#addDayModal").modal("hide");
+
+      // Reset the form
+      document.getElementById("addDayForm").reset();
+      clearPlatforms();
+      currentNominationId = null;
+    } else {
+      const error = await response.text();
+      notyf.error(error);
+    }
+  } catch (error) {
+    console.error("Error adding day:", error);
+    notyf.error("Ошибка при добавлении дня");
+  }
+}
