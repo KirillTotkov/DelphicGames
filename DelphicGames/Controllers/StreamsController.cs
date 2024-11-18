@@ -17,7 +17,44 @@ public class StreamsController : ControllerBase
     {
         _streamService = streamService;
     }
-    
+
+    [HttpPost]
+    public async Task<IActionResult> AddDay(AddDayDto dayDto)
+    {
+        try
+        {
+            await _streamService.AddDay(dayDto);
+            return Ok("Трансляция добавлена.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Внутренняя ошибка сервера.");
+        }
+    }
+
+
+    [HttpDelete]
+    public async Task<IActionResult> DeleteStream([FromQuery] int id)
+    {
+        try
+        {
+            await _streamService.DeleteStream(id);
+            return Ok("Трансляция удалена.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Внутренняя ошибка сервера.");
+        }
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAllStreams()
     {
@@ -26,11 +63,11 @@ public class StreamsController : ControllerBase
     }
 
     [HttpPost("start")]
-    public IActionResult StartStream(AddStreamDto streamDto)
+    public IActionResult StartStream(AddDayDto dayDto)
     {
         try
         {
-            _streamService.StartStream(streamDto);
+            _streamService.StartStream(dayDto);
             return Ok("Трансляция начата.");
         }
         catch (FfmpegProcessException ex)
