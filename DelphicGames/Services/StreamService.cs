@@ -20,6 +20,39 @@ public class StreamService
 
     public async Task AddDay(AddDayDto dayDto)
     {
+        if (dayDto == null)
+        {
+            throw new ArgumentNullException(nameof(dayDto), "Данные дня не должны быть null.");
+        }
+
+        if (dayDto.Day <= 0)
+        {
+            throw new ArgumentException("День должен быть положительным числом.", nameof(dayDto.Day));
+        }
+
+        if (dayDto.DayStreams == null || !dayDto.DayStreams.Any())
+        {
+            throw new ArgumentException("Список трансляций не может быть пустым.", nameof(dayDto.DayStreams));
+        }
+
+        foreach (var dayStream in dayDto.DayStreams)
+        {
+            if (string.IsNullOrWhiteSpace(dayStream.PlatformName))
+            {
+                throw new ArgumentException("Имя платформы не может быть пустым.", nameof(dayStream.PlatformName));
+            }
+
+            if (string.IsNullOrWhiteSpace(dayStream.PlatformUrl))
+            {
+                throw new ArgumentException("URL платформы не может быть пустым.", nameof(dayStream.PlatformUrl));
+            }
+
+            if (string.IsNullOrWhiteSpace(dayStream.Token))
+            {
+                throw new ArgumentException("Токен не может быть пустым.", nameof(dayStream.Token));
+            }
+        }
+
         try
         {
             var nomination = await _context.Nominations
@@ -28,7 +61,7 @@ public class StreamService
 
             if (nomination == null)
             {
-                throw new InvalidOperationException("Nomination not found.");
+                throw new InvalidOperationException("Номинация не найдена.");
             }
 
             var streams = dayDto.DayStreams.Select(dayStream =>
@@ -55,7 +88,7 @@ public class StreamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding stream.");
+            _logger.LogError(ex, "Ошибка при добавлении трансляции.");
             throw;
         }
     }
