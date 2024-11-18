@@ -124,6 +124,10 @@ class NominationManager {
       .addEventListener("change", (e) =>
         this.cameraManager.handleCheckboxChange(e)
       );
+
+    document.getElementById("exportExcelBtn").addEventListener("click", () => {
+      window.location.href = "/api/nominations/export";
+    });
   }
 
   async loadNominations() {

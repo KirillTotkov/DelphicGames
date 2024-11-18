@@ -2,6 +2,7 @@ using DelphicGames.Data.Models;
 using DelphicGames.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MiniExcelLibs;
 
 namespace DelphicGames.Controllers;
 
@@ -89,5 +90,26 @@ public class NominationController : ControllerBase
         {
             return BadRequest(new { Error = ex.Message });
         }
+    }
+
+
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportNominationsToExcel()
+    {
+        var nominations = await _nominationService.GetNominationsWithCameras();
+        var data = nominations.Select(n => new
+        {
+            n.Name,
+            n.StreamUrl,
+            Cameras = string.Join(", ", n.Cameras.Select(c => c.Name))
+        }).ToList();
+
+        var memoryStream = new MemoryStream();
+        memoryStream.SaveAs(data);
+        memoryStream.Seek(0, SeekOrigin.Begin);
+        return new FileStreamResult(memoryStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        {
+            FileDownloadName = "nominations.xlsx"
+        };
     }
 }
