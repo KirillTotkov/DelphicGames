@@ -1,5 +1,6 @@
 using DelphicGames.Data;
 using DelphicGames.Data.Models;
+using DelphicGames.Hubs;
 using DelphicGames.Models;
 using DelphicGames.Services;
 using DelphicGames.Services.Streaming;
@@ -28,6 +29,8 @@ try
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c => { });
+    
+    builder.Services.AddSignalR();
 
     builder.Services.AddAuthorization();
     builder.Services.AddRazorPages();
@@ -102,6 +105,8 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+    
+    app.MapHub<StreamHub>("/streamHub");
 
     app.MapControllers();
     app.MapRazorPages();
