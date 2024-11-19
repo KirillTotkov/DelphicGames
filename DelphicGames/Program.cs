@@ -178,11 +178,11 @@ try
     }
 
     // Остановка трансляций при завершении работы приложения
-    app.Lifetime.ApplicationStopping.Register(async () =>
+    app.Lifetime.ApplicationStopping.Register(() =>
     {
         using var scope = app.Services.CreateScope();
         var streamService = scope.ServiceProvider.GetRequiredService<StreamService>();
-        await streamService.StopAllStreams();
+        streamService.StopAllStreams().GetAwaiter().GetResult();
         Log.Information("Приложение остановлено. Все трансляции остановлены");
     });
 
