@@ -72,7 +72,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function fetchAndRenderNominations() {
   const data = await fetchData();
-  if (data) {
+  const noNominationsMessage = document.getElementById("noNominationsMessage");
+  const daySelection = document.getElementById("launchDayDropdown");
+
+  if (data && data.length > 0) {
+    noNominationsMessage.style.display = "none";
+    daySelection.style.display = "block";
+
     const nominationsList = document.getElementById("nominations-list");
     nominationsList.innerHTML = "";
     data.forEach((nomination) => {
@@ -144,6 +150,9 @@ async function fetchAndRenderNominations() {
       `;
       nominationsList.appendChild(accordionItem);
     });
+  } else {
+    noNominationsMessage.style.display = "block";
+    daySelection.style.display = "none";
   }
 
   const streamToggles = document.querySelectorAll(".stream-toggle");
