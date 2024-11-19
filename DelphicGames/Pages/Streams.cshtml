@@ -6,6 +6,25 @@
 }
 
 <div class="m-4">
+    <div class="d-flex align-items-end mb-4">
+        <div class="me-2">
+            <label for="launchDayDropdown" class="form-label">Выберите день для запуска:</label>
+            <select id="launchDayDropdown" class="form-select" style="width: 200px;">
+                <option value="">--Выберите день--</option>
+                @for (int i = 1; i <= 10; i++)
+                {
+                    <option value="@i">День @i</option>
+                }
+            </select>
+        </div>
+        <button id="launchStreamsBtn" class="">
+            <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px;" viewBox="0 0 384 512">
+                <path fill="#74C0FC"
+                    d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z" />
+            </svg>
+        </button>
+    </div>
+
     <div class="accordion" id="nominations-list">
         <div class="accordion-item d-none" data-id="">
             <h2 class="accordion-header" id="headingNomination1">
@@ -55,21 +74,15 @@
             </div>
             <div class="modal-body">
                 <form id="addDayForm">
-                    <div class="row g-3 align-items-center">
+                    <div class="row g-3 align-items-end">
                         <div class="col-md-6">
                             <label for="dayDropdown" class="form-label">День</label>
                             <select id="dayDropdown" class="form-select" required>
                                 <option value="">--Выберите день--</option>
-                                <option value="1">День 1</option>
-                                <option value="2">День 2</option>
-                                <option value="3">День 3</option>
-                                <option value="4">День 4</option>
-                                <option value="5">День 5</option>
-                                <option value="6">День 6</option>
-                                <option value="7">День 7</option>
-                                <option value="8">День 8</option>
-                                <option value="9">День 9</option>
-                                <option value="10">День 10</option>
+                                @for (int i = 1; i <= 10; i++)
+                                {
+                                    <option value="@i">День @i</option>
+                                }
                             </select>
                         </div>
                         <div class="mb-3">
@@ -134,6 +147,17 @@
         input[type="checkbox"] {
             width: 15px;
             height: 15px;
+        }
+
+        #launchStreamsBtn {
+            background: none;
+            border: 1px solid transparent;
+            padding: 7px;
+            cursor: pointer;
+        }
+
+        #launchStreamsBtn:hover {
+            border: 1px solid black;
         }
     </style>
 }

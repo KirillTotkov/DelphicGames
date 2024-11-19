@@ -65,6 +65,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     });
+
+  const launchBtn = document.getElementById("launchStreamsBtn");
+  launchBtn.addEventListener("click", launchStreamsForDay);
 });
 
 async function fetchAndRenderNominations() {
@@ -345,4 +348,34 @@ function handleStreamToggle(event) {
         checkbox.disabled = false;
       });
   }
+}
+
+function launchStreamsForDay() {
+  const daySelect = document.getElementById("launchDayDropdown");
+  const day = daySelect.value;
+
+  if (!day) {
+    alert("Пожалуйста, выберите день.");
+    return;
+  }
+
+  fetch(`/api/streams/start/day/${day}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })
+    .then((response) => {
+      if (response.ok) {
+        notyf.success("Трансляции запущены.");
+      } else {
+        return response.json().then((data) => {
+          throw new Error(data.Error || "Ошибка при запуске трансляций.");
+        });
+      }
+    })
+    .catch((error) => {
+      alert(`Ошибка: ${error}`);
+      notyf.error(error.error || "Ошибка при запуске трансляций.");
+    });
 }
