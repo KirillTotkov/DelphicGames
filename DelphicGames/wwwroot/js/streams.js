@@ -18,10 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
     .getElementById("addPlatformBtn")
     .addEventListener("click", addPlatform);
 
-  document
-    .getElementById("clearPlatformsBtn")
-    .addEventListener("click", clearPlatforms);
-
   const modalElement = document.getElementById("addDayModal");
 
   modalElement.addEventListener("hidden.bs.modal", () => {
@@ -91,7 +87,7 @@ async function fetchAndRenderNominations() {
         </h2>
         <div id="collapse${
           nomination.nominationId
-        }" class="accordion-collapse collapse"
+        }" class="accordion-collapse collapse" data-bs-parent="#nominations-list"
           aria-labelledby="heading${nomination.nominationId}">
           <div class="accordion-body">
             <div class="d-flex justify-content-end mt-1">
@@ -196,9 +192,6 @@ function addPlatform() {
   document.getElementById("tokenInput").value = "";
 }
 
-function clearPlatforms() {
-  document.getElementById("addedPlatformsTable").innerHTML = "";
-}
 
 async function handleAddDay(event) {
   event.preventDefault();
