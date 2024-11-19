@@ -105,6 +105,7 @@ async function fetchAndRenderNominations() {
                   <th>Платформа</th>
                   <th>URL Платформы</th>
                   <th>Token</th>
+                  <th>Статус</th>
                   <th>Действие</th>
                 </tr>
               </thead>
@@ -119,6 +120,11 @@ async function fetchAndRenderNominations() {
                     <td>${day.platformUrl}</td>
                     <td>${day.token}</td>
                     <td>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox">
+                        </div>
+                      </td>
+                      <td>
                       <button class="btn btn-danger btn-sm">Удалить</button>
                     </td>
                   </tr>
