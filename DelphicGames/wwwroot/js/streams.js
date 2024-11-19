@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .addEventListener("click", clearPlatforms);
 
   const modalElement = document.getElementById("addDayModal");
+
   modalElement.addEventListener("hidden.bs.modal", () => {
     document.getElementById("addDayForm").reset();
     document.getElementById("addedPlatformsTable").innerHTML = "";
@@ -31,9 +32,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document
     .getElementById("nominations-list")
-    .addEventListener("click", (event) => {
+    .addEventListener("click", async (event) => {
       if (event.target && event.target.classList.contains("add-day-btn")) {
         currentNominationId = event.target.getAttribute("data-nomination-id");
+        const lastStreamUrl = await getLastStreamUrl(currentNominationId);
+        if (lastStreamUrl) {
+          document.getElementById("streamUrlInput").value = lastStreamUrl;
+        }
       }
     });
 
@@ -86,7 +91,7 @@ async function fetchAndRenderNominations() {
         </h2>
         <div id="collapse${
           nomination.nominationId
-        }" class="accordion-collapse collapse" data-bs-parent="#nominations-list"
+        }" class="accordion-collapse collapse"
           aria-labelledby="heading${nomination.nominationId}">
           <div class="accordion-body">
             <div class="d-flex justify-content-end mt-1">
@@ -121,7 +126,9 @@ async function fetchAndRenderNominations() {
                     <td>${stream.token}</td>
                     <td>
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" ${stream.isActive ? "checked" : ""}>
+                            <input class="form-check-input" type="checkbox" ${
+                              stream.isActive ? "checked" : ""
+                            }>
                         </div>
                       </td>
                       <td>
@@ -266,5 +273,22 @@ async function handleAddDay(event) {
   } catch (error) {
     console.error("Error adding day:", error);
     notyf.error("Ошибка при добавлении дня");
+  }
+}
+
+async function getLastStreamUrl(nominationId) {
+  try {
+    const response = await fetch(`/api/streams/${nominationId}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch streams");
+    }
+    const data = await response.json();
+    if (data.length === 0) return "";
+    // Assuming streams are sorted by day
+    const lastStream = data.streams[data.streams.length - 1];
+    return lastStream.streamUrl;
+  } catch (error) {
+    console.error("Error fetching last stream URL:", error);
+    return "";
   }
 }

@@ -13,44 +13,60 @@ public class StreamsController : ControllerBase
 {
     private readonly StreamService _streamService;
 
-    public StreamsController(StreamService streamService)
+    private readonly ILogger<StreamsController> _logger;
+
+    public StreamsController(StreamService streamService, ILogger<StreamsController> logger)
     {
         _streamService = streamService;
+        _logger = logger;
     }
 
     [HttpPost]
-    public async Task<IActionResult> AddDay(AddDayDto dayDto)
+    public async Task<ActionResult> AddDay([FromBody] AddDayDto dayDto)
     {
+        if (dayDto == null)
+        {
+            return BadRequest("Данные дня не должны быть null.");
+        }
+
         try
         {
             await _streamService.AddDay(dayDto);
-            return Ok("Трансляция добавлена.");
+            return Ok("День добавлен успешно.");
         }
-        catch (InvalidOperationException ex)
+        catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message);
+            _logger.LogWarning(ex, "Неверные данные при добавлении дня.");
+            return BadRequest(new { Error = ex.Message });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Ошибка при добавлении дня.");
             return StatusCode(500, "Внутренняя ошибка сервера.");
         }
     }
 
-
     [HttpDelete]
-    public async Task<IActionResult> DeleteStream([FromQuery] int id)
+    public async Task<ActionResult> DeleteStream([FromQuery] int id)
     {
+        if (id <= 0)
+        {
+            return BadRequest("Неверный идентификатор трансляции.");
+        }
+
         try
         {
             await _streamService.DeleteStream(id);
-            return Ok("Трансляция удалена.");
+            return Ok("Трансляция удалена успешно.");
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            _logger.LogWarning(ex, "Трансляция не найдена.");
+            return NotFound(new { Error = ex.Message });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Ошибка при удалении трансляции.");
             return StatusCode(500, "Внутренняя ошибка сервера.");
         }
     }
@@ -59,6 +75,13 @@ public class StreamsController : ControllerBase
     public async Task<IActionResult> GetAllStreams()
     {
         var streams = await _streamService.GetAllStreams();
+        return Ok(streams);
+    }
+
+    [HttpGet("{nominationId:int}")]
+    public async Task<ActionResult> GetNominationStreams(int nominationId)
+    {
+        var streams = await _streamService.GetNominationStreams(nominationId);
         return Ok(streams);
     }
 

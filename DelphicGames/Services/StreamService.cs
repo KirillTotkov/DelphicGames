@@ -18,6 +18,45 @@ public class StreamService
         _logger = logger;
     }
 
+    // Получение всех трансляций
+    public async Task<List<GetStreamsDto>> GetAllStreams()
+    {
+        try
+        {
+            var nominations = await _context.Nominations
+                .Include(n => n.Streams)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var groupedStreams = nominations
+                .Select(nomination => new GetStreamsDto(
+                    nomination.Id,
+                    nomination.Name,
+                    nomination.Streams
+                        .Where(s => !string.IsNullOrEmpty(s.Token))
+                        .Select(s => new GetStreamDto(
+                            s.Id,
+                            s.Day,
+                            s.PlatformName,
+                            s.PlatformUrl,
+                            s.Token,
+                            s.IsActive,
+                            s.StreamUrl
+                        ))
+                        .ToList()
+                ))
+                .OrderBy(dto => dto.Nomination)
+                .ToList();
+
+            return groupedStreams;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching streams");
+            throw;
+        }
+    }
+
     public async Task AddDay(AddDayDto dayDto)
     {
         if (dayDto == null)
@@ -98,6 +137,34 @@ public class StreamService
             throw;
         }
     }
+
+    public async Task<GetStreamsDto> GetNominationStreams(int nominationId)
+    {
+        var nomination = await _context.Nominations
+            .Include(n => n.Streams)
+            .FirstOrDefaultAsync(n => n.Id == nominationId);
+
+        if (nomination == null)
+        {
+            throw new InvalidOperationException("Номинация не найдена.");
+        }
+
+        var streams = nomination.Streams
+            .Where(s => !string.IsNullOrEmpty(s.Token))
+            .Select(s => new GetStreamDto(
+                s.Id,
+                s.Day,
+                s.PlatformName,
+                s.PlatformUrl,
+                s.Token,
+                s.IsActive,
+                s.StreamUrl
+            ))
+            .ToList();
+
+        return new GetStreamsDto(nomination.Id, nomination.Name, streams);
+    }
+
 
     public async Task DeleteStream(int streamId)
     {
@@ -324,44 +391,7 @@ public class StreamService
         }
     }
 
-    // Получение всех трансляций
-    public async Task<List<GetStreamsDto>> GetAllStreams()
-    {
-        try
-        {
-            var nominations = await _context.Nominations
-                .Include(n => n.Streams)
-                .AsNoTracking()
-                .ToListAsync();
 
-            var groupedStreams = nominations
-                .Select(nomination => new GetStreamsDto(
-                    nomination.Id,
-                    nomination.Name,
-                    nomination.Streams
-                        .Where(s => !string.IsNullOrEmpty(s.Token))
-                        .Select(s => new GetStreamDto(
-                            s.Id,
-                            s.Day,
-                            s.PlatformName,
-                            s.PlatformUrl,
-                            s.Token,
-                            s.IsActive,
-                            s.StreamUrl
-                        ))
-                        .ToList()
-                ))
-                .OrderBy(dto => dto.Nomination)
-                .ToList();
-
-            return groupedStreams;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching streams");
-            throw;
-        }
-    }
 }
 
 public record GetStreamsDto(
