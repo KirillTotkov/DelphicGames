@@ -269,6 +269,28 @@ public class StreamService
         }
     }
 
+    // Запуск всех трансляций для определенного дня
+    public async Task StartStreamsByDay(int day)
+    {
+        try
+        {
+            var activePlatforms = await _context.Streams
+                .Include(np => np.Nomination)
+                .Where(np => np.Day == day && !string.IsNullOrEmpty(np.Token) && np.IsActive)
+                .ToListAsync();
+
+            var startTasks = activePlatforms.Select(np => Task.Run(() => _streamManager.StartStream(np)));
+            await Task.WhenAll(startTasks);
+
+            _logger.LogInformation("Все трансляции для дня {Day} запущены.", day);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при запуске всех трансляций для дня.");
+            throw;
+        }
+    }
+
     // Запуск всех трансляций у которых есть токен
     public async Task StartAllStreams()
     {

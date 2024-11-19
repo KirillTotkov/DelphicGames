@@ -181,4 +181,18 @@ public class StreamsController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+    [HttpPost("start/day/{dayId:int}")]
+    public async Task<IActionResult> StartDayStreams(int dayId)
+    {
+        try
+        {
+            await _streamService.StartStreamsByDay(dayId);
+            return Ok($"Трансляции для дня начаты.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
 }
