@@ -1,5 +1,4 @@
-﻿
-a.navbar-brand {
+﻿a.navbar-brand {
     white-space: normal;
     text-align: center;
     word-break: break-all;
@@ -61,6 +60,19 @@ button.accept-policy {
 html {
     /*position: relative;*/
     /*min-height: 100%;*/
+}
+
+html, body {
+   height: 100%;
+}
+
+body {
+   display: flex;
+   flex-direction: column;
+ }
+
+.main-wrapper {
+    flex: 1;
 }
 
 body {
