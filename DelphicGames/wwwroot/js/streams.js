@@ -86,7 +86,7 @@ async function fetchAndRenderNominations() {
         </h2>
         <div id="collapse${
           nomination.nominationId
-        }" class="accordion-collapse collapse"
+        }" class="accordion-collapse collapse" data-bs-parent="#nominations-list"
           aria-labelledby="heading${nomination.nominationId}">
           <div class="accordion-body">
             <div class="d-flex justify-content-end mt-1">
