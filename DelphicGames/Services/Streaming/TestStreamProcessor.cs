@@ -86,7 +86,7 @@ public class TestStreamProcessor : IStreamProcessor
 
         var stream = new StreamInfo
         {
-            NominationUrl = streamEntity.Nomination.StreamUrl,
+            NominationUrl = streamEntity.StreamUrl,
             PlatformUrl = streamEntity.PlatformUrl,
             Token = streamEntity.Token,
             Process = process,

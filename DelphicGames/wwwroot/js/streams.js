@@ -18,11 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
     .getElementById("addPlatformBtn")
     .addEventListener("click", addPlatform);
 
-  document
-    .getElementById("clearPlatformsBtn")
-    .addEventListener("click", clearPlatforms);
-
   const modalElement = document.getElementById("addDayModal");
+
   modalElement.addEventListener("hidden.bs.modal", () => {
     document.getElementById("addDayForm").reset();
     document.getElementById("addedPlatformsTable").innerHTML = "";
@@ -31,9 +28,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document
     .getElementById("nominations-list")
-    .addEventListener("click", (event) => {
+    .addEventListener("click", async (event) => {
       if (event.target && event.target.classList.contains("add-day-btn")) {
         currentNominationId = event.target.getAttribute("data-nomination-id");
+        const lastStreamUrl = await getLastStreamUrl(currentNominationId);
+        if (lastStreamUrl) {
+          document.getElementById("streamUrlInput").value = lastStreamUrl;
+        }
       }
     });
 
@@ -64,6 +65,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     });
+
+  const launchBtn = document.getElementById("launchStreamsBtn");
+  launchBtn.addEventListener("click", launchStreamsForDay);
 });
 
 async function fetchAndRenderNominations() {
@@ -86,7 +90,7 @@ async function fetchAndRenderNominations() {
         </h2>
         <div id="collapse${
           nomination.nominationId
-        }" class="accordion-collapse collapse"
+        }" class="accordion-collapse collapse" data-bs-parent="#nominations-list"
           aria-labelledby="heading${nomination.nominationId}">
           <div class="accordion-body">
             <div class="d-flex justify-content-end mt-1">
@@ -105,20 +109,28 @@ async function fetchAndRenderNominations() {
                   <th>Платформа</th>
                   <th>URL Платформы</th>
                   <th>Token</th>
+                  <th>Статус</th>
                   <th>Действие</th>
                 </tr>
               </thead>
               <tbody>
-                ${nomination.days
+                ${nomination.streams
                   .map(
-                    (day) => `
-                  <tr data-id="${day.id}">
-                    <td>${day.day}</td>
-                    <td>${nomination.streamUrl}</td>
-                    <td>${day.platformName}</td>
-                    <td>${day.platformUrl}</td>
-                    <td>${day.token}</td>
+                    (stream) => `
+                  <tr data-id="${stream.id}">
+                    <td>${stream.day}</td>
+                    <td>${stream.streamUrl}</td>
+                    <td>${stream.platformName}</td>
+                    <td>${stream.platformUrl}</td>
+                    <td>${stream.token}</td>
                     <td>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input stream-toggle" type="checkbox" ${
+                              stream.isActive ? "checked" : ""
+                            }>
+                        </div>
+                      </td>
+                      <td>
                       <button class="btn btn-danger btn-sm">Удалить</button>
                     </td>
                   </tr>
@@ -133,6 +145,11 @@ async function fetchAndRenderNominations() {
       nominationsList.appendChild(accordionItem);
     });
   }
+
+  const streamToggles = document.querySelectorAll(".stream-toggle");
+  streamToggles.forEach((toggle) => {
+    toggle.addEventListener("change", handleStreamToggle);
+  });
 }
 
 async function fetchData() {
@@ -181,10 +198,6 @@ function addPlatform() {
   document.getElementById("platformNameInput").value = "";
   document.getElementById("urlInput").value = "";
   document.getElementById("tokenInput").value = "";
-}
-
-function clearPlatforms() {
-  document.getElementById("addedPlatformsTable").innerHTML = "";
 }
 
 async function handleAddDay(event) {
@@ -261,4 +274,108 @@ async function handleAddDay(event) {
     console.error("Error adding day:", error);
     notyf.error("Ошибка при добавлении дня");
   }
+}
+
+function clearPlatforms() {
+  document.getElementById("addedPlatformsTable").innerHTML = "";
+}
+
+async function getLastStreamUrl(nominationId) {
+  try {
+    const response = await fetch(`/api/streams/${nominationId}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch streams");
+    }
+    const data = await response.json();
+    if (data.length === 0 || data.streams.length == 0) return "";
+    const lastStream = data.streams[data.streams.length - 1];
+    return lastStream.streamUrl;
+  } catch (error) {
+    console.error("Error fetching last stream URL:", error);
+    return "";
+  }
+}
+
+function handleStreamToggle(event) {
+  const checkbox = event.target;
+  const row = checkbox.closest("tr");
+  const streamId = row.getAttribute("data-id");
+
+  if (!streamId) return;
+
+  if (checkbox.checked) {
+    // Start the stream
+
+    checkbox.disabled = true;
+    fetch(`/api/streams/start/${streamId}`, {
+      method: "POST",
+    })
+      .then((response) => {
+        if (response.ok) {
+          checkbox.disabled = false;
+          notyf.success("Трансляция начата.");
+        } else {
+          throw new Error("Failed to start stream.");
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        notyf.error("Ошибка при запуске трансляции.");
+        // Revert the checkbox state
+        checkbox.checked = false;
+      });
+  } else {
+    // Stop the stream
+
+    checkbox.disabled = true;
+    fetch(`/api/streams/stop/${streamId}`, {
+      method: "POST",
+    })
+      .then((response) => {
+        if (response.ok) {
+          notyf.success("Трансляция остановлена.");
+          checkbox.disabled = false;
+        } else {
+          checkbox.disabled = false;
+          throw new Error("Failed to stop stream.");
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        notyf.error("Ошибка при остановке трансляции.");
+        // Revert the checkbox state
+        checkbox.checked = true;
+        checkbox.disabled = false;
+      });
+  }
+}
+
+function launchStreamsForDay() {
+  const daySelect = document.getElementById("launchDayDropdown");
+  const day = daySelect.value;
+
+  if (!day) {
+    alert("Пожалуйста, выберите день.");
+    return;
+  }
+
+  fetch(`/api/streams/start/day/${day}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })
+    .then((response) => {
+      if (response.ok) {
+        notyf.success("Трансляции запущены.");
+      } else {
+        return response.json().then((data) => {
+          throw new Error(data.Error || "Ошибка при запуске трансляций.");
+        });
+      }
+    })
+    .catch((error) => {
+      alert(`Ошибка: ${error}`);
+      notyf.error(error.error || "Ошибка при запуске трансляций.");
+    });
 }

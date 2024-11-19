@@ -8,6 +8,7 @@ public class StreamEntity
     public string PlatformName { get; set; }
     public string PlatformUrl { get; set; }
     public string? Token { get; set; }
+    public string StreamUrl { get; set; }
     public int Day { get; set; }
     public bool IsActive { get; set; }
 }

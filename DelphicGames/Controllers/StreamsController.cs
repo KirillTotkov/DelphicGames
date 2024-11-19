@@ -13,44 +13,60 @@ public class StreamsController : ControllerBase
 {
     private readonly StreamService _streamService;
 
-    public StreamsController(StreamService streamService)
+    private readonly ILogger<StreamsController> _logger;
+
+    public StreamsController(StreamService streamService, ILogger<StreamsController> logger)
     {
         _streamService = streamService;
+        _logger = logger;
     }
 
     [HttpPost]
-    public async Task<IActionResult> AddDay(AddDayDto dayDto)
+    public async Task<ActionResult> AddDay([FromBody] AddDayDto dayDto)
     {
+        if (dayDto == null)
+        {
+            return BadRequest("Данные дня не должны быть null.");
+        }
+
         try
         {
             await _streamService.AddDay(dayDto);
-            return Ok("Трансляция добавлена.");
+            return Ok("День добавлен успешно.");
         }
-        catch (InvalidOperationException ex)
+        catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message);
+            _logger.LogWarning(ex, "Неверные данные при добавлении дня.");
+            return BadRequest(new { Error = ex.Message });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Ошибка при добавлении дня.");
             return StatusCode(500, "Внутренняя ошибка сервера.");
         }
     }
 
-
     [HttpDelete]
-    public async Task<IActionResult> DeleteStream([FromQuery] int id)
+    public async Task<ActionResult> DeleteStream([FromQuery] int id)
     {
+        if (id <= 0)
+        {
+            return BadRequest("Неверный идентификатор трансляции.");
+        }
+
         try
         {
             await _streamService.DeleteStream(id);
-            return Ok("Трансляция удалена.");
+            return Ok("Трансляция удалена успешно.");
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            _logger.LogWarning(ex, "Трансляция не найдена.");
+            return NotFound(new { Error = ex.Message });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Ошибка при удалении трансляции.");
             return StatusCode(500, "Внутренняя ошибка сервера.");
         }
     }
@@ -62,12 +78,19 @@ public class StreamsController : ControllerBase
         return Ok(streams);
     }
 
-    [HttpPost("start")]
-    public IActionResult StartStream(AddDayDto dayDto)
+    [HttpGet("{nominationId:int}")]
+    public async Task<ActionResult> GetNominationStreams(int nominationId)
+    {
+        var streams = await _streamService.GetNominationStreams(nominationId);
+        return Ok(streams);
+    }
+
+    [HttpPost("start/{streamId:int}")]
+    public IActionResult StartStream(int streamId)
     {
         try
         {
-            _streamService.StartStream(dayDto);
+            _streamService.StartStream(streamId);
             return Ok("Трансляция начата.");
         }
         catch (FfmpegProcessException ex)
@@ -76,7 +99,7 @@ public class StreamsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new { Error = ex.Message });
         }
         catch (Exception)
         {
@@ -85,19 +108,23 @@ public class StreamsController : ControllerBase
     }
 
 
-    // [HttpPost("stop")]
-    // public IActionResult StopStream([FromBody] AddStreamDto streamDto)
-    // {
-    //     try
-    //     {
-    //         _streamService.StopStream(streamDto.NominationId, streamDto.PlatformName);
-    //         return Ok("Трансляция остановлена.");
-    //     }
-    //     catch (InvalidOperationException ex)
-    //     {
-    //         return BadRequest(ex.Message);
-    //     }
-    // }
+    [HttpPost("stop/{streamId:int}")]
+    public IActionResult StopStream(int streamId)
+    {
+        try
+        {
+            _streamService.StopStream(streamId);
+            return Ok("Трансляция остановлена.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { Error = ex.Message });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Внутренняя ошибка сервера.");
+        }
+    }
 
     [HttpPost("start/all")]
     public async Task<IActionResult> StartAllStreams()
@@ -109,7 +136,7 @@ public class StreamsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new { Error = ex.Message });
         }
     }
 
@@ -123,7 +150,7 @@ public class StreamsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new { Error = ex.Message });
         }
     }
 
@@ -137,7 +164,7 @@ public class StreamsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new { Error = ex.Message });
         }
     }
 
@@ -151,7 +178,21 @@ public class StreamsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new { Error = ex.Message });
+        }
+    }
+
+    [HttpPost("start/day/{dayId:int}")]
+    public async Task<IActionResult> StartDayStreams(int dayId)
+    {
+        try
+        {
+            await _streamService.StartStreamsByDay(dayId);
+            return Ok($"Трансляции для дня начаты.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { Error = ex.Message });
         }
     }
 }

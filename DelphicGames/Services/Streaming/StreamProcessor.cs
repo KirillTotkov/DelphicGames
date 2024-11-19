@@ -106,7 +106,7 @@ public class StreamProcessor : IStreamProcessor
 
         var stream = new StreamInfo
         {
-            NominationUrl = streamEntity.Nomination.StreamUrl,
+            NominationUrl = streamEntity.StreamUrl,
             PlatformUrl = streamEntity.PlatformUrl,
             Token = streamEntity.Token,
             Process = process,
@@ -166,7 +166,7 @@ public class StreamProcessor : IStreamProcessor
         var command =
             " -y -fflags +genpts -thread_queue_size 512 -probesize 5000000 -analyzeduration 5000000 -timeout 5000000 -rtsp_transport tcp ";
 
-        command += $"-i {streamEntity.Nomination.StreamUrl} -dn -sn -map 0:0 -codec:v copy -map 0:1 -codec:a aac -b:a 64k -shortest ";
+        command += $"-i {streamEntity.StreamUrl} -dn -sn -map 0:0 -codec:v copy -map 0:1 -codec:a aac -b:a 64k -shortest ";
 
         if (!streamEntity.PlatformUrl.EndsWith("/"))
         {
