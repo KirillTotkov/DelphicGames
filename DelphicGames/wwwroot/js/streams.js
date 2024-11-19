@@ -110,7 +110,7 @@ async function fetchAndRenderNominations() {
                 </tr>
               </thead>
               <tbody>
-                ${nomination.days
+                ${nomination.streams
                   .map(
                     (day) => `
                   <tr data-id="${day.id}">

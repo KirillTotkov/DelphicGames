@@ -348,7 +348,7 @@ public class StreamService
                     nomination.Name,
                     nomination.Streams
                         .Where(s => !string.IsNullOrEmpty(s.Token))
-                        .Select(s => new GetDayDto(
+                        .Select(s => new GetStreamDto(
                             s.Id,
                             s.Day,
                             s.PlatformName,
@@ -374,10 +374,10 @@ public record GetStreamsDto(
     int NominationId,
     string StreamUrl,
     string Nomination,
-    List<GetDayDto> Days
+    List<GetStreamDto> Streams
 );
 
-public record GetDayDto(
+public record GetStreamDto(
     int Id,
     int Day,
     string PlatformName,
