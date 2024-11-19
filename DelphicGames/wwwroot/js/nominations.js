@@ -100,7 +100,6 @@ class NominationManager {
       .addEventListener("click", async () => {
         this.currentNominationId = null;
         document.getElementById("groupName").value = "";
-        document.getElementById("streamUrl").value = "";
         this.cameraManager.selectedCameraIds = [];
 
         await this.cameraManager.loadCameras();
@@ -151,10 +150,6 @@ class NominationManager {
       const nameTd = document.createElement("td");
       nameTd.textContent = nomination.name;
       tr.appendChild(nameTd);
-
-      const streamTd = document.createElement("td");
-      streamTd.textContent = nomination.streamUrl;
-      tr.appendChild(streamTd);
 
       const contentTd = document.createElement("td");
       const cameraUl = document.createElement("ul");
@@ -211,7 +206,6 @@ class NominationManager {
       const nomination = await response.json();
 
       document.getElementById("groupName").value = nomination.name;
-      document.getElementById("streamUrl").value = nomination.streamUrl;
       this.cameraManager.selectedCameraIds = nomination.cameras.map(
         (camera) => camera.id
       );
@@ -233,7 +227,6 @@ class NominationManager {
   resetForm() {
     this.currentNominationId = null;
     document.getElementById("groupName").value = "";
-    document.getElementById("streamUrl").value = "";
     this.cameraManager.selectedCameraIds = [];
   }
 
@@ -289,7 +282,6 @@ class NominationManager {
   getNominationData() {
     return {
       name: document.getElementById("groupName").value.trim(),
-      streamUrl: document.getElementById("streamUrl").value.trim(),
       cameraIds: this.cameraManager.selectedCameraIds,
     };
   }

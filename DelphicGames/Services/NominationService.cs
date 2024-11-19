@@ -18,11 +18,10 @@ public class NominationService
     public async Task<Nomination> AddNomination(AddNominationDto dto)
     {
         var name = dto.Name.Trim();
-        var streamUrl = dto.StreamUrl.Trim();
 
-        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(streamUrl))
+        if (string.IsNullOrWhiteSpace(name))
         {
-            throw new ArgumentException("Имя и ссылка на стрим не могут быть пустыми");
+            throw new ArgumentException("Имя не может быть пустым");
         }
 
         if (await _context.Nominations.AnyAsync(n => n.Name.ToLower() == name.ToLower()))
@@ -30,15 +29,9 @@ public class NominationService
             throw new ArgumentException($"Номинация с именем {name} уже существует");
         }
 
-        if (await _context.Nominations.AnyAsync(n => n.StreamUrl.ToLower() == streamUrl.ToLower()))
-        {
-            throw new ArgumentException($"Номинация с ссылкой {streamUrl} уже существует");
-        }
-
         var nomination = new Nomination
         {
             Name = name,
-            StreamUrl = streamUrl,
         };
 
         var cameras = await GetCamerasByIds(dto.CameraIds);
@@ -59,7 +52,6 @@ public class NominationService
             .Select(n => new GetNominationDto(
                 n.Id,
                 n.Name,
-                n.StreamUrl,
                 n.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList()
             ))
             .ToListAsync();
@@ -79,7 +71,6 @@ public class NominationService
             : new GetNominationDto(
                 nomination.Id,
                 nomination.Name,
-                nomination.StreamUrl,
                 nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList()
             );
     }
@@ -130,11 +121,10 @@ public class NominationService
         }
 
         var name = dto.Name.Trim();
-        var streamUrl = dto.StreamUrl.Trim();
 
-        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(streamUrl))
+        if (string.IsNullOrWhiteSpace(name))
         {
-            throw new ArgumentException("Имя и ссылка на стрим не могут быть пустыми");
+            throw new ArgumentException("Имя не может быть пустым");
         }
 
         if (await _context.Nominations.AnyAsync(n => n.Name.ToLower() == name.ToLower() && n.Id != nominationId))
@@ -142,14 +132,7 @@ public class NominationService
             throw new ArgumentException($"Номинация с именем {name} уже существует");
         }
 
-        if (await _context.Nominations.AnyAsync(n =>
-                n.StreamUrl.ToLower() == streamUrl.ToLower() && n.Id != nominationId))
-        {
-            throw new ArgumentException($"Номинация с ссылкой {streamUrl} уже существует");
-        }
-
         nomination.Name = name;
-        nomination.StreamUrl = streamUrl;
 
         nomination.Cameras.Clear();
         var cameras = await GetCamerasByIds(dto.CameraIds);
@@ -176,14 +159,12 @@ public class NominationService
 
 public record AddNominationDto(
     string Name,
-    string StreamUrl,
     List<int> CameraIds
 );
 
 public record GetNominationDto(
     int Id,
     string Name,
-    string StreamUrl,
     List<GetCameraDto> Cameras
 );
 

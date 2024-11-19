@@ -53,7 +53,6 @@ public class NominationController : ControllerBase
             var result = new GetNominationDto(
                 nomination.Id,
                 nomination.Name,
-                nomination.StreamUrl,
                 nomination.Cameras.Select(c => new GetCameraDto(c.Id, c.Name, c.Url)).ToList()
             );
             return CreatedAtAction(nameof(GetNomination), new { id = nomination.Id }, result);
@@ -100,7 +99,6 @@ public class NominationController : ControllerBase
         var data = nominations.Select(n => new
         {
             n.Name,
-            n.StreamUrl,
             Cameras = string.Join(", ", n.Cameras.Select(c => c.Url))
         }).ToList();
 
