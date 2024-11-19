@@ -35,6 +35,17 @@ public class StreamService
             throw new ArgumentException("Список трансляций не может быть пустым.", nameof(dayDto.DayStreams));
         }
 
+        if (string.IsNullOrWhiteSpace(dayDto.StreamUrl))
+        {
+            throw new ArgumentException("URL трансляции не может быть пустым.", nameof(dayDto.StreamUrl));
+        }
+
+        if (await _context.Nominations.AnyAsync(n =>
+            n.StreamUrl.ToLower() == dayDto.StreamUrl.ToLower() && n.Id != dayDto.NominationId))
+        {
+            throw new ArgumentException($"Номинация с ссылкой {dayDto.StreamUrl} уже существует");
+        }
+
         foreach (var dayStream in dayDto.DayStreams)
         {
             if (string.IsNullOrWhiteSpace(dayStream.PlatformName))
@@ -63,6 +74,8 @@ public class StreamService
             {
                 throw new InvalidOperationException("Номинация не найдена.");
             }
+
+            nomination.StreamUrl = dayDto.StreamUrl;
 
             var streams = dayDto.DayStreams.Select(dayStream =>
             {
@@ -141,8 +154,6 @@ public class StreamService
             throw;
         }
     }
-
-
 
     // Запуск трансляции для определенной номинации на определенной платформе
     // Если трансляция уже запущена, то она будет перезапущена
@@ -333,6 +344,7 @@ public class StreamService
             var groupedStreams = nominations
                 .Select(nomination => new GetStreamsDto(
                     nomination.Id,
+                    nomination.StreamUrl,
                     nomination.Name,
                     nomination.Streams
                         .Where(s => !string.IsNullOrEmpty(s.Token))
@@ -360,6 +372,7 @@ public class StreamService
 
 public record GetStreamsDto(
     int NominationId,
+    string StreamUrl,
     string Nomination,
     List<GetDayDto> Days
 );
@@ -386,6 +399,7 @@ public record PlatformStatusDto(
 
 public record AddDayDto(
     int NominationId,
+    string StreamUrl,
     int Day,
     List<DayStreamDto> DayStreams
 );

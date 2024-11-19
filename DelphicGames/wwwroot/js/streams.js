@@ -101,8 +101,9 @@ async function fetchAndRenderNominations() {
               <thead class="table-light">
                 <tr>
                   <th>День</th>
+                  <th>URL Потока</th>
                   <th>Платформа</th>
-                  <th>URL</th>
+                  <th>URL Платформы</th>
                   <th>Token</th>
                   <th>Действие</th>
                 </tr>
@@ -113,6 +114,7 @@ async function fetchAndRenderNominations() {
                     (day) => `
                   <tr data-id="${day.id}">
                     <td>${day.day}</td>
+                    <td>${nomination.streamUrl}</td>
                     <td>${day.platformName}</td>
                     <td>${day.platformUrl}</td>
                     <td>${day.token}</td>
@@ -129,40 +131,6 @@ async function fetchAndRenderNominations() {
         </div>
       `;
       nominationsList.appendChild(accordionItem);
-
-      // $(document).ready(function () {
-      //   $(`#table${nomination.nominationId}`).DataTable({
-      //     order: [[0, "asc"]],
-      //     paging: false,
-      //     searching: false,
-      //     info: false,
-      //     columnDefs: [
-      //       { visible: false, targets: 0 },
-      //       { orderable: false, targets: 4 },
-      //     ],
-
-      //     drawCallback: function (settings) {
-      //       var api = this.api();
-      //       var rows = api.rows({ page: "current" }).nodes();
-      //       var last = null;
-
-      //       api
-      //         .column(0, { page: "current" })
-      //         .data()
-      //         .each(function (group, i) {
-      //           if (last !== group) {
-      //             $(rows)
-      //               .eq(i)
-      //               .before(
-      //                 `<tr class="table-primary"><td colspan="5">${group}</td></tr>`
-      //               );
-
-      //             last = group;
-      //           }
-      //         });
-      //     },
-      //   });
-      // });
     });
   }
 }
@@ -233,6 +201,8 @@ async function handleAddDay(event) {
     return;
   }
 
+  const streamUrl = document.getElementById("streamUrlInput").value.trim();
+
   const table = document.getElementById("addedPlatformsTable");
   const rows = table.querySelectorAll("tr");
   if (rows.length === 0) {
@@ -252,6 +222,7 @@ async function handleAddDay(event) {
 
   const dayDto = {
     nominationId: parseInt(currentNominationId),
+    streamUrl: streamUrl,
     day: parseInt(day),
     dayStreams: dayStreams,
   };
