@@ -353,7 +353,8 @@ public class StreamService
                             s.Day,
                             s.PlatformName,
                             s.PlatformUrl,
-                            s.Token
+                            s.Token,
+                            s.IsActive
                         ))
                         .ToList()
                 ))
@@ -382,7 +383,8 @@ public record GetStreamDto(
     int Day,
     string PlatformName,
     string PlatformUrl,
-    string Token
+    string Token,
+    bool IsActive
 );
 
 public record BroadcastDto(

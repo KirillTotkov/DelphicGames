@@ -112,16 +112,16 @@ async function fetchAndRenderNominations() {
               <tbody>
                 ${nomination.streams
                   .map(
-                    (day) => `
-                  <tr data-id="${day.id}">
-                    <td>${day.day}</td>
+                    (stream) => `
+                  <tr data-id="${stream.id}">
+                    <td>${stream.day}</td>
                     <td>${nomination.streamUrl}</td>
-                    <td>${day.platformName}</td>
-                    <td>${day.platformUrl}</td>
-                    <td>${day.token}</td>
+                    <td>${stream.platformName}</td>
+                    <td>${stream.platformUrl}</td>
+                    <td>${stream.token}</td>
                     <td>
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox">
+                            <input class="form-check-input" type="checkbox" ${stream.isActive ? "checked" : ""}>
                         </div>
                       </td>
                       <td>
