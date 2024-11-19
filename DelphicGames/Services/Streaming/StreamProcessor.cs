@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using DelphicGames.Data.Models;
+using DelphicGames.Hubs;
 using DelphicGames.Models;
+using MediatR;
+using Microsoft.AspNetCore.SignalR;
 using Serilog;
 
 namespace DelphicGames.Services.Streaming;
@@ -12,11 +15,14 @@ public class StreamProcessor : IStreamProcessor
 {
     private const string FfmpegPath = "ffmpeg";
     private readonly ILogger<StreamProcessor> _logger;
+    private readonly IMediator _mediator;
+
     private bool _disposed = false;
 
-    public StreamProcessor(ILogger<StreamProcessor> logger)
+    public StreamProcessor(ILogger<StreamProcessor> logger, IMediator mediator)
     {
         _logger = logger;
+        _mediator = mediator;
     }
 
     public StreamInfo StartStreamForPlatform(StreamEntity streamEntity)
@@ -70,7 +76,9 @@ public class StreamProcessor : IStreamProcessor
             if (!string.IsNullOrEmpty(args.Data))
             {
                 if (args.Data.Contains("Error", StringComparison.OrdinalIgnoreCase))
+                {
                     logger.Error(args.Data);
+                }
                 else if (args.Data.Contains("Warning", StringComparison.OrdinalIgnoreCase))
                     logger.Warning(args.Data);
                 else
@@ -86,12 +94,6 @@ public class StreamProcessor : IStreamProcessor
             process.Start();
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
-
-            Thread.Sleep(4000);
-            if (process.HasExited)
-            {
-                throw new InvalidOperationException("Процесс FFmpeg завершился неожиданно.");
-            }
 
             _logger.LogInformation("Запущен ffmpeg процесс для камеры {CameraId}", nominationId);
         }
@@ -179,7 +181,6 @@ public class StreamProcessor : IStreamProcessor
 
         return command.Trim();
     }
-
 
     public void Dispose()
     {

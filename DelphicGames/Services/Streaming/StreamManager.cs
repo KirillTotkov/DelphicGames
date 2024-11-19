@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using DelphicGames.Data.Models;
 using DelphicGames.Models;
 
@@ -5,10 +6,11 @@ namespace DelphicGames.Services.Streaming;
 
 public class StreamManager
 {
-    public Dictionary<int, List<StreamInfo>> NominationStreams { get; } = new();
+    private readonly ConcurrentDictionary<int, List<StreamInfo>> _nominationStreams = new();
     private readonly ILogger<StreamManager> _logger;
     private readonly IStreamProcessor _streamProcessor;
     private bool _disposed;
+    private readonly SemaphoreSlim _semaphore = new(1);
 
     public StreamManager(IStreamProcessor streamProcessor, ILogger<StreamManager> logger)
     {
@@ -17,35 +19,42 @@ public class StreamManager
     }
 
     // Запуск потока для определённой камеры и платформы
-    public void StartStream(StreamEntity streamEntity)
+    public async Task StartStream(StreamEntity streamEntity)
     {
         try
         {
-            var nominationId = streamEntity.NominationId;
-
-            if (!NominationStreams.TryGetValue(nominationId, out var streams))
-            {
-                streams = new List<StreamInfo>();
-                NominationStreams[nominationId] = streams;
-            }
-
+            await _semaphore.WaitAsync();
+            var streams = _nominationStreams.GetOrAdd(streamEntity.NominationId, _ => new List<StreamInfo>());
             var stream = _streamProcessor.StartStreamForPlatform(streamEntity);
             streams.Add(stream);
         }
+        catch (FfmpegProcessException ex)
+        {
+            _logger.LogError(ex,
+                "FFmpeg error starting stream for nomination {NominationId} on platform {PlatformName}",
+                streamEntity.NominationId, streamEntity.PlatformName);
+            throw;
+        }
         catch (Exception ex)
         {
+            _logger.LogError(ex,
+                "Error starting stream for nomination {NominationId} on platform {PlatformName}",
+                streamEntity.NominationId, streamEntity.PlatformName);
             throw;
+        }
+        finally
+        {
+            _semaphore.Release();
         }
     }
 
     // Остановка потока для определённой камеры и платформы
-    public void StopStream(StreamEntity streamEntity)
+    public async Task StopStream(StreamEntity streamEntity)
     {
         try
         {
-            var nominationId = streamEntity.NominationId;
-
-            if (NominationStreams.TryGetValue(nominationId, out var streams))
+            await _semaphore.WaitAsync();
+            if (_nominationStreams.TryGetValue(streamEntity.NominationId, out var streams))
             {
                 var stream = streams.FirstOrDefault(s =>
                     s.PlatformUrl == streamEntity.PlatformUrl && s.Token == streamEntity.Token);
@@ -55,55 +64,62 @@ public class StreamManager
                     _streamProcessor.StopStreamForPlatform(stream);
                     streams.Remove(stream);
 
-                    if (streams.Count == 0)
+                    if (!streams.Any())
                     {
-                        NominationStreams.Remove(nominationId);
+                        _nominationStreams.TryRemove(streamEntity.NominationId, out _);
                     }
                 }
             }
         }
-        catch (FfmpegProcessException ex)
+        catch (Exception ex)
         {
             _logger.LogError(ex,
-                "FFmpeg ошибка при запуске потока для номинации {NominationId} на платформе {PlatformName}",
+                "Error stopping stream for nomination {NominationId} on platform {PlatformName}",
                 streamEntity.NominationId, streamEntity.PlatformName);
             throw;
         }
-        catch (Exception ex)
+        finally
         {
-            _logger.LogError(ex, "Ошибка при остановке потока для номинации {NominationId} на платформе {PlatformName}",
-                streamEntity.NominationId, streamEntity.PlatformName);
-            throw;
+            _semaphore.Release();
         }
     }
 
     // Запуск всех потоков
-    public void StartAllStreams(IEnumerable<Data.Models.StreamEntity> cameraPlatformsList)
+    public async Task StartAllStreams(IEnumerable<StreamEntity> streamEntities)
     {
-        foreach (var cameraPlatform in cameraPlatformsList)
+        ArgumentNullException.ThrowIfNull(streamEntities);
+
+        foreach (var entity in streamEntities)
         {
-            StartStream(cameraPlatform);
+            await StartStream(entity);
         }
     }
 
     // Остановка всех потоков
-    public void StopAllStreams()
+    public async Task StopAllStreams()
     {
-        foreach (var streams in NominationStreams.Values)
+        try
         {
-            foreach (var stream in streams)
+            await _semaphore.WaitAsync();
+            foreach (var streams in _nominationStreams.Values)
             {
-                _streamProcessor.StopStreamForPlatform(stream);
+                foreach (var stream in streams.ToList())
+                {
+                    _streamProcessor.StopStreamForPlatform(stream);
+                }
             }
+            _nominationStreams.Clear();
         }
-
-        NominationStreams.Clear();
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     // Проверка наличия активных потоков для номинации
     public bool HasActiveStreams(int nominationId)
     {
-        return NominationStreams.TryGetValue(nominationId, out var streams) && streams.Any();
+        return _nominationStreams.TryGetValue(nominationId, out var streams) && streams.Any();
     }
 
     public void Dispose()
@@ -118,11 +134,17 @@ public class StreamManager
 
         if (disposing)
         {
-            StopAllStreams();
-            _streamProcessor.Dispose();
+            _semaphore.Wait();
+            try
+            {
+                StopAllStreams().GetAwaiter().GetResult();
+                _streamProcessor.Dispose();
+                _semaphore.Dispose();
+            }
+            finally
+            {
+                _disposed = true;
+            }
         }
-
-        _disposed = true;
     }
-
 }

@@ -1,6 +1,8 @@
 ﻿using DelphicGames.Data;
 using DelphicGames.Data.Models;
+using DelphicGames.Hubs;
 using DelphicGames.Services.Streaming;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace DelphicGames.Services;
@@ -10,12 +12,15 @@ public class StreamService
     private readonly ApplicationContext _context;
     private readonly ILogger<StreamService> _logger;
     private readonly StreamManager _streamManager;
+    private readonly IHubContext<StreamHub> _hubContext;
 
-    public StreamService(ApplicationContext context, StreamManager streamManager, ILogger<StreamService> logger)
+
+    public StreamService(ApplicationContext context, StreamManager streamManager, ILogger<StreamService> logger, IHubContext<StreamHub> hubContext)
     {
         _context = context;
         _streamManager = streamManager;
         _logger = logger;
+        _hubContext = hubContext;
     }
 
     // Получение всех трансляций
