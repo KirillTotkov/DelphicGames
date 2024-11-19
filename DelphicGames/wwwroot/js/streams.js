@@ -370,12 +370,11 @@ function launchStreamsForDay() {
         notyf.success("Трансляции запущены.");
       } else {
         return response.json().then((data) => {
-          throw new Error(data.Error || "Ошибка при запуске трансляций.");
+          notyf.error(data.error || "Ошибка при запуске трансляций.");
         });
       }
     })
     .catch((error) => {
-      alert(`Ошибка: ${error}`);
       notyf.error(error.error || "Ошибка при запуске трансляций.");
     });
 }
