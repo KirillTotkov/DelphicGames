@@ -105,46 +105,48 @@ async function fetchAndRenderNominations() {
               }"
                 data-bs-toggle="modal" data-bs-target="#addDayModal">Добавить день</button>
             </div>
-            <table id="table${
-              nomination.nominationId
-            }" class="table table-striped table-hover mt-3">
-              <thead class="table-light">
-                <tr>
-                  <th>День</th>
-                  <th>URL Потока</th>
-                  <th>Платформа</th>
-                  <th>URL Платформы</th>
-                  <th>Token</th>
-                  <th>Статус</th>
-                  <th>Действие</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${nomination.streams
-                  .map(
-                    (stream) => `
-                  <tr data-id="${stream.id}">
-                    <td>${stream.day}</td>
-                    <td>${stream.streamUrl}</td>
-                    <td>${stream.platformName}</td>
-                    <td>${stream.platformUrl}</td>
-                    <td>${stream.token}</td>
-                    <td>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input stream-toggle" type="checkbox" ${
-                              stream.isActive ? "checked" : ""
-                            }>
-                        </div>
-                      </td>
-                      <td>
-                      <button class="btn btn-danger btn-sm">Удалить</button>
-                    </td>
+            <div class="table-responsive">
+              <table id="table${
+                nomination.nominationId
+              }" class="table table-striped table-hover mt-3">
+                <thead class="table-light">
+                  <tr>
+                    <th>День</th>
+                    <th>URL Потока</th>
+                    <th>Платформа</th>
+                    <th>URL Платформы</th>
+                    <th>Token</th>
+                    <th>Статус</th>
+                    <th>Действие</th>
                   </tr>
-                `
-                  )
-                  .join("")}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  ${nomination.streams
+                    .map(
+                      (stream) => `
+                    <tr data-id="${stream.id}">
+                      <td>${stream.day}</td>
+                      <td>${stream.streamUrl}</td>
+                      <td>${stream.platformName}</td>
+                      <td>${stream.platformUrl}</td>
+                      <td>${stream.token}</td>
+                      <td>
+                          <div class="form-check form-switch">
+                              <input class="form-check-input stream-toggle" type="checkbox" ${
+                                stream.isActive ? "checked" : ""
+                              }>
+                          </div>
+                        </td>
+                        <td>
+                        <button class="btn btn-danger btn-sm">Удалить</button>
+                      </td>
+                    </tr>
+                  `
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+              </div>
           </div>
         </div>
       `;
