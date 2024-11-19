@@ -276,13 +276,24 @@ public class StreamService
     {
         try
         {
-            var activePlatforms = await _context.Streams
+            var streamsByDay = await _context.Streams
                 .Include(np => np.Nomination)
-                .Where(np => np.Day == day && !string.IsNullOrEmpty(np.Token) && np.IsActive)
+                .Where(np => np.Day == day && !string.IsNullOrEmpty(np.Token) && !np.IsActive)
                 .ToListAsync();
 
-            var startTasks = activePlatforms.Select(np => Task.Run(() => _streamManager.StartStream(np)));
+            if (streamsByDay.Count == 0)
+            {
+                throw new InvalidOperationException($"Не запущенные трансляции для дня {day} не найдены.");
+            }
+
+            var startTasks = streamsByDay.Select(np => Task.Run(() =>
+            {
+                _streamManager.StartStream(np);
+                np.IsActive = true;
+            }));
             await Task.WhenAll(startTasks);
+
+            await _context.SaveChangesAsync();
 
             _logger.LogInformation("Все трансляции для дня {Day} запущены.", day);
         }
