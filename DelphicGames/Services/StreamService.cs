@@ -40,12 +40,6 @@ public class StreamService
             throw new ArgumentException("URL трансляции не может быть пустым.", nameof(dayDto.StreamUrl));
         }
 
-        if (await _context.Nominations.AnyAsync(n =>
-            n.StreamUrl.ToLower() == dayDto.StreamUrl.ToLower() && n.Id != dayDto.NominationId))
-        {
-            throw new ArgumentException($"Номинация с ссылкой {dayDto.StreamUrl} уже существует");
-        }
-
         foreach (var dayStream in dayDto.DayStreams)
         {
             if (string.IsNullOrWhiteSpace(dayStream.PlatformName))
@@ -75,8 +69,6 @@ public class StreamService
                 throw new InvalidOperationException("Номинация не найдена.");
             }
 
-            nomination.StreamUrl = dayDto.StreamUrl;
-
             var streams = dayDto.DayStreams.Select(dayStream =>
             {
                 var stream = new StreamEntity
@@ -85,6 +77,7 @@ public class StreamService
                     PlatformName = dayStream.PlatformName,
                     PlatformUrl = dayStream.PlatformUrl,
                     Token = dayStream.Token,
+                    StreamUrl = dayDto.StreamUrl,
                     Day = dayDto.Day,
                     IsActive = false
                 };
@@ -344,7 +337,6 @@ public class StreamService
             var groupedStreams = nominations
                 .Select(nomination => new GetStreamsDto(
                     nomination.Id,
-                    nomination.StreamUrl,
                     nomination.Name,
                     nomination.Streams
                         .Where(s => !string.IsNullOrEmpty(s.Token))
@@ -354,7 +346,8 @@ public class StreamService
                             s.PlatformName,
                             s.PlatformUrl,
                             s.Token,
-                            s.IsActive
+                            s.IsActive,
+                            s.StreamUrl
                         ))
                         .ToList()
                 ))
@@ -373,7 +366,6 @@ public class StreamService
 
 public record GetStreamsDto(
     int NominationId,
-    string StreamUrl,
     string Nomination,
     List<GetStreamDto> Streams
 );
@@ -384,7 +376,8 @@ public record GetStreamDto(
     string PlatformName,
     string PlatformUrl,
     string Token,
-    bool IsActive
+    bool IsActive,
+    string StreamUrl
 );
 
 public record BroadcastDto(

@@ -115,7 +115,7 @@ async function fetchAndRenderNominations() {
                     (stream) => `
                   <tr data-id="${stream.id}">
                     <td>${stream.day}</td>
-                    <td>${nomination.streamUrl}</td>
+                    <td>${stream.streamUrl}</td>
                     <td>${stream.platformName}</td>
                     <td>${stream.platformUrl}</td>
                     <td>${stream.token}</td>
