@@ -215,37 +215,27 @@ public class StreamService
         }
     }
 
-    // Запуск трансляции для определенной номинации на определенной платформе
-    // Если трансляция уже запущена, то она будет перезапущена
-    // Если токен не пустой, то он будет обновлен
-    public void StartStream(AddDayDto dayDto)
+    public void StartStream(int streamId)
     {
         try
         {
-            foreach (var dayStream in dayDto.DayStreams)
+            var stream = _context.Streams
+                .Include(s => s.Nomination)
+                .FirstOrDefault(s => s.Id == streamId);
+
+            if (stream == null)
             {
-                var stream = _context.Streams
-                    .Include(s => s.Nomination)
-                    .FirstOrDefault(s => s.NominationId == dayDto.NominationId &&
-                                         s.PlatformName == dayStream.PlatformName);
-
-                if (stream != null)
-                {
-                    if (!string.IsNullOrEmpty(dayStream.Token))
-                    {
-                        stream.Token = dayStream.Token;
-                        _context.SaveChanges();
-                    }
-
-                    _streamManager.StartStream(stream);
-                    stream.IsActive = true;
-                    _context.SaveChanges();
-                }
-                else
-                {
-                    throw new InvalidOperationException("Stream not found.");
-                }
+                throw new InvalidOperationException("Stream not found.");
             }
+
+            if (string.IsNullOrEmpty(stream.Token))
+            {
+                throw new InvalidOperationException("Token is empty.");
+            }
+
+            _streamManager.StartStream(stream);
+            stream.IsActive = true;
+            _context.SaveChanges();
         }
         catch (Exception ex)
         {
@@ -254,13 +244,12 @@ public class StreamService
         }
     }
 
-    // Остановка трансляции для определенной номинации на определенной платформе
-    public void StopStream(int nominationId, string platformName)
+    public void StopStream(int streamId)
     {
         try
         {
             var stream = _context.Streams
-                .FirstOrDefault(s => s.NominationId == nominationId && s.PlatformName == platformName);
+                .FirstOrDefault(s => s.Id == streamId);
 
             if (stream != null)
             {

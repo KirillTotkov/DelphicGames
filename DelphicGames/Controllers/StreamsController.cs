@@ -85,12 +85,12 @@ public class StreamsController : ControllerBase
         return Ok(streams);
     }
 
-    [HttpPost("start")]
-    public IActionResult StartStream(AddDayDto dayDto)
+    [HttpPost("start/{streamId:int}")]
+    public IActionResult StartStream(int streamId)
     {
         try
         {
-            _streamService.StartStream(dayDto);
+            _streamService.StartStream(streamId);
             return Ok("Трансляция начата.");
         }
         catch (FfmpegProcessException ex)
@@ -108,19 +108,23 @@ public class StreamsController : ControllerBase
     }
 
 
-    // [HttpPost("stop")]
-    // public IActionResult StopStream([FromBody] AddStreamDto streamDto)
-    // {
-    //     try
-    //     {
-    //         _streamService.StopStream(streamDto.NominationId, streamDto.PlatformName);
-    //         return Ok("Трансляция остановлена.");
-    //     }
-    //     catch (InvalidOperationException ex)
-    //     {
-    //         return BadRequest(ex.Message);
-    //     }
-    // }
+    [HttpPost("stop/{streamId:int}")]
+    public IActionResult StopStream(int streamId)
+    {
+        try
+        {
+            _streamService.StopStream(streamId);
+            return Ok("Трансляция остановлена.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Внутренняя ошибка сервера.");
+        }
+    }
 
     [HttpPost("start/all")]
     public async Task<IActionResult> StartAllStreams()

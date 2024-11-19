@@ -122,7 +122,7 @@ async function fetchAndRenderNominations() {
                     <td>${stream.token}</td>
                     <td>
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" ${
+                            <input class="form-check-input stream-toggle" type="checkbox" ${
                               stream.isActive ? "checked" : ""
                             }>
                         </div>
@@ -142,6 +142,11 @@ async function fetchAndRenderNominations() {
       nominationsList.appendChild(accordionItem);
     });
   }
+
+  const streamToggles = document.querySelectorAll(".stream-toggle");
+  streamToggles.forEach((toggle) => {
+    toggle.addEventListener("change", handleStreamToggle);
+  });
 }
 
 async function fetchData() {
@@ -191,7 +196,6 @@ function addPlatform() {
   document.getElementById("urlInput").value = "";
   document.getElementById("tokenInput").value = "";
 }
-
 
 async function handleAddDay(event) {
   event.preventDefault();
@@ -269,6 +273,10 @@ async function handleAddDay(event) {
   }
 }
 
+function clearPlatforms() {
+  document.getElementById("addedPlatformsTable").innerHTML = "";
+}
+
 async function getLastStreamUrl(nominationId) {
   try {
     const response = await fetch(`/api/streams/${nominationId}`);
@@ -276,12 +284,65 @@ async function getLastStreamUrl(nominationId) {
       throw new Error("Failed to fetch streams");
     }
     const data = await response.json();
-    if (data.length === 0) return "";
-    // Assuming streams are sorted by day
+    if (data.length === 0 || data.streams.length == 0) return "";
     const lastStream = data.streams[data.streams.length - 1];
     return lastStream.streamUrl;
   } catch (error) {
     console.error("Error fetching last stream URL:", error);
     return "";
+  }
+}
+
+function handleStreamToggle(event) {
+  const checkbox = event.target;
+  const row = checkbox.closest("tr");
+  const streamId = row.getAttribute("data-id");
+
+  if (!streamId) return;
+
+  if (checkbox.checked) {
+    // Start the stream
+
+    checkbox.disabled = true;
+    fetch(`/api/streams/start/${streamId}`, {
+      method: "POST",
+    })
+      .then((response) => {
+        if (response.ok) {
+          checkbox.disabled = false;
+          notyf.success("Трансляция начата.");
+        } else {
+          throw new Error("Failed to start stream.");
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        notyf.error("Ошибка при запуске трансляции.");
+        // Revert the checkbox state
+        checkbox.checked = false;
+      });
+  } else {
+    // Stop the stream
+
+    checkbox.disabled = true;
+    fetch(`/api/streams/stop/${streamId}`, {
+      method: "POST",
+    })
+      .then((response) => {
+        if (response.ok) {
+          notyf.success("Трансляция остановлена.");
+          checkbox.disabled = false;
+        } else {
+          checkbox.disabled = false;
+          throw new Error("Failed to stop stream.");
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        notyf.error("Ошибка при остановке трансляции.");
+        // Revert the checkbox state
+        checkbox.checked = true;
+        checkbox.disabled = false;
+      });
   }
 }
