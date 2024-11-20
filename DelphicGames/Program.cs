@@ -35,7 +35,7 @@ try
     builder.Services.AddAuthorization();
     builder.Services.AddRazorPages();
 
-     builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
+    builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 
     builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
     var emailSettings = builder.Configuration.GetSection("EmailSettings").Get<EmailSettings>();
