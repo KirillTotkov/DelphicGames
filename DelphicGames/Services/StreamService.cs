@@ -441,7 +441,6 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             return;
         }
 
-        // Update status in the database
         switch (notification.Status)
         {
             case StreamStatus.Running:
@@ -450,17 +449,18 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             case StreamStatus.Completed:
             case StreamStatus.Error:
                 streamEntity.IsActive = false;
+                await _streamManager.StopStream(streamEntity);
                 break;
         }
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Notify clients via SignalR
         var streamStatusDto = new
         {
             StreamId = streamEntity.Id,
             Status = notification.Status.ToString(),
             ErrorMessage = notification.ErrorMessage
         };
+
         await _hubContext.Clients.All.SendAsync("StreamStatusChanged", streamStatusDto, cancellationToken);
 
         _logger.LogInformation($"Stream status updated for StreamEntity ID {streamEntity.Id}: {notification.Status}");
