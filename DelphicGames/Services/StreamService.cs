@@ -183,7 +183,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 throw new InvalidOperationException("Stream not found.");
             }
 
-            _streamManager.StopStream(stream);
+            await _streamManager.StopStream(stream);
 
             _context.Streams.Remove(stream);
             await _context.SaveChangesAsync();
