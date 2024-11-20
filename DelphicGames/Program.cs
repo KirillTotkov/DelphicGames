@@ -29,11 +29,13 @@ try
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c => { });
-    
+
     builder.Services.AddSignalR();
 
     builder.Services.AddAuthorization();
     builder.Services.AddRazorPages();
+
+     builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 
     builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
     var emailSettings = builder.Configuration.GetSection("EmailSettings").Get<EmailSettings>();
@@ -73,7 +75,7 @@ try
     });
 
 
-    builder.Services.AddSingleton<IStreamProcessor, StreamProcessor>();
+    builder.Services.AddScoped<IStreamProcessor, StreamProcessor>();
     builder.Services.AddSingleton<StreamManager>();
     builder.Services.AddScoped<CameraService>();
     builder.Services.AddScoped<StreamService>();
@@ -105,7 +107,7 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
-    
+
     app.MapHub<StreamHub>("/streamHub");
 
     app.MapControllers();
