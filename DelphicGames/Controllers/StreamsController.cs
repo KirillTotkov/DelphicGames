@@ -11,9 +11,8 @@ namespace DelphicGames.Controllers;
 [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Admin)}")]
 public class StreamsController : ControllerBase
 {
-    private readonly StreamService _streamService;
-
     private readonly ILogger<StreamsController> _logger;
+    private readonly StreamService _streamService;
 
     public StreamsController(StreamService streamService, ILogger<StreamsController> logger)
     {
@@ -83,6 +82,24 @@ public class StreamsController : ControllerBase
     {
         var streams = await _streamService.GetNominationStreams(nominationId);
         return Ok(streams);
+    }
+
+    [HttpPut("{streamId:int}")]
+    public async Task<ActionResult> UpdateStream([FromRoute] int streamId, [FromBody] UpdateStreamDto dto)
+    {
+        try
+        {
+            await _streamService.UpdateStream(streamId, dto);
+            return Ok();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { Error = ex.Message });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Внутренняя ошибка сервера.");
+        }
     }
 
     [HttpPost("start/{streamId:int}")]
