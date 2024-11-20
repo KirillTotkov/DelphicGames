@@ -117,7 +117,7 @@ function handleStreamStatusChanged(streamStatusDto) {
     toggleInput.checked = false;
   } else if (status === "Running") {
     // Highlight the stream row in green
-    
+
     // row.classList.add("table-success");
     row.classList.remove("table-danger");
 
@@ -201,6 +201,18 @@ async function fetchAndRenderNominations() {
       nominationsList.appendChild(accordionItem);
     });
   }
+
+  const days = data.flatMap((nomination) =>
+    nomination.streams.map((stream) => stream.day)
+  );
+  const uniqueDays = [...new Set(days)].sort((a, b) => a - b);
+  const launchDayDropdown = document.getElementById("launchDayDropdown");
+  launchDayDropdown.innerHTML = `
+    <option value="">--Выберите день--</option>
+    ${uniqueDays
+      .map((day) => `<option value="${day}">День ${day}</option>`)
+      .join("")}
+  `;
 
   const streamToggles = document.querySelectorAll(".stream-toggle");
   streamToggles.forEach((toggle) => {
