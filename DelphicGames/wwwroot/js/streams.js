@@ -8,7 +8,9 @@ const notyf = new Notyf({
 
 let currentNominationId = null;
 
-document.addEventListener("DOMContentLoaded", () => {
+let isBulkStopping = false;
+
+document.addEventListener("DOMContentLoaded", async () => {
   fetchAndRenderNominations();
   document
     .getElementById("submitAddDayBtn")
@@ -68,17 +70,71 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const launchBtn = document.getElementById("launchStreamsBtn");
   launchBtn.addEventListener("click", launchStreamsForDay);
+
+  const stopBtn = document.getElementById("stopStreamsBtn");
+  stopBtn.addEventListener("click", stopStreamsForDay);
+
+  await startSignalRConnection();
 });
+
+async function startSignalRConnection() {
+  connection = new signalR.HubConnectionBuilder().withUrl("/streamHub").build();
+
+  connection.on("StreamStatusChanged", handleStreamStatusChanged);
+
+  try {
+    await connection.start();
+  } catch (err) {
+    console.error("Error connecting to SignalR:", err);
+    setTimeout(startSignalRConnection, 5000);
+  }
+}
+
+function handleStreamStatusChanged(streamStatusDto) {
+  const { streamId, status, errorMessage } = streamStatusDto;
+
+  // Find the row corresponding to the StreamId
+  const row = document.querySelector(`tr[data-id="${streamId}"]`);
+  if (!row) return;
+
+  const toggleInput = row.querySelector(".stream-toggle");
+  console.log(status, errorMessage);
+
+  if (status === "Error") {
+    // Show notification
+    notyf.error(`Ошибка в трансляции: ${errorMessage}`);
+
+    // Highlight the stream row in red
+    row.classList.add("table-danger");
+    row.classList.remove("table-success");
+
+    // Update the toggle switch
+    toggleInput.checked = false;
+  } else if (status === "Completed") {
+    // Show notification
+    if (!isBulkStopping) {
+      notyf.success(`Трансляция завершена.`);
+    }
+
+    // Remove any highlighting
+    row.classList.remove("table-danger", "table-success");
+
+    // Update the toggle switch
+    toggleInput.checked = false;
+  } else if (status === "Running") {
+    // Highlight the stream row in green
+
+    // row.classList.add("table-success");
+    row.classList.remove("table-danger");
+
+    // Update the toggle switch
+    toggleInput.checked = true;
+  }
+}
 
 async function fetchAndRenderNominations() {
   const data = await fetchData();
-  const noNominationsMessage = document.getElementById("noNominationsMessage");
-  const daySelection = document.getElementById("launchDayDropdown");
-
-  if (data && data.length > 0) {
-    noNominationsMessage.style.display = "none";
-    daySelection.style.display = "block";
-
+  if (data) {
     const nominationsList = document.getElementById("nominations-list");
     nominationsList.innerHTML = "";
     data.forEach((nomination) => {
@@ -105,57 +161,65 @@ async function fetchAndRenderNominations() {
               }"
                 data-bs-toggle="modal" data-bs-target="#addDayModal">Добавить день</button>
             </div>
-            <div class="table-responsive">
-              <table id="table${
-                nomination.nominationId
-              }" class="table table-striped table-hover mt-3">
-                <thead class="table-light">
-                  <tr>
-                    <th>День</th>
-                    <th>URL Потока</th>
-                    <th>Платформа</th>
-                    <th>URL Платформы</th>
-                    <th>Token</th>
-                    <th>Статус</th>
-                    <th>Действие</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${nomination.streams
-                    .map(
-                      (stream) => `
-                    <tr data-id="${stream.id}">
-                      <td>${stream.day}</td>
-                      <td>${stream.streamUrl}</td>
-                      <td>${stream.platformName}</td>
-                      <td>${stream.platformUrl}</td>
-                      <td>${stream.token}</td>
-                      <td>
-                          <div class="form-check form-switch">
-                              <input class="form-check-input stream-toggle" type="checkbox" ${
-                                stream.isActive ? "checked" : ""
-                              }>
-                          </div>
-                        </td>
-                        <td>
-                        <button class="btn btn-danger btn-sm">Удалить</button>
+            <table id="table${
+              nomination.nominationId
+            }" class="table table-striped table-hover mt-3">
+              <thead class="table-light">
+                <tr>
+                  <th>День</th>
+                  <th>URL Потока</th>
+                  <th>Платформа</th>
+                  <th>URL Платформы</th>
+                  <th>Token</th>
+                  <th>Статус</th>
+                  <th>Действие</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${nomination.streams
+                  .sort((a, b) => a.day - b.day)
+                  .map(
+                    (stream) => `
+                  <tr data-id="${stream.id}">
+                    <td>${stream.day}</td>
+                    <td>${stream.streamUrl}</td>
+                    <td>${stream.platformName}</td>
+                    <td>${stream.platformUrl}</td>
+                    <td>${stream.token}</td>
+                    <td>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input stream-toggle" type="checkbox" ${
+                              stream.isActive ? "checked" : ""
+                            }>
+                        </div>
                       </td>
-                    </tr>
-                  `
-                    )
-                    .join("")}
-                </tbody>
-              </table>
-              </div>
+                      <td>
+                      <button class="btn btn-danger btn-sm">Удалить</button>
+                    </td>
+                  </tr>
+                `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
           </div>
         </div>
       `;
       nominationsList.appendChild(accordionItem);
     });
-  } else {
-    noNominationsMessage.style.display = "block";
-    daySelection.style.display = "none";
   }
+
+  const days = data.flatMap((nomination) =>
+    nomination.streams.map((stream) => stream.day)
+  );
+  const uniqueDays = [...new Set(days)].sort((a, b) => a - b);
+  const launchDayDropdown = document.getElementById("launchDayDropdown");
+  launchDayDropdown.innerHTML = `
+    <option value="">--Выберите день--</option>
+    ${uniqueDays
+      .map((day) => `<option value="${day}">День ${day}</option>`)
+      .join("")}
+  `;
 
   const streamToggles = document.querySelectorAll(".stream-toggle");
   streamToggles.forEach((toggle) => {
@@ -344,7 +408,7 @@ function handleStreamToggle(event) {
     })
       .then((response) => {
         if (response.ok) {
-          notyf.success("Трансляция остановлена.");
+          // notyf.success("Трансляция остановлена.");
           checkbox.disabled = false;
         } else {
           checkbox.disabled = false;
@@ -387,5 +451,38 @@ function launchStreamsForDay() {
     })
     .catch((error) => {
       notyf.error(error.error || "Ошибка при запуске трансляций.");
+    });
+}
+
+function stopStreamsForDay() {
+  const daySelect = document.getElementById("launchDayDropdown");
+  const day = daySelect.value;
+
+  if (!day) {
+    alert("Пожалуйста, выберите день.");
+    return;
+  }
+
+  isBulkStopping = true;
+
+  fetch(`/api/streams/stop/day/${day}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })
+    .then((response) => {
+      isBulkStopping = false;
+      if (response.ok) {
+        notyf.success("Трансляции остановлены.");
+      } else {
+        return response.json().then((data) => {
+          notyf.error(data.error || "Ошибка при остановке трансляций.");
+        });
+      }
+    })
+    .catch((error) => {
+      isBulkStopping = false;
+      notyf.error(error.error || "Ошибка при остановке трансляций.");
     });
 }

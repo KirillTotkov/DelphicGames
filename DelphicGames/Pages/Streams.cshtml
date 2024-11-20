@@ -8,19 +8,22 @@
 <div class="m-4">
     <div class="d-flex align-items-end mb-4">
         <div class="me-2">
-            <label for="launchDayDropdown" class="form-label">Выберите день для запуска:</label>
+            <label for="launchDayDropdown" class="form-label"></label>
             <select id="launchDayDropdown" class="form-select" style="width: 200px;">
                 <option value="">--Выберите день--</option>
-                @for (int i = 1; i <= 10; i++)
-                {
-                    <option value="@i">День @i</option>
-                }
             </select>
         </div>
         <button id="launchStreamsBtn" class="">
             <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px;" viewBox="0 0 384 512">
                 <path fill="#74C0FC"
                     d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z" />
+            </svg>
+        </button>
+        <button id="stopStreamsBtn" class="ms-2">
+            <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px;"
+                viewBox="0 0 384 512"><!--!Font Awesome Free 6.7.0 by @@fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                <path fill="#ff0000"
+                    d="M0 128C0 92.7 28.7 64 64 64H320c35.3 0 64 28.7 64 64V384c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V128z" />
             </svg>
         </button>
     </div>
@@ -151,14 +154,16 @@
             height: 15px;
         }
 
-        #launchStreamsBtn {
+        #launchStreamsBtn,
+        #stopStreamsBtn {
             background: none;
             border: 1px solid transparent;
             padding: 6px;
             cursor: pointer;
         }
 
-        #launchStreamsBtn:hover {
+        #launchStreamsBtn:hover,
+        #stopStreamsBtn:hover {
             border: 1px solid black;
         }
     </style>
@@ -168,6 +173,7 @@
 {
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
     <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
 
     <script src="js/streams.js" asp-append-version="true"></script>
 }

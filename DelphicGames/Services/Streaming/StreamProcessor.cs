@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using DelphicGames.Data.Models;
+using DelphicGames.Hubs;
 using DelphicGames.Models;
+using MediatR;
+using Microsoft.AspNetCore.SignalR;
 using Serilog;
 
 namespace DelphicGames.Services.Streaming;
@@ -13,13 +16,16 @@ public class StreamProcessor : IStreamProcessor
     private const string FfmpegPath = "ffmpeg";
     private readonly ILogger<StreamProcessor> _logger;
     private bool _disposed = false;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public StreamProcessor(ILogger<StreamProcessor> logger)
+    public StreamProcessor(ILogger<StreamProcessor> logger, IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
+        _scopeFactory = scopeFactory;
     }
 
-    public StreamInfo StartStreamForPlatform(StreamEntity streamEntity)
+
+    public async Task<StreamInfo> StartStreamForPlatform(StreamEntity streamEntity)
     {
         ArgumentNullException.ThrowIfNull(streamEntity);
 
@@ -57,20 +63,28 @@ public class StreamProcessor : IStreamProcessor
             EnableRaisingEvents = true
         };
 
-        DataReceivedEventHandler outputHandler = (sender, args) =>
-          {
-              if (!string.IsNullOrEmpty(args.Data))
-              {
-                  logger.Information(args.Data);
-              }
-          };
+        process.OutputDataReceived += (sender, args) =>
+        {
+            if (!string.IsNullOrEmpty(args.Data))
+            {
+                logger.Information(args.Data);
+            }
+        };
 
-        DataReceivedEventHandler errorHandler = (sender, args) =>
+        process.ErrorDataReceived += async (sender, args) =>
         {
             if (!string.IsNullOrEmpty(args.Data))
             {
                 if (args.Data.Contains("Error", StringComparison.OrdinalIgnoreCase))
+                {
                     logger.Error(args.Data);
+
+                    using var scope = _scopeFactory.CreateScope();
+                    var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+
+                    var errorEvent = new StreamStatusChangedEvent(streamEntity.Id, StreamStatus.Error, args.Data);
+                    await mediator.Publish(errorEvent);
+                }
                 else if (args.Data.Contains("Warning", StringComparison.OrdinalIgnoreCase))
                     logger.Warning(args.Data);
                 else
@@ -78,8 +92,17 @@ public class StreamProcessor : IStreamProcessor
             }
         };
 
-        process.OutputDataReceived += outputHandler;
-        process.ErrorDataReceived += errorHandler;
+        process.Exited += async (sender, args) =>
+        {
+            _logger.LogInformation($"Stream process for entity {streamEntity.Id} has exited.");
+
+            using var scope = _scopeFactory.CreateScope();
+            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+
+            var completedEvent = new StreamStatusChangedEvent(streamEntity.Id, StreamStatus.Completed);
+            await mediator.Publish(completedEvent);
+        };
+
 
         try
         {
@@ -87,19 +110,19 @@ public class StreamProcessor : IStreamProcessor
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
-            Thread.Sleep(4000);
-            if (process.HasExited)
-            {
-                throw new InvalidOperationException("Процесс FFmpeg завершился неожиданно.");
-            }
+            using var scope = _scopeFactory.CreateScope();
+            var mediatorStart = scope.ServiceProvider.GetRequiredService<IMediator>();
+            var runningEvent = new StreamStatusChangedEvent(streamEntity.Id, StreamStatus.Running);
+            await mediatorStart.Publish(runningEvent);
 
             _logger.LogInformation("Запущен ffmpeg процесс для камеры {CameraId}", nominationId);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ошибка при запуске процесса ffmpeg для камеры {CameraId}", nominationId);
-            process.OutputDataReceived -= outputHandler;
-            process.ErrorDataReceived -= errorHandler;
+            process.OutputDataReceived -= null;
+            process.ErrorDataReceived -= null;
+            process.Exited -= null;
             logger.Dispose();
             throw new InvalidOperationException("Не удалось начать трансляцию.", ex);
         }
@@ -130,12 +153,14 @@ public class StreamProcessor : IStreamProcessor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при остановке процесса ffmpeg для камеры {CameraId}", streamInfo.NominationUrl);
+            _logger.LogError(ex, "Ошибка при остановке процесса ffmpeg для камеры {CameraId}",
+                streamInfo.NominationUrl);
         }
         finally
         {
             streamInfo.Process.OutputDataReceived -= null;
             streamInfo.Process.ErrorDataReceived -= null;
+            streamInfo.Process.Exited -= null;
             streamInfo.Process.Dispose();
             streamInfo.Logger.Dispose();
         }
@@ -166,7 +191,8 @@ public class StreamProcessor : IStreamProcessor
         var command =
             " -y -fflags +genpts -thread_queue_size 512 -probesize 5000000 -analyzeduration 5000000 -timeout 5000000 -rtsp_transport tcp ";
 
-        command += $"-i {streamEntity.StreamUrl} -dn -sn -map 0:0 -codec:v copy -map 0:1 -codec:a aac -b:a 64k -shortest ";
+        command +=
+            $"-i {streamEntity.StreamUrl} -dn -sn -map 0:0 -codec:v copy -map 0:1 -codec:a aac -b:a 64k -shortest ";
 
         if (!streamEntity.PlatformUrl.EndsWith("/"))
         {
@@ -179,7 +205,6 @@ public class StreamProcessor : IStreamProcessor
 
         return command.Trim();
     }
-
 
     public void Dispose()
     {

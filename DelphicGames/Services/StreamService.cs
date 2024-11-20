@@ -1,21 +1,27 @@
 ﻿using DelphicGames.Data;
 using DelphicGames.Data.Models;
+using DelphicGames.Hubs;
 using DelphicGames.Services.Streaming;
+using MediatR;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace DelphicGames.Services;
 
-public class StreamService
+public class StreamService : INotificationHandler<StreamStatusChangedEvent>
 {
     private readonly ApplicationContext _context;
     private readonly ILogger<StreamService> _logger;
     private readonly StreamManager _streamManager;
+    private readonly IHubContext<StreamHub> _hubContext;
 
-    public StreamService(ApplicationContext context, StreamManager streamManager, ILogger<StreamService> logger)
+    public StreamService(ApplicationContext context, StreamManager streamManager, ILogger<StreamService> logger,
+        IHubContext<StreamHub> hubContext)
     {
         _context = context;
         _streamManager = streamManager;
         _logger = logger;
+        _hubContext = hubContext;
     }
 
     // Получение всех трансляций
@@ -165,7 +171,6 @@ public class StreamService
         return new GetStreamsDto(nomination.Id, nomination.Name, streams);
     }
 
-
     public async Task DeleteStream(int streamId)
     {
         try
@@ -178,7 +183,7 @@ public class StreamService
                 throw new InvalidOperationException("Stream not found.");
             }
 
-            _streamManager.StopStream(stream);
+            await _streamManager.StopStream(stream);
 
             _context.Streams.Remove(stream);
             await _context.SaveChangesAsync();
@@ -217,7 +222,7 @@ public class StreamService
         }
     }
 
-    public void StartStream(int streamId)
+    public async Task StartStreamAsync(int streamId)
     {
         try
         {
@@ -235,9 +240,9 @@ public class StreamService
                 throw new InvalidOperationException("Token is empty.");
             }
 
-            _streamManager.StartStream(stream);
+            await _streamManager.StartStream(stream);
             stream.IsActive = true;
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -246,7 +251,7 @@ public class StreamService
         }
     }
 
-    public void StopStream(int streamId)
+    public async Task StopStreamAsync(int streamId)
     {
         try
         {
@@ -255,7 +260,7 @@ public class StreamService
 
             if (stream != null)
             {
-                _streamManager.StopStream(stream);
+                await _streamManager.StopStream(stream);
                 stream.IsActive = false;
                 _context.SaveChanges();
             }
@@ -286,9 +291,9 @@ public class StreamService
                 throw new InvalidOperationException($"Не запущенные трансляции для дня {day} не найдены.");
             }
 
-            var startTasks = streamsByDay.Select(np => Task.Run(() =>
+            var startTasks = streamsByDay.Select(np => Task.Run(async () =>
             {
-                _streamManager.StartStream(np);
+                await _streamManager.StartStream(np);
                 np.IsActive = true;
             }));
             await Task.WhenAll(startTasks);
@@ -304,6 +309,39 @@ public class StreamService
         }
     }
 
+    // Остановка всех трансляций для определенного дня
+    public async Task StopStreamsByDay(int day)
+    {
+        try
+        {
+            var streamsByDay = await _context.Streams
+                .Include(np => np.Nomination)
+                .Where(np => np.Day == day && np.IsActive)
+                .ToListAsync();
+
+            if (streamsByDay.Count == 0)
+            {
+                throw new InvalidOperationException($"Запущенные трансляции для дня {day} не найдены.");
+            }
+
+            var stopTasks = streamsByDay.Select(np => Task.Run(async () =>
+            {
+                await _streamManager.StopStream(np);
+                np.IsActive = false;
+            }));
+            await Task.WhenAll(stopTasks);
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Все трансляции для дня {Day} остановлены.", day);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при остановке всех трансляций для дня.");
+            throw;
+        }
+    }
+
     // Запуск всех трансляций у которых есть токен
     public async Task StartAllStreams()
     {
@@ -314,8 +352,14 @@ public class StreamService
                 .Where(np => !string.IsNullOrEmpty(np.Token) && np.IsActive)
                 .ToListAsync();
 
-            var startTasks = activePlatforms.Select(np => Task.Run(() => _streamManager.StartStream(np)));
+            var startTasks = activePlatforms.Select(np => Task.Run(async () =>
+            {
+                await _streamManager.StartStream(np);
+                np.IsActive = true;
+            }));
             await Task.WhenAll(startTasks);
+
+            await _context.SaveChangesAsync();
 
             _logger.LogInformation("Все трансляции запущены.");
         }
@@ -336,8 +380,14 @@ public class StreamService
                 .Where(np => np.IsActive)
                 .ToListAsync();
 
-            var stopTasks = activePlatforms.Select(np => Task.Run(() => _streamManager.StopStream(np)));
-            await Task.WhenAll(stopTasks);
+            await _streamManager.StopAllStreams();
+
+            foreach (var platform in activePlatforms)
+            {
+                platform.IsActive = false;
+            }
+
+            await _context.SaveChangesAsync();
 
             _logger.LogInformation("Все трансляции остановлены.");
         }
@@ -349,13 +399,13 @@ public class StreamService
     }
 
     // Запуск трансляций для определенной номинации на всех платформах
-    public void StartNominationStreams(int nominationId)
+    public async Task StartNominationStreams(int nominationId)
     {
         try
         {
-            var nomination = _context.Nominations
+            var nomination = await _context.Nominations
                 .Include(n => n.Streams)
-                .FirstOrDefault(n => n.Id == nominationId);
+                .FirstOrDefaultAsync(n => n.Id == nominationId);
 
             if (nomination == null)
             {
@@ -373,12 +423,12 @@ public class StreamService
             {
                 if (!string.IsNullOrEmpty(np.Token))
                 {
-                    _streamManager.StartStream(np);
+                    await _streamManager.StartStream(np);
                     np.IsActive = true;
                 }
             }
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             _logger.LogInformation("Трансляции для номинации {NominationId} запущены на всех платформах.",
                 nominationId);
         }
@@ -390,22 +440,23 @@ public class StreamService
     }
 
     // Остановка трансляций для определенной номинации
-    public void StopNominationStreams(int nominationId)
+    public async Task StopNominationStreams(int nominationId)
     {
         try
         {
-            var nominationPlatforms = _context.Streams
+            var nominationPlatforms = await _context.Streams
                 .Include(np => np.Nomination)
                 .Where(np => np.NominationId == nominationId && np.IsActive)
-                .ToList();
+                .ToListAsync();
 
             foreach (var np in nominationPlatforms)
             {
-                _streamManager.StopStream(np);
+                await _streamManager.StopStream(np);
                 np.IsActive = false;
             }
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
+
             _logger.LogInformation("Трансляции для номинации {NominationId} остановлены.", nominationId);
         }
         catch (Exception ex)
@@ -415,7 +466,39 @@ public class StreamService
         }
     }
 
+    public async Task Handle(StreamStatusChangedEvent notification, CancellationToken cancellationToken)
+    {
+        var streamEntity = await _context.Streams.FindAsync(notification.StreamEntityId);
+        if (streamEntity == null)
+        {
+            _logger.LogError($"StreamEntity with ID {notification.StreamEntityId} not found.");
+            return;
+        }
 
+        switch (notification.Status)
+        {
+            case StreamStatus.Running:
+                streamEntity.IsActive = true;
+                break;
+            case StreamStatus.Completed:
+            case StreamStatus.Error:
+                streamEntity.IsActive = false;
+                await _streamManager.StopStream(streamEntity);
+                break;
+        }
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var streamStatusDto = new
+        {
+            StreamId = streamEntity.Id,
+            Status = notification.Status.ToString(),
+            ErrorMessage = notification.ErrorMessage
+        };
+
+        await _hubContext.Clients.All.SendAsync("StreamStatusChanged", streamStatusDto, cancellationToken);
+
+        _logger.LogInformation($"Stream status updated for StreamEntity ID {streamEntity.Id}: {notification.Status}");
+    }
 }
 
 public record GetStreamsDto(

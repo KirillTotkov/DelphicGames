@@ -5,6 +5,6 @@ namespace DelphicGames.Services.Streaming;
 
 public interface IStreamProcessor : IDisposable
 {
-    StreamInfo StartStreamForPlatform(Data.Models.StreamEntity streamEntity);
+    Task<StreamInfo> StartStreamForPlatform(StreamEntity streamEntity);
     void StopStreamForPlatform(StreamInfo streamInfo);
 }

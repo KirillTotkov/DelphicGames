@@ -94,3 +94,11 @@ body {
     border-radius: 8px; /* Скругленные углы */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Тень для формы */
 }
+
+.table-danger {
+    background-color: #f8d7da !important;
+}
+  
+.table-success {
+  background-color: #d4edda !important;
+}

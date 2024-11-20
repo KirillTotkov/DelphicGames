@@ -1,5 +1,6 @@
 using DelphicGames.Data;
 using DelphicGames.Data.Models;
+using DelphicGames.Hubs;
 using DelphicGames.Models;
 using DelphicGames.Services;
 using DelphicGames.Services.Streaming;
@@ -29,8 +30,12 @@ try
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c => { });
 
+    builder.Services.AddSignalR();
+
     builder.Services.AddAuthorization();
     builder.Services.AddRazorPages();
+
+     builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 
     builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
     var emailSettings = builder.Configuration.GetSection("EmailSettings").Get<EmailSettings>();
@@ -70,7 +75,7 @@ try
     });
 
 
-    builder.Services.AddSingleton<IStreamProcessor, StreamProcessor>();
+    builder.Services.AddScoped<IStreamProcessor, StreamProcessor>();
     builder.Services.AddSingleton<StreamManager>();
     builder.Services.AddScoped<CameraService>();
     builder.Services.AddScoped<StreamService>();
@@ -102,6 +107,8 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+
+    app.MapHub<StreamHub>("/streamHub");
 
     app.MapControllers();
     app.MapRazorPages();
@@ -173,11 +180,11 @@ try
     }
 
     // Остановка трансляций при завершении работы приложения
-    app.Lifetime.ApplicationStopping.Register(async () =>
+    app.Lifetime.ApplicationStopping.Register(() =>
     {
         using var scope = app.Services.CreateScope();
         var streamService = scope.ServiceProvider.GetRequiredService<StreamService>();
-        await streamService.StopAllStreams();
+        streamService.StopAllStreams().GetAwaiter().GetResult();
         Log.Information("Приложение остановлено. Все трансляции остановлены");
     });
 

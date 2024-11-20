@@ -86,11 +86,11 @@ public class StreamsController : ControllerBase
     }
 
     [HttpPost("start/{streamId:int}")]
-    public IActionResult StartStream(int streamId)
+    public async Task<IActionResult> StartStream(int streamId)
     {
         try
         {
-            _streamService.StartStream(streamId);
+            await _streamService.StartStreamAsync(streamId);
             return Ok("Трансляция начата.");
         }
         catch (FfmpegProcessException ex)
@@ -109,11 +109,11 @@ public class StreamsController : ControllerBase
 
 
     [HttpPost("stop/{streamId:int}")]
-    public IActionResult StopStream(int streamId)
+    public async Task<IActionResult> StopStream(int streamId)
     {
         try
         {
-            _streamService.StopStream(streamId);
+            await _streamService.StopStreamAsync(streamId);
             return Ok("Трансляция остановлена.");
         }
         catch (InvalidOperationException ex)
@@ -155,11 +155,11 @@ public class StreamsController : ControllerBase
     }
 
     [HttpPost("start/nomination")]
-    public IActionResult StartNominationStreams([FromQuery] int nominationId)
+    public async Task<IActionResult> StartNominationStreams([FromQuery] int nominationId)
     {
         try
         {
-            _streamService.StartNominationStreams(nominationId);
+            await _streamService.StartNominationStreams(nominationId);
             return Ok($"Трансляции для камеры начаты.");
         }
         catch (InvalidOperationException ex)
@@ -169,11 +169,11 @@ public class StreamsController : ControllerBase
     }
 
     [HttpPost("stop/nomination")]
-    public IActionResult StopNominationStreams([FromQuery] int nominationId)
+    public async Task<IActionResult> StopNominationStreams([FromQuery] int nominationId)
     {
         try
         {
-            _streamService.StopNominationStreams(nominationId);
+            await _streamService.StopNominationStreams(nominationId);
             return Ok($"Трансляции для камеры остановлены.");
         }
         catch (InvalidOperationException ex)
@@ -189,6 +189,20 @@ public class StreamsController : ControllerBase
         {
             await _streamService.StartStreamsByDay(dayId);
             return Ok($"Трансляции для дня начаты.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { Error = ex.Message });
+        }
+    }
+
+    [HttpPost("stop/day/{dayId:int}")]
+    public async Task<IActionResult> StopDayStreams(int dayId)
+    {
+        try
+        {
+            await _streamService.StopStreamsByDay(dayId);
+            return Ok($"Трансляции для дня остановлены.");
         }
         catch (InvalidOperationException ex)
         {

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using DelphicGames.Data.Models;
 using DelphicGames.Models;
 
@@ -5,105 +6,131 @@ namespace DelphicGames.Services.Streaming;
 
 public class StreamManager
 {
-    public Dictionary<int, List<StreamInfo>> NominationStreams { get; } = new();
+    private readonly ConcurrentDictionary<int, List<StreamInfo>> _nominationStreams = new();
     private readonly ILogger<StreamManager> _logger;
-    private readonly IStreamProcessor _streamProcessor;
+    // private readonly IStreamProcessor _streamProcessor;
     private bool _disposed;
+    private readonly SemaphoreSlim _semaphore = new(1);
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public StreamManager(IStreamProcessor streamProcessor, ILogger<StreamManager> logger)
+
+    public StreamManager(ILogger<StreamManager> logger, IServiceScopeFactory scopeFactory)
     {
-        _streamProcessor = streamProcessor;
         _logger = logger;
+        _scopeFactory = scopeFactory;
     }
 
     // Запуск потока для определённой камеры и платформы
-    public void StartStream(StreamEntity streamEntity)
+    public async Task StartStream(StreamEntity streamEntity)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var streamProcessor = scope.ServiceProvider.GetRequiredService<IStreamProcessor>();
+
         try
         {
-            var nominationId = streamEntity.NominationId;
-
-            if (!NominationStreams.TryGetValue(nominationId, out var streams))
-            {
-                streams = new List<StreamInfo>();
-                NominationStreams[nominationId] = streams;
-            }
-
-            var stream = _streamProcessor.StartStreamForPlatform(streamEntity);
+            await _semaphore.WaitAsync();
+            var streams = _nominationStreams.GetOrAdd(streamEntity.NominationId, _ => new List<StreamInfo>());
+            var stream = await streamProcessor.StartStreamForPlatform(streamEntity);
             streams.Add(stream);
+        }
+        catch (FfmpegProcessException ex)
+        {
+            _logger.LogError(ex,
+                "FFmpeg error starting stream for nomination {NominationId} on platform {PlatformName}",
+                streamEntity.NominationId, streamEntity.PlatformName);
+            throw;
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex,
+                "Error starting stream for nomination {NominationId} on platform {PlatformName}",
+                streamEntity.NominationId, streamEntity.PlatformName);
             throw;
+        }
+        finally
+        {
+            _semaphore.Release();
         }
     }
 
     // Остановка потока для определённой камеры и платформы
-    public void StopStream(StreamEntity streamEntity)
+    public async Task StopStream(StreamEntity streamEntity)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var streamProcessor = scope.ServiceProvider.GetRequiredService<IStreamProcessor>();
+
         try
         {
-            var nominationId = streamEntity.NominationId;
-
-            if (NominationStreams.TryGetValue(nominationId, out var streams))
+            await _semaphore.WaitAsync();
+            if (_nominationStreams.TryGetValue(streamEntity.NominationId, out var streams))
             {
                 var stream = streams.FirstOrDefault(s =>
                     s.PlatformUrl == streamEntity.PlatformUrl && s.Token == streamEntity.Token);
 
                 if (stream != null)
                 {
-                    _streamProcessor.StopStreamForPlatform(stream);
+                    streamProcessor.StopStreamForPlatform(stream);
                     streams.Remove(stream);
 
-                    if (streams.Count == 0)
+                    if (!streams.Any())
                     {
-                        NominationStreams.Remove(nominationId);
+                        _nominationStreams.TryRemove(streamEntity.NominationId, out _);
                     }
                 }
             }
         }
-        catch (FfmpegProcessException ex)
+        catch (Exception ex)
         {
             _logger.LogError(ex,
-                "FFmpeg ошибка при запуске потока для номинации {NominationId} на платформе {PlatformName}",
+                "Error stopping stream for nomination {NominationId} on platform {PlatformName}",
                 streamEntity.NominationId, streamEntity.PlatformName);
             throw;
         }
-        catch (Exception ex)
+        finally
         {
-            _logger.LogError(ex, "Ошибка при остановке потока для номинации {NominationId} на платформе {PlatformName}",
-                streamEntity.NominationId, streamEntity.PlatformName);
-            throw;
+            _semaphore.Release();
         }
     }
 
     // Запуск всех потоков
-    public void StartAllStreams(IEnumerable<Data.Models.StreamEntity> cameraPlatformsList)
+    public async Task StartAllStreams(IEnumerable<StreamEntity> streamEntities)
     {
-        foreach (var cameraPlatform in cameraPlatformsList)
+        ArgumentNullException.ThrowIfNull(streamEntities);
+
+        foreach (var entity in streamEntities)
         {
-            StartStream(cameraPlatform);
+            await StartStream(entity);
         }
     }
 
     // Остановка всех потоков
-    public void StopAllStreams()
+    public async Task StopAllStreams()
     {
-        foreach (var streams in NominationStreams.Values)
-        {
-            foreach (var stream in streams)
-            {
-                _streamProcessor.StopStreamForPlatform(stream);
-            }
-        }
+        using var scope = _scopeFactory.CreateScope();
+        var streamProcessor = scope.ServiceProvider.GetRequiredService<IStreamProcessor>();
 
-        NominationStreams.Clear();
+        try
+        {
+            await _semaphore.WaitAsync();
+            foreach (var streams in _nominationStreams.Values)
+            {
+                foreach (var stream in streams.ToList())
+                {
+                    streamProcessor.StopStreamForPlatform(stream);
+                }
+            }
+            _nominationStreams.Clear();
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     // Проверка наличия активных потоков для номинации
     public bool HasActiveStreams(int nominationId)
     {
-        return NominationStreams.TryGetValue(nominationId, out var streams) && streams.Any();
+        return _nominationStreams.TryGetValue(nominationId, out var streams) && streams.Any();
     }
 
     public void Dispose()
@@ -118,11 +145,20 @@ public class StreamManager
 
         if (disposing)
         {
-            StopAllStreams();
-            _streamProcessor.Dispose();
+            _semaphore.Wait();
+            try
+            {
+                StopAllStreams().GetAwaiter().GetResult();
+                _semaphore.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error disposing StreamManager.");
+            }
+            finally
+            {
+                _disposed = true;
+            }
         }
-
-        _disposed = true;
     }
-
 }
