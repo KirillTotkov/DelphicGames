@@ -120,6 +120,11 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             throw new ArgumentException("URL трансляции не может быть пустым.", nameof(dayDto.StreamUrl));
         }
 
+        if (dayDto.StreamUrl.Length > 200)
+        {
+            throw new ArgumentException("URL трансляции превышает максимальную длину в 200 символов.", nameof(dayDto.StreamUrl));
+        }
+
         foreach (var dayStream in dayDto.DayStreams)
         {
             if (string.IsNullOrWhiteSpace(dayStream.PlatformName))
@@ -127,14 +132,29 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 throw new ArgumentException("Имя платформы не может быть пустым.", nameof(dayStream.PlatformName));
             }
 
+            if (dayStream.PlatformName.Length > 100)
+            {
+                throw new ArgumentException("Имя платформы превышает максимальную длину в 100 символов.", nameof(dayStream.PlatformName));
+            }
+
             if (string.IsNullOrWhiteSpace(dayStream.PlatformUrl))
             {
                 throw new ArgumentException("URL платформы не может быть пустым.", nameof(dayStream.PlatformUrl));
             }
 
+            if (dayStream.PlatformUrl.Length > 200)
+            {
+                throw new ArgumentException("URL платформы превышает максимальную длину в 200 символов.", nameof(dayStream.PlatformUrl));
+            }
+
             if (string.IsNullOrWhiteSpace(dayStream.Token))
             {
                 throw new ArgumentException("Токен не может быть пустым.", nameof(dayStream.Token));
+            }
+
+            if (dayStream.Token.Length > 500)
+            {
+                throw new ArgumentException("Токен превышает максимальную длину в 500 символов.", nameof(dayStream.Token));
             }
         }
 
@@ -254,9 +274,19 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 throw new ArgumentException("Имя платформы не может быть пустым.");
             }
 
+            if (dto.PlatformName.Length > 100)
+            {
+                throw new ArgumentException("Имя платформы превышает максимальную длину в 100 символов.");
+            }
+
             if (string.IsNullOrWhiteSpace(dto.PlatformUrl))
             {
                 throw new ArgumentException("URL платформы не может быть пустым.");
+            }
+
+            if (dto.PlatformUrl.Length > 200)
+            {
+                throw new ArgumentException("URL платформы превышает максимальную длину в 200 символов.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.Token))
@@ -264,9 +294,19 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 throw new ArgumentException("Токен не может быть пустым.");
             }
 
+            if (dto.Token.Length > 500)
+            {
+                throw new ArgumentException("Токен превышает максимальную длину в 500 символов.");
+            }
+
             if (string.IsNullOrWhiteSpace(dto.StreamUrl))
             {
                 throw new ArgumentException("URL трансляции не может быть пустым.");
+            }
+
+            if (dto.StreamUrl.Length > 200)
+            {
+                throw new ArgumentException("URL трансляции превышает максимальную длину в 200 символов.");
             }
 
             if (dto.Day <= 0)
