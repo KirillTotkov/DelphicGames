@@ -195,4 +195,18 @@ public class StreamsController : ControllerBase
             return BadRequest(new { Error = ex.Message });
         }
     }
+
+    [HttpPost("stop/day/{dayId:int}")]
+    public async Task<IActionResult> StopDayStreams(int dayId)
+    {
+        try
+        {
+            await _streamService.StopStreamsByDay(dayId);
+            return Ok($"Трансляции для дня остановлены.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { Error = ex.Message });
+        }
+    }
 }

@@ -291,9 +291,9 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 throw new InvalidOperationException($"Не запущенные трансляции для дня {day} не найдены.");
             }
 
-            var startTasks = streamsByDay.Select(np => Task.Run(() =>
+            var startTasks = streamsByDay.Select(np => Task.Run(async () =>
             {
-                _streamManager.StartStream(np);
+                await _streamManager.StartStream(np);
                 np.IsActive = true;
             }));
             await Task.WhenAll(startTasks);
@@ -305,6 +305,39 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ошибка при запуске всех трансляций для дня.");
+            throw;
+        }
+    }
+
+    // Остановка всех трансляций для определенного дня
+    public async Task StopStreamsByDay(int day)
+    {
+        try
+        {
+            var streamsByDay = await _context.Streams
+                .Include(np => np.Nomination)
+                .Where(np => np.Day == day && np.IsActive)
+                .ToListAsync();
+
+            if (streamsByDay.Count == 0)
+            {
+                throw new InvalidOperationException($"Запущенные трансляции для дня {day} не найдены.");
+            }
+
+            var stopTasks = streamsByDay.Select(np => Task.Run(async () =>
+            {
+                await _streamManager.StopStream(np);
+                np.IsActive = false;
+            }));
+            await Task.WhenAll(stopTasks);
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Все трансляции для дня {Day} остановлены.", day);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при остановке всех трансляций для дня.");
             throw;
         }
     }
