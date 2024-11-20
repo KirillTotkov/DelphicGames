@@ -113,10 +113,10 @@ class NominationManager {
 
     document
       .getElementById("filterUrlModal")
-      .addEventListener("change", this.filterCameras);
+      .addEventListener("change", (e) => this.filterCameras(e));
     document
       .getElementById("filterNameModal")
-      .addEventListener("change", this.filterCameras);
+      .addEventListener("change", (e) => this.filterCameras(e));
 
     document
       .querySelector("#addGroupModal table tbody")
@@ -288,8 +288,7 @@ class NominationManager {
 
   async populateFilterDropdowns() {
     try {
-      const response = await fetch("/api/cameras");
-      const cameras = await response.json();
+      const cameras = this.cameraManager.cameras;
 
       const filterUrlModal = document.getElementById("filterUrlModal");
       const filterNameModal = document.getElementById("filterNameModal");
