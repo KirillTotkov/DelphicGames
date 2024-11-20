@@ -8,6 +8,10 @@ const notyf = new Notyf({
 
 let currentCameraId = null;
 
+const exportCamerasToExcel = () => {
+  window.location.href = "/api/cameras/export";
+};
+
 const createCamera = async () => {
   const cameraNameInput = document.getElementById("addCameraName");
   const cameraUrlInput = document.getElementById("addCameraUrl");
@@ -136,6 +140,7 @@ const attachEditButtonListeners = () => {
     button.addEventListener("click", handleEditButtonClick);
   });
 };
+
 const handleEditButtonClick = (event) => {
   const tr = event.currentTarget.closest("tr");
 
@@ -195,4 +200,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         notyf.error("Ошибка при обновлении камеры.");
       }
     });
+
+  document.getElementById("exportExcelBtn").addEventListener("click", () => {
+    exportCamerasToExcel();
+  });
 });

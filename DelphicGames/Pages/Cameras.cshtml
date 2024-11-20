@@ -10,8 +10,13 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="card-title">Камеры</h5>
-                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal"
-                    data-bs-target="#addCameraModal">Добавить камеру</button>
+                <div class="d-flex justify-content-end">
+                    <button type="button" class="btn btn-success me-2" data-bs-toggle="modal"
+                        data-bs-target="#addCameraModal">Добавить камеру</button>
+                    <button type="button" class="btn btn-primary" id="exportExcelBtn">
+                        Экспорт в Excel
+                    </button>
+                </div>
             </div>
 
             <!-- Таблица с камерами -->

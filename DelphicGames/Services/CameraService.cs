@@ -212,6 +212,16 @@ public class CameraService
 
     private async Task<bool> IsDuplicateUrl(string url, int excludeId) =>
         await _context.Cameras.AnyAsync(c => c.Url.ToLower() == url.ToLower() && c.Id != excludeId);
+
+    public async Task<List<GetCameraDto>> GetAllCameras()
+    {
+        var cameras = await _context.Cameras
+            .AsNoTracking()
+            .Select(c => new GetCameraDto(c.Id, c.Name, c.Url))
+            .ToListAsync();
+
+        return cameras;
+    }
 }
 
 public record AddCameraDto(string Name, string Url);

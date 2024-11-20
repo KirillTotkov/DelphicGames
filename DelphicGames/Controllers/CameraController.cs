@@ -3,6 +3,7 @@ using DelphicGames.Data.Models;
 using DelphicGames.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MiniExcelLibs;
 
 namespace DelphicGames.Controllers;
 
@@ -87,7 +88,7 @@ public class CameraController : ControllerBase
             return BadRequest(new { Error = e.Message });
         }
     }
-    
+
 
     [HttpGet("nominations")]
     [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Admin)}")]
@@ -95,5 +96,25 @@ public class CameraController : ControllerBase
     {
         var cameras = await _cameraService.GetCamerasByNomination(nominationId);
         return Ok(cameras);
+    }
+
+    [HttpGet("export")]
+    [Authorize(Roles = $"{nameof(UserRoles.Root)},{nameof(UserRoles.Specialist)},{nameof(UserRoles.Admin)}")]
+    public async Task<IActionResult> ExportCamerasToExcel()
+    {
+        var cameras = await _cameraService.GetAllCameras();
+        var data = cameras.Select(c => new
+        {
+            c.Name,
+            c.Url
+        }).ToList();
+
+        var memoryStream = new MemoryStream();
+        memoryStream.SaveAs(data);
+        memoryStream.Seek(0, SeekOrigin.Begin);
+        return new FileStreamResult(memoryStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        {
+            FileDownloadName = "cameras.xlsx"
+        };
     }
 }
