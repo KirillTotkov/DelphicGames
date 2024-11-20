@@ -366,13 +366,13 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
     }
 
     // Запуск трансляций для определенной номинации на всех платформах
-    public void StartNominationStreams(int nominationId)
+    public async Task StartNominationStreams(int nominationId)
     {
         try
         {
-            var nomination = _context.Nominations
+            var nomination = await _context.Nominations
                 .Include(n => n.Streams)
-                .FirstOrDefault(n => n.Id == nominationId);
+                .FirstOrDefaultAsync(n => n.Id == nominationId);
 
             if (nomination == null)
             {
@@ -390,12 +390,12 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             {
                 if (!string.IsNullOrEmpty(np.Token))
                 {
-                    _streamManager.StartStream(np);
+                    await _streamManager.StartStream(np);
                     np.IsActive = true;
                 }
             }
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             _logger.LogInformation("Трансляции для номинации {NominationId} запущены на всех платформах.",
                 nominationId);
         }
@@ -407,22 +407,23 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
     }
 
     // Остановка трансляций для определенной номинации
-    public void StopNominationStreams(int nominationId)
+    public async Task StopNominationStreams(int nominationId)
     {
         try
         {
-            var nominationPlatforms = _context.Streams
+            var nominationPlatforms = await _context.Streams
                 .Include(np => np.Nomination)
                 .Where(np => np.NominationId == nominationId && np.IsActive)
-                .ToList();
+                .ToListAsync();
 
             foreach (var np in nominationPlatforms)
             {
-                _streamManager.StopStream(np);
+                await _streamManager.StopStream(np);
                 np.IsActive = false;
             }
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
+
             _logger.LogInformation("Трансляции для номинации {NominationId} остановлены.", nominationId);
         }
         catch (Exception ex)

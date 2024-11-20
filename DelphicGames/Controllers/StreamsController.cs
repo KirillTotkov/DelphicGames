@@ -155,11 +155,11 @@ public class StreamsController : ControllerBase
     }
 
     [HttpPost("start/nomination")]
-    public IActionResult StartNominationStreams([FromQuery] int nominationId)
+    public async Task<IActionResult> StartNominationStreams([FromQuery] int nominationId)
     {
         try
         {
-            _streamService.StartNominationStreams(nominationId);
+            await _streamService.StartNominationStreams(nominationId);
             return Ok($"Трансляции для камеры начаты.");
         }
         catch (InvalidOperationException ex)
@@ -169,11 +169,11 @@ public class StreamsController : ControllerBase
     }
 
     [HttpPost("stop/nomination")]
-    public IActionResult StopNominationStreams([FromQuery] int nominationId)
+    public async Task<IActionResult> StopNominationStreams([FromQuery] int nominationId)
     {
         try
         {
-            _streamService.StopNominationStreams(nominationId);
+            await _streamService.StopNominationStreams(nominationId);
             return Ok($"Трансляции для камеры остановлены.");
         }
         catch (InvalidOperationException ex)
