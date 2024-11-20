@@ -86,11 +86,11 @@ public class StreamsController : ControllerBase
     }
 
     [HttpPost("start/{streamId:int}")]
-    public IActionResult StartStream(int streamId)
+    public async Task<IActionResult> StartStream(int streamId)
     {
         try
         {
-            _streamService.StartStream(streamId);
+            await _streamService.StartStreamAsync(streamId);
             return Ok("Трансляция начата.");
         }
         catch (FfmpegProcessException ex)
@@ -109,11 +109,11 @@ public class StreamsController : ControllerBase
 
 
     [HttpPost("stop/{streamId:int}")]
-    public IActionResult StopStream(int streamId)
+    public async Task<IActionResult> StopStream(int streamId)
     {
         try
         {
-            _streamService.StopStream(streamId);
+            await _streamService.StopStreamAsync(streamId);
             return Ok("Трансляция остановлена.");
         }
         catch (InvalidOperationException ex)
