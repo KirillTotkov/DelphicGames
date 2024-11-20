@@ -108,7 +108,7 @@ function handleStreamStatusChanged(streamStatusDto) {
     toggleInput.checked = false;
   } else if (status === "Completed") {
     // Show notification
-    notyf.success(`Трансляция ${streamId} завершена.`);
+    notyf.success(`Трансляция завершена.`);
 
     // Remove any highlighting
     row.classList.remove("table-danger", "table-success");
@@ -401,7 +401,7 @@ function handleStreamToggle(event) {
     })
       .then((response) => {
         if (response.ok) {
-          notyf.success("Трансляция остановлена.");
+          // notyf.success("Трансляция остановлена.");
           checkbox.disabled = false;
         } else {
           checkbox.disabled = false;
