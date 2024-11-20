@@ -20,6 +20,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     .getElementById("addPlatformBtn")
     .addEventListener("click", addPlatform);
 
+  document
+    .getElementById("editStreamForm")
+    .addEventListener("submit", handleEditStream);
+
   const modalElement = document.getElementById("addDayModal");
 
   modalElement.addEventListener("hidden.bs.modal", () => {
@@ -43,7 +47,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("nominations-list")
     .addEventListener("click", async (event) => {
-      if (event.target && event.target.classList.contains("btn-danger")) {
+      if (
+        event.target &&
+        event.target.classList.contains("delete-stream-btn")
+      ) {
         const row = event.target.closest("tr");
         const streamId = row.getAttribute("data-id");
 
@@ -68,6 +75,35 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
 
+  document
+    .getElementById("nominations-list")
+    .addEventListener("click", async (event) => {
+      if (
+        event.target &&
+        event.target.classList.contains("change-stream-btn")
+      ) {
+        const row = event.target.closest("tr");
+        const streamId = row.getAttribute("data-id");
+        const day = row.cells[0].innerText;
+        const streamUrl = row.cells[1].innerText;
+        const platform = row.cells[2].innerText;
+        const platformUrl = row.cells[3].innerText;
+        const token = row.cells[4].innerText;
+
+        document.getElementById("editStreamId").value = streamId;
+        document.getElementById("editDayDropdown").value = day;
+        document.getElementById("editStreamUrlInput").value = streamUrl;
+        document.getElementById("editPlatformNameInput").value = platform;
+        document.getElementById("editPlatformUrlInput").value = platformUrl;
+        document.getElementById("editTokenInput").value = token;
+
+        const editModal = new bootstrap.Modal(
+          document.getElementById("editStreamModal")
+        );
+        editModal.show();
+      }
+    });
+
   const launchBtn = document.getElementById("launchStreamsBtn");
   launchBtn.addEventListener("click", launchStreamsForDay);
 
@@ -87,6 +123,60 @@ async function startSignalRConnection() {
   } catch (err) {
     console.error("Error connecting to SignalR:", err);
     setTimeout(startSignalRConnection, 5000);
+  }
+}
+
+async function handleEditStream(event) {
+  event.preventDefault();
+
+  const streamId = document.getElementById("editStreamId").value;
+  const day = parseInt(document.getElementById("editDayDropdown").value);
+  const streamUrl = document.getElementById("editStreamUrlInput").value.trim();
+  const platformName = document
+    .getElementById("editPlatformNameInput")
+    .value.trim();
+  const platformUrl = document
+    .getElementById("editPlatformUrlInput")
+    .value.trim();
+  const token = document.getElementById("editTokenInput").value.trim();
+
+  if (!day || !streamUrl || !platformName || !platformUrl || !token) {
+    notyf.error("Пожалуйста, заполните все поля.");
+    return;
+  }
+
+  const updateDto = {
+    Day: day,
+    PlatformName: platformName,
+    PlatformUrl: platformUrl,
+    Token: token,
+    StreamUrl: streamUrl,
+  };
+
+  try {
+    const response = await fetch(`/api/streams/${streamId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updateDto),
+    });
+
+    if (response.ok) {
+      notyf.success("Трансляция обновлена успешно.");
+      await fetchAndRenderNominations();
+
+      // Hide the modal
+      const editModalEl = document.getElementById("editStreamModal");
+      const editModal = bootstrap.Modal.getInstance(editModalEl);
+      editModal.hide();
+    } else {
+      const error = await response.text();
+      notyf.error(error);
+    }
+  } catch (error) {
+    console.error("Error updating stream:", error);
+    notyf.error("Не удалось обновить трансляцию.");
   }
 }
 
@@ -194,7 +284,8 @@ async function fetchAndRenderNominations() {
                         </div>
                       </td>
                       <td>
-                      <button class="btn btn-danger btn-sm">Удалить</button>
+                      <button class="btn btn-danger btn-sm delete-stream-btn">Удалить</button>
+                      <button class="btn btn-warning btn-sm change-stream-btn ms-2">Изменить</button>
                     </td>
                   </tr>
                 `

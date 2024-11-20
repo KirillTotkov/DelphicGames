@@ -11,9 +11,9 @@ namespace DelphicGames.Services;
 public class StreamService : INotificationHandler<StreamStatusChangedEvent>
 {
     private readonly ApplicationContext _context;
+    private readonly IHubContext<StreamHub> _hubContext;
     private readonly ILogger<StreamService> _logger;
     private readonly StreamManager _streamManager;
-    private readonly IHubContext<StreamHub> _hubContext;
 
     public StreamService(ApplicationContext context, StreamManager streamManager, ILogger<StreamService> logger,
         IHubContext<StreamHub> hubContext)
@@ -22,6 +22,41 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         _streamManager = streamManager;
         _logger = logger;
         _hubContext = hubContext;
+    }
+
+    public async Task Handle(StreamStatusChangedEvent notification, CancellationToken cancellationToken)
+    {
+        var streamEntity = await _context.Streams.FindAsync(notification.StreamEntityId);
+        if (streamEntity == null)
+        {
+            _logger.LogError($"StreamEntity with ID {notification.StreamEntityId} not found.");
+            return;
+        }
+
+        switch (notification.Status)
+        {
+            case StreamStatus.Running:
+                streamEntity.IsActive = true;
+                break;
+            case StreamStatus.Completed:
+            case StreamStatus.Error:
+                streamEntity.IsActive = false;
+                await _streamManager.StopStream(streamEntity);
+                break;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var streamStatusDto = new
+        {
+            StreamId = streamEntity.Id,
+            Status = notification.Status.ToString(),
+            ErrorMessage = notification.ErrorMessage
+        };
+
+        await _hubContext.Clients.All.SendAsync("StreamStatusChanged", streamStatusDto, cancellationToken);
+
+        _logger.LogInformation($"Stream status updated for StreamEntity ID {streamEntity.Id}: {notification.Status}");
     }
 
     // Получение всех трансляций
@@ -197,27 +232,61 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         }
     }
 
-    public async Task UpdateStream(int nominationId, int streamId, string token)
+    public async Task UpdateStream(int streamId, UpdateStreamDto dto)
     {
         try
         {
             var stream = await _context.Streams
-                .FirstOrDefaultAsync(s => s.NominationId == nominationId && s.Id == streamId);
+                .FirstOrDefaultAsync(s => s.Id == streamId);
 
             if (stream == null)
             {
-                throw new InvalidOperationException("Stream not found.");
+                throw new InvalidOperationException("Трансляция не найдена");
             }
 
-            stream.Token = token;
+            if (stream.IsActive)
+            {
+                throw new InvalidOperationException("Нельзя изменять запущенную трансляцию");
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.PlatformName))
+            {
+                throw new ArgumentException("Имя платформы не может быть пустым.");
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.PlatformUrl))
+            {
+                throw new ArgumentException("URL платформы не может быть пустым.");
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.Token))
+            {
+                throw new ArgumentException("Токен не может быть пустым.");
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.StreamUrl))
+            {
+                throw new ArgumentException("URL трансляции не может быть пустым.");
+            }
+
+            if (dto.Day <= 0)
+            {
+                throw new ArgumentException("День должен быть положительным числом.");
+            }
+
+            stream.Day = dto.Day;
+            stream.PlatformName = dto.PlatformName;
+            stream.PlatformUrl = dto.PlatformUrl;
+            stream.StreamUrl = dto.StreamUrl;
+            stream.Token = dto.Token;
+
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Обновлен токен для трансляции {StreamId} для номинации {NominationId}.",
-                streamId, nominationId);
+            _logger.LogInformation("Обновлена трансляции {StreamId}.", streamId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating stream.");
+            _logger.LogError(ex, "Ошибка изменения трансляции");
             throw;
         }
     }
@@ -465,40 +534,6 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             throw;
         }
     }
-
-    public async Task Handle(StreamStatusChangedEvent notification, CancellationToken cancellationToken)
-    {
-        var streamEntity = await _context.Streams.FindAsync(notification.StreamEntityId);
-        if (streamEntity == null)
-        {
-            _logger.LogError($"StreamEntity with ID {notification.StreamEntityId} not found.");
-            return;
-        }
-
-        switch (notification.Status)
-        {
-            case StreamStatus.Running:
-                streamEntity.IsActive = true;
-                break;
-            case StreamStatus.Completed:
-            case StreamStatus.Error:
-                streamEntity.IsActive = false;
-                await _streamManager.StopStream(streamEntity);
-                break;
-        }
-        await _context.SaveChangesAsync(cancellationToken);
-
-        var streamStatusDto = new
-        {
-            StreamId = streamEntity.Id,
-            Status = notification.Status.ToString(),
-            ErrorMessage = notification.ErrorMessage
-        };
-
-        await _hubContext.Clients.All.SendAsync("StreamStatusChanged", streamStatusDto, cancellationToken);
-
-        _logger.LogInformation($"Stream status updated for StreamEntity ID {streamEntity.Id}: {notification.Status}");
-    }
 }
 
 public record GetStreamsDto(
@@ -517,11 +552,12 @@ public record GetStreamDto(
     string StreamUrl
 );
 
-public record BroadcastDto(
-    string Url,
-    int NominationId,
-    string Nomination,
-    List<PlatformStatusDto> PlatformStatuses
+public record UpdateStreamDto(
+    int Day,
+    string PlatformName,
+    string PlatformUrl,
+    string Token,
+    string StreamUrl
 );
 
 public record PlatformStatusDto(
