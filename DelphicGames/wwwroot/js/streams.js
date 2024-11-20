@@ -8,7 +8,7 @@ const notyf = new Notyf({
 
 let currentNominationId = null;
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   fetchAndRenderNominations();
   document
     .getElementById("submitAddDayBtn")
@@ -68,7 +68,63 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const launchBtn = document.getElementById("launchStreamsBtn");
   launchBtn.addEventListener("click", launchStreamsForDay);
+
+  await startSignalRConnection();
 });
+
+async function startSignalRConnection() {
+  connection = new signalR.HubConnectionBuilder().withUrl("/streamHub").build();
+
+  connection.on("StreamStatusChanged", handleStreamStatusChanged);
+
+  try {
+    await connection.start();
+    console.log("SignalR connected.");
+  } catch (err) {
+    console.error("Error connecting to SignalR:", err);
+    setTimeout(startSignalRConnection, 5000);
+  }
+}
+
+function handleStreamStatusChanged(streamStatusDto) {
+  const { streamId, status, errorMessage } = streamStatusDto;
+
+  // Find the row corresponding to the StreamId
+  const row = document.querySelector(`tr[data-id="${streamId}"]`);
+  if (!row) return;
+
+  const toggleInput = row.querySelector(".stream-toggle");
+  console.log(status, errorMessage);
+
+  if (status === "Error") {
+    // Show notification
+    notyf.error(`Ошибка в трансляции ${streamId}: ${errorMessage}`);
+
+    // Highlight the stream row in red
+    row.classList.add("table-danger");
+    row.classList.remove("table-success");
+
+    // Update the toggle switch
+    toggleInput.checked = false;
+  } else if (status === "Completed") {
+    // Show notification
+    notyf.success(`Трансляция ${streamId} завершена.`);
+
+    // Remove any highlighting
+    row.classList.remove("table-danger", "table-success");
+
+    // Update the toggle switch
+    toggleInput.checked = false;
+  } else if (status === "Running") {
+    // Highlight the stream row in green
+    
+    // row.classList.add("table-success");
+    row.classList.remove("table-danger");
+
+    // Update the toggle switch
+    toggleInput.checked = true;
+  }
+}
 
 async function fetchAndRenderNominations() {
   const data = await fetchData();
