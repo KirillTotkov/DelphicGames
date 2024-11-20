@@ -174,6 +174,7 @@ async function fetchAndRenderNominations() {
               </thead>
               <tbody>
                 ${nomination.streams
+                  .sort((a, b) => a.day - b.day)
                   .map(
                     (stream) => `
                   <tr data-id="${stream.id}">
