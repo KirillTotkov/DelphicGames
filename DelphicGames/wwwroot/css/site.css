@@ -102,3 +102,9 @@ body {
 .table-success {
   background-color: #d4edda !important;
 }
+
+.nav-link:hover:not(span) {
+    text-decoration: underline !important;
+    text-decoration-color: #1b6ec2 !important;
+    transition: text-decoration-color 0.2s !important;
+}
