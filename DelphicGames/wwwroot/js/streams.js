@@ -69,6 +69,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const launchBtn = document.getElementById("launchStreamsBtn");
   launchBtn.addEventListener("click", launchStreamsForDay);
 
+  const stopBtn = document.getElementById("stopStreamsBtn");
+  stopBtn.addEventListener("click", stopStreamsForDay);
+
   await startSignalRConnection();
 });
 
@@ -444,5 +447,34 @@ function launchStreamsForDay() {
     })
     .catch((error) => {
       notyf.error(error.error || "Ошибка при запуске трансляций.");
+    });
+}
+
+function stopStreamsForDay() {
+  const daySelect = document.getElementById("launchDayDropdown");
+  const day = daySelect.value;
+
+  if (!day) {
+    alert("Пожалуйста, выберите день.");
+    return;
+  }
+
+  fetch(`/api/streams/stop/day/${day}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })
+    .then((response) => {
+      if (response.ok) {
+        notyf.success("Трансляции остановлены.");
+      } else {
+        return response.json().then((data) => {
+          notyf.error(data.error || "Ошибка при остановке трансляций.");
+        });
+      }
+    })
+    .catch((error) => {
+      notyf.error(error.error || "Ошибка при остановке трансляций.");
     });
 }
