@@ -138,9 +138,12 @@ const attachEditButtonListeners = () => {
 };
 const handleEditButtonClick = (event) => {
   const tr = event.currentTarget.closest("tr");
+
   currentCameraId = tr.dataset.id;
+  const cameraName = tr.querySelector("td:nth-child(1)").textContent;
   const cameraUrl = tr.querySelector("td:nth-child(2)").textContent;
 
+  document.getElementById("editCameraName").value = cameraName;
   document.getElementById("editCameraUrl").value = cameraUrl;
 };
 
@@ -164,6 +167,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     .addEventListener("submit", async (event) => {
       event.preventDefault();
 
+      const newName = document.getElementById("editCameraName").value.trim();
       const newUrl = document.getElementById("editCameraUrl").value.trim();
 
       try {
@@ -172,7 +176,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ url: newUrl }),
+          body: JSON.stringify({ url: newUrl, name: newName }),
         });
 
         if (response.ok) {

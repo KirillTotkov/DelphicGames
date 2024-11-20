@@ -76,31 +76,46 @@ public class CameraService
         return cameras;
     }
 
-    public async Task<Camera?> UpdateCamera(int id, UpdateCameraDto camera)
+    public async Task<Camera?> UpdateCamera(int id, UpdateCameraDto dto)
     {
         if (await _context.Nominations.AnyAsync())
         {
             throw new InvalidOperationException("Невозможно обновить камеры после добавления номинаций.");
         }
 
-        if (string.IsNullOrEmpty(camera.Url) || camera.Url.Trim().Length > MaxUrlLength)
+        if (string.IsNullOrEmpty(dto.Name) || dto.Name.Trim().Length > MaxNameLength)
+        {
+            throw new ArgumentException($"Имя не может быть пустым или длиннее, чем {MaxNameLength} символов");
+        }
+
+        if (string.IsNullOrEmpty(dto.Url) || dto.Url.Trim().Length > MaxUrlLength)
         {
             throw new ArgumentException($"URL-адрес не может быть пустым или длиннее, чем {MaxUrlLength} символов");
         }
 
+
         var existingCamera = await _context.Cameras.FindAsync(id);
         if (existingCamera == null) return null;
 
-        if (await IsDuplicateUrl(camera.Url, id))
+        if (await IsDuplicateUrl(dto.Url, id))
         {
-            throw new InvalidOperationException($"Камера с URL {camera.Url} уже существует");
+            throw new InvalidOperationException($"Камера с URL {dto.Url} уже существует");
         }
 
-        if (existingCamera.Url == camera.Url) return existingCamera;
+        if (await _context.Cameras.AnyAsync(c => c.Name.ToLower() == dto.Name.ToLower() && c.Id != id))
+        {
+            throw new InvalidOperationException($"Камера с именем {dto.Name} уже существует");
+        }
+
+        if (existingCamera.Url == dto.Url.Trim() && existingCamera.Name == dto.Name.Trim())
+        {
+            return existingCamera;
+        }
 
         try
         {
-            existingCamera.Url = camera.Url.Trim();
+            existingCamera.Name = dto.Name.Trim();
+            existingCamera.Url = dto.Url.Trim();
             await _context.SaveChangesAsync();
             _logger.LogInformation("Camera updated: {Id}", id);
             return existingCamera;
@@ -201,6 +216,6 @@ public class CameraService
 
 public record AddCameraDto(string Name, string Url);
 
-public record UpdateCameraDto(string Url);
+public record UpdateCameraDto(string Name, string Url);
 
 public record GetCameraDto(int Id, string Name, string Url);

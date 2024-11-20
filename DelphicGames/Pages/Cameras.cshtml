@@ -81,7 +81,11 @@
             <div class="modal-body">
                 <form id="editCameraForm" method="post">
                     <div class="mb-3">
-                        <label class="form-label text-secondary">URL-адрес</label>
+                        <label class="form-label text-secondary" for="editCameraName">Название</label>
+                        <input type="text" class="form-control" id="editCameraName" size="50" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary" for="editCameraUrl">URL-адрес</label>
                         <input type="url" class="form-control" id="editCameraUrl" size="200" required>
                     </div>
                     <div class="modal-footer border-0">
