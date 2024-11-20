@@ -142,6 +142,53 @@
     </div>
 </div>
 
+<div class="modal fade" id="editStreamModal" tabindex="-1" aria-labelledby="editStreamModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Изменить трансляцию</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editStreamForm">
+                    <input type="hidden" id="editStreamId" />
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="editDayDropdown" class="form-label">День</label>
+                            <select id="editDayDropdown" class="form-select" required>
+                                <option value="">--Выберите день--</option>
+                                @for (int i = 1; i <= 10; i++)
+                                {
+                                    <option value="@i">День @i</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editStreamUrlInput" class="form-label">URL потока</label>
+                            <input type="url" class="form-control" id="editStreamUrlInput" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editPlatformNameInput" class="form-label">Платформа</label>
+                            <input type="text" class="form-control" id="editPlatformNameInput" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editPlatformUrlInput" class="form-label">URL Платформы</label>
+                            <input type="url" class="form-control" id="editPlatformUrlInput" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editTokenInput" class="form-label">Token</label>
+                            <input type="text" class="form-control" id="editTokenInput" required />
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 @section Head
 {
