@@ -96,6 +96,10 @@ public class StreamsController : ControllerBase
         {
             return BadRequest(new { Error = ex.Message });
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { Error = ex.Message });
+        }
         catch (Exception)
         {
             return StatusCode(500, "Внутренняя ошибка сервера.");

@@ -241,7 +241,37 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
 
             if (stream == null)
             {
-                throw new InvalidOperationException("Stream not found.");
+                throw new InvalidOperationException("Трансляция не найдена");
+            }
+
+            if (stream.IsActive)
+            {
+                throw new InvalidOperationException("Нельзя изменять запущенную трансляцию");
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.PlatformName))
+            {
+                throw new ArgumentException("Имя платформы не может быть пустым.");
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.PlatformUrl))
+            {
+                throw new ArgumentException("URL платформы не может быть пустым.");
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.Token))
+            {
+                throw new ArgumentException("Токен не может быть пустым.");
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.StreamUrl))
+            {
+                throw new ArgumentException("URL трансляции не может быть пустым.");
+            }
+
+            if (dto.Day <= 0)
+            {
+                throw new ArgumentException("День должен быть положительным числом.");
             }
 
             stream.Day = dto.Day;
@@ -256,7 +286,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating stream.");
+            _logger.LogError(ex, "Ошибка изменения трансляции");
             throw;
         }
     }
