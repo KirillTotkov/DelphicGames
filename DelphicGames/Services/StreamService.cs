@@ -2,20 +2,21 @@
 using DelphicGames.Data.Models;
 using DelphicGames.Hubs;
 using DelphicGames.Services.Streaming;
+using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace DelphicGames.Services;
 
-public class StreamService
+public class StreamService : INotificationHandler<StreamStatusChangedEvent>
 {
     private readonly ApplicationContext _context;
     private readonly ILogger<StreamService> _logger;
     private readonly StreamManager _streamManager;
     private readonly IHubContext<StreamHub> _hubContext;
 
-
-    public StreamService(ApplicationContext context, StreamManager streamManager, ILogger<StreamService> logger, IHubContext<StreamHub> hubContext)
+    public StreamService(ApplicationContext context, StreamManager streamManager, ILogger<StreamService> logger,
+        IHubContext<StreamHub> hubContext)
     {
         _context = context;
         _streamManager = streamManager;
@@ -170,7 +171,6 @@ public class StreamService
         return new GetStreamsDto(nomination.Id, nomination.Name, streams);
     }
 
-
     public async Task DeleteStream(int streamId)
     {
         try
@@ -222,7 +222,7 @@ public class StreamService
         }
     }
 
-    public void StartStream(int streamId)
+    public async Task StartStreamAsync(int streamId)
     {
         try
         {
@@ -240,9 +240,9 @@ public class StreamService
                 throw new InvalidOperationException("Token is empty.");
             }
 
-            _streamManager.StartStream(stream);
+            await _streamManager.StartStream(stream);
             stream.IsActive = true;
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -251,7 +251,7 @@ public class StreamService
         }
     }
 
-    public void StopStream(int streamId)
+    public async Task StopStreamAsync(int streamId)
     {
         try
         {
@@ -260,7 +260,7 @@ public class StreamService
 
             if (stream != null)
             {
-                _streamManager.StopStream(stream);
+                await _streamManager.StopStream(stream);
                 stream.IsActive = false;
                 _context.SaveChanges();
             }
@@ -319,8 +319,14 @@ public class StreamService
                 .Where(np => !string.IsNullOrEmpty(np.Token) && np.IsActive)
                 .ToListAsync();
 
-            var startTasks = activePlatforms.Select(np => Task.Run(() => _streamManager.StartStream(np)));
+            var startTasks = activePlatforms.Select(np => Task.Run(async () =>
+            {
+                await _streamManager.StartStream(np);
+                np.IsActive = true;
+            }));
             await Task.WhenAll(startTasks);
+
+            await _context.SaveChangesAsync();
 
             _logger.LogInformation("Все трансляции запущены.");
         }
@@ -341,8 +347,14 @@ public class StreamService
                 .Where(np => np.IsActive)
                 .ToListAsync();
 
-            var stopTasks = activePlatforms.Select(np => Task.Run(() => _streamManager.StopStream(np)));
-            await Task.WhenAll(stopTasks);
+            await _streamManager.StopAllStreams();
+
+            foreach (var platform in activePlatforms)
+            {
+                platform.IsActive = false;
+            }
+
+            await _context.SaveChangesAsync();
 
             _logger.LogInformation("Все трансляции остановлены.");
         }
@@ -420,7 +432,39 @@ public class StreamService
         }
     }
 
+    public async Task Handle(StreamStatusChangedEvent notification, CancellationToken cancellationToken)
+    {
+        var streamEntity = await _context.Streams.FindAsync(notification.StreamEntityId);
+        if (streamEntity == null)
+        {
+            _logger.LogError($"StreamEntity with ID {notification.StreamEntityId} not found.");
+            return;
+        }
 
+        // Update status in the database
+        switch (notification.Status)
+        {
+            case StreamStatus.Running:
+                streamEntity.IsActive = true;
+                break;
+            case StreamStatus.Completed:
+            case StreamStatus.Error:
+                streamEntity.IsActive = false;
+                break;
+        }
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Notify clients via SignalR
+        var streamStatusDto = new
+        {
+            StreamId = streamEntity.Id,
+            Status = notification.Status.ToString(),
+            ErrorMessage = notification.ErrorMessage
+        };
+        await _hubContext.Clients.All.SendAsync("StreamStatusChanged", streamStatusDto, cancellationToken);
+
+        _logger.LogInformation($"Stream status updated for StreamEntity ID {streamEntity.Id}: {notification.Status}");
+    }
 }
 
 public record GetStreamsDto(
