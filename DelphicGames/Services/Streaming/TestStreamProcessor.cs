@@ -129,4 +129,9 @@ public class TestStreamProcessor : IStreamProcessor
             _disposed = true;
         }
     }
+
+    Task<StreamInfo> IStreamProcessor.StartStreamForPlatform(StreamEntity streamEntity)
+    {
+        throw new NotImplementedException();
+    }
 }

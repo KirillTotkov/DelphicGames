@@ -8,24 +8,29 @@ public class StreamManager
 {
     private readonly ConcurrentDictionary<int, List<StreamInfo>> _nominationStreams = new();
     private readonly ILogger<StreamManager> _logger;
-    private readonly IStreamProcessor _streamProcessor;
+    // private readonly IStreamProcessor _streamProcessor;
     private bool _disposed;
     private readonly SemaphoreSlim _semaphore = new(1);
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public StreamManager(IStreamProcessor streamProcessor, ILogger<StreamManager> logger)
+
+    public StreamManager(ILogger<StreamManager> logger, IServiceScopeFactory scopeFactory)
     {
-        _streamProcessor = streamProcessor;
         _logger = logger;
+        _scopeFactory = scopeFactory;
     }
 
     // Запуск потока для определённой камеры и платформы
     public async Task StartStream(StreamEntity streamEntity)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var streamProcessor = scope.ServiceProvider.GetRequiredService<IStreamProcessor>();
+
         try
         {
             await _semaphore.WaitAsync();
             var streams = _nominationStreams.GetOrAdd(streamEntity.NominationId, _ => new List<StreamInfo>());
-            var stream = _streamProcessor.StartStreamForPlatform(streamEntity);
+            var stream = await streamProcessor.StartStreamForPlatform(streamEntity);
             streams.Add(stream);
         }
         catch (FfmpegProcessException ex)
@@ -51,6 +56,9 @@ public class StreamManager
     // Остановка потока для определённой камеры и платформы
     public async Task StopStream(StreamEntity streamEntity)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var streamProcessor = scope.ServiceProvider.GetRequiredService<IStreamProcessor>();
+
         try
         {
             await _semaphore.WaitAsync();
@@ -61,7 +69,7 @@ public class StreamManager
 
                 if (stream != null)
                 {
-                    _streamProcessor.StopStreamForPlatform(stream);
+                    streamProcessor.StopStreamForPlatform(stream);
                     streams.Remove(stream);
 
                     if (!streams.Any())
@@ -98,6 +106,9 @@ public class StreamManager
     // Остановка всех потоков
     public async Task StopAllStreams()
     {
+        using var scope = _scopeFactory.CreateScope();
+        var streamProcessor = scope.ServiceProvider.GetRequiredService<IStreamProcessor>();
+
         try
         {
             await _semaphore.WaitAsync();
@@ -105,7 +116,7 @@ public class StreamManager
             {
                 foreach (var stream in streams.ToList())
                 {
-                    _streamProcessor.StopStreamForPlatform(stream);
+                    streamProcessor.StopStreamForPlatform(stream);
                 }
             }
             _nominationStreams.Clear();
@@ -138,8 +149,11 @@ public class StreamManager
             try
             {
                 StopAllStreams().GetAwaiter().GetResult();
-                _streamProcessor.Dispose();
                 _semaphore.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error disposing StreamManager.");
             }
             finally
             {
