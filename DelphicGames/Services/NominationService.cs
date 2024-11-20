@@ -24,6 +24,11 @@ public class NominationService
             throw new ArgumentException("Имя не может быть пустым");
         }
 
+        if (dto.Name.Length > 100)
+        {
+            throw new ArgumentException("Имя не может быть длиннее 100 символов");
+        }
+
         if (await _context.Nominations.AnyAsync(n => n.Name.ToLower() == name.ToLower()))
         {
             throw new ArgumentException($"Номинация с именем {name} уже существует");
@@ -96,7 +101,7 @@ public class NominationService
             throw new ArgumentException($"Nomination with id {nominationId} not found");
         }
 
-        _streamService.StopNominationStreams(nominationId);
+        await _streamService.StopNominationStreams(nominationId);
 
         _context.Nominations.Remove(nomination);
         await _context.SaveChangesAsync();
@@ -125,6 +130,11 @@ public class NominationService
         if (string.IsNullOrWhiteSpace(name))
         {
             throw new ArgumentException("Имя не может быть пустым");
+        }
+
+        if (dto.Name.Length > 100)
+        {
+            throw new ArgumentException("Имя не может быть длиннее 100 символов");
         }
 
         if (await _context.Nominations.AnyAsync(n => n.Name.ToLower() == name.ToLower() && n.Id != nominationId))
