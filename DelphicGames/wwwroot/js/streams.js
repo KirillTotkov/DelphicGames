@@ -8,6 +8,8 @@ const notyf = new Notyf({
 
 let currentNominationId = null;
 
+let isBulkStopping = false;
+
 document.addEventListener("DOMContentLoaded", async () => {
   fetchAndRenderNominations();
   document
@@ -82,7 +84,6 @@ async function startSignalRConnection() {
 
   try {
     await connection.start();
-    console.log("SignalR connected.");
   } catch (err) {
     console.error("Error connecting to SignalR:", err);
     setTimeout(startSignalRConnection, 5000);
@@ -101,7 +102,7 @@ function handleStreamStatusChanged(streamStatusDto) {
 
   if (status === "Error") {
     // Show notification
-    notyf.error(`Ошибка в трансляции ${streamId}: ${errorMessage}`);
+    notyf.error(`Ошибка в трансляции: ${errorMessage}`);
 
     // Highlight the stream row in red
     row.classList.add("table-danger");
@@ -111,7 +112,9 @@ function handleStreamStatusChanged(streamStatusDto) {
     toggleInput.checked = false;
   } else if (status === "Completed") {
     // Show notification
-    notyf.success(`Трансляция завершена.`);
+    if (!isBulkStopping) {
+      notyf.success(`Трансляция завершена.`);
+    }
 
     // Remove any highlighting
     row.classList.remove("table-danger", "table-success");
@@ -460,6 +463,8 @@ function stopStreamsForDay() {
     return;
   }
 
+  isBulkStopping = true;
+
   fetch(`/api/streams/stop/day/${day}`, {
     method: "POST",
     headers: {
@@ -467,6 +472,7 @@ function stopStreamsForDay() {
     },
   })
     .then((response) => {
+      isBulkStopping = false;
       if (response.ok) {
         notyf.success("Трансляции остановлены.");
       } else {
@@ -476,6 +482,7 @@ function stopStreamsForDay() {
       }
     })
     .catch((error) => {
+      isBulkStopping = false;
       notyf.error(error.error || "Ошибка при остановке трансляций.");
     });
 }
