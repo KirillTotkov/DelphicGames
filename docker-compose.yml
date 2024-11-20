@@ -23,6 +23,8 @@ services:
       - EmailSettings__Username=${EmailSettings__Username}
       - EmailSettings__Password=${EmailSettings__Password}
       - EmailSettings__EnableSendConfirmationEmail=${EmailSettings__EnableSendConfirmationEmail}
+      - RootUser__Email=${RootUser__Email}
+      - RootUser__Password=${RootUser__Password}
     ports:
       - "8080:8080"
       - "8081:8081"
