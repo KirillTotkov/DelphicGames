@@ -12,30 +12,26 @@ let isBulkStopping = false;
 
 document.addEventListener("DOMContentLoaded", async () => {
   fetchAndRenderNominations();
-  document
-    .getElementById("submitAddDayBtn")
-    .addEventListener("click", handleAddDay);
 
   document
-    .getElementById("addPlatformBtn")
-    .addEventListener("click", addPlatform);
+    .getElementById("addStreamForm")
+    .addEventListener("submit", handleAddStream);
 
   document
     .getElementById("editStreamForm")
     .addEventListener("submit", handleEditStream);
 
-  const modalElement = document.getElementById("addDayModal");
+  const modalElement = document.getElementById("addStreamModal");
 
   modalElement.addEventListener("hidden.bs.modal", () => {
-    document.getElementById("addDayForm").reset();
-    document.getElementById("addedPlatformsTable").innerHTML = "";
+    document.getElementById("addStreamForm").reset();
     currentNominationId = null;
   });
 
   document
     .getElementById("nominations-list")
     .addEventListener("click", async (event) => {
-      if (event.target && event.target.classList.contains("add-day-btn")) {
+      if (event.target && event.target.classList.contains("add-stream-btn")) {
         currentNominationId = event.target.getAttribute("data-nomination-id");
         const lastStreamUrl = await getLastStreamUrl(currentNominationId);
         if (lastStreamUrl) {
@@ -113,6 +109,63 @@ document.addEventListener("DOMContentLoaded", async () => {
   await startSignalRConnection();
 });
 
+async function handleAddStream(event) {
+  event.preventDefault();
+
+  const day = document.getElementById("dayDropdown").value;
+  const streamUrl = document.getElementById("streamUrlInput").value.trim();
+  const platformName = document
+    .getElementById("platformNameInput")
+    .value.trim();
+  const platformUrl = document.getElementById("platformUrlInput").value.trim();
+  const token = document.getElementById("tokenInput").value.trim();
+
+  if (!currentNominationId) {
+    notyf.error("Номинация не выбрана.");
+    return;
+  }
+
+  if (!day || !streamUrl) {
+    notyf.error("Пожалуйста, заполните день и URL потока.");
+    return;
+  }
+
+  const streamDto = {
+    nominationId: parseInt(currentNominationId),
+    streamUrl: streamUrl,
+    day: parseInt(day),
+    platformName: platformName,
+    platformUrl: platformUrl,
+    token: token,
+  };
+
+  try {
+    const response = await fetch("/api/streams", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(streamDto),
+    });
+
+    if (response.ok) {
+      notyf.success("Трансляция успешно добавлена.");
+      fetchAndRenderNominations();
+      const modal = bootstrap.Modal.getInstance(
+        document.getElementById("addStreamModal")
+      );
+      modal.hide();
+      document.getElementById("addStreamForm").reset();
+    } else {
+      const errorData = await response.json();
+      notyf.error(errorData.error || "Ошибка при добавлении трансляции.");
+    }
+  } catch (error) {
+    console.error("Error adding stream:", error);
+    notyf.error("Ошибка при добавлении трансляции.");
+  }
+}
+
 async function startSignalRConnection() {
   connection = new signalR.HubConnectionBuilder().withUrl("/streamHub").build();
 
@@ -172,7 +225,7 @@ async function handleEditStream(event) {
       editModal.hide();
     } else {
       const error = await response.text();
-      notyf.error(error);
+      notyf.error(error.error || "Ошибка при обновлении трансляции.");
     }
   } catch (error) {
     console.error("Error updating stream:", error);
@@ -237,7 +290,7 @@ async function fetchAndRenderNominations() {
               nomination.nominationId
             }" aria-expanded="false"
             aria-controls="collapse${nomination.nominationId}">
-            ${nomination.nomination}
+            ${nomination.nomination ?? ""}
           </button>
         </h2>
         <div id="collapse${
@@ -246,10 +299,10 @@ async function fetchAndRenderNominations() {
           aria-labelledby="heading${nomination.nominationId}">
           <div class="accordion-body">
             <div class="d-flex justify-content-end mt-1">
-              <button class="btn btn-success add-day-btn" data-nomination-id="${
+              <button class="btn btn-success add-stream-btn" data-nomination-id="${
                 nomination.nominationId
               }"
-                data-bs-toggle="modal" data-bs-target="#addDayModal">Добавить день</button>
+                data-bs-toggle="modal" data-bs-target="#addStreamModal">Добавить трансляцию</button>
             </div>
             <table id="table${
               nomination.nominationId
@@ -271,19 +324,23 @@ async function fetchAndRenderNominations() {
                   .map(
                     (stream) => `
                   <tr data-id="${stream.id}">
-                    <td>${stream.day}</td>
-                    <td>${stream.streamUrl}</td>
-                    <td>${stream.platformName}</td>
-                    <td>${stream.platformUrl}</td>
-                    <td>${stream.token}</td>
+                    <td>${stream.day ?? ""}</td>
+                    <td>${stream.streamUrl ?? ""}</td>
+                    <td>${stream.platformName ?? ""}</td>
+                    <td>${stream.platformUrl ?? ""}</td>
+                    <td>${stream.token ?? ""}</td>
                     <td>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input stream-toggle" type="checkbox" ${
-                              stream.isActive ? "checked" : ""
-                            }>
-                        </div>
-                      </td>
-                      <td>
+                      ${
+                        stream.platformName && stream.platformUrl && stream.token
+                          ? `<div class="form-check form-switch">
+                              <input class="form-check-input stream-toggle" type="checkbox" ${
+                                stream.isActive ? "checked" : ""
+                              }>
+                            </div>`
+                          : ""
+                      }
+                    </td>          
+                    <td>
                       <button class="btn btn-danger btn-sm delete-stream-btn">Удалить</button>
                       <button class="btn btn-warning btn-sm change-stream-btn ms-2">Изменить</button>
                     </td>
@@ -381,27 +438,38 @@ async function handleAddDay(event) {
   }
 
   const streamUrl = document.getElementById("streamUrlInput").value.trim();
-
-  const table = document.getElementById("addedPlatformsTable");
-  const rows = table.querySelectorAll("tr");
-  if (rows.length === 0) {
-    notyf.error("Пожалуйста, добавьте хотя бы одну платформу");
+  if (!streamUrl) {
+    notyf.error("Пожалуйста, введите URL потока");
     return;
   }
 
+  let url;
+  try {
+    url = new URL(streamUrl);
+  } catch (error) {
+    notyf.error("Некорректный URL потока");
+    return;
+  }
+
+  const table = document.getElementById("addedPlatformsTable");
+  const rows = table.querySelectorAll("tr");
+
   const dayStreams = [];
   rows.forEach((row) => {
-    const cols = row.querySelectorAll("td");
+    const platformName = row.cells[0].textContent.trim();
+    const platformUrl = row.cells[1].textContent.trim();
+    const token = row.cells[2].textContent.trim();
+
     dayStreams.push({
-      platformName: cols[0].textContent,
-      platformUrl: cols[1].textContent,
-      token: cols[2].textContent,
+      platformName: platformName || null,
+      platformUrl: platformUrl || null,
+      token: token || null,
     });
   });
 
   const dayDto = {
     nominationId: parseInt(currentNominationId),
-    streamUrl: streamUrl,
+    streamUrl: url.toString(),
     day: parseInt(day),
     dayStreams: dayStreams,
   };
@@ -434,7 +502,7 @@ async function handleAddDay(event) {
       currentNominationId = null;
     } else {
       const error = await response.text();
-      notyf.error(error);
+      notyf.error(error.error || "Ошибка при добавлении дня");
     }
   } catch (error) {
     console.error("Error adding day:", error);
@@ -454,7 +522,9 @@ async function getLastStreamUrl(nominationId) {
     }
     const data = await response.json();
     if (data.length === 0 || data.streams.length == 0) return "";
-    const lastStream = data.streams[data.streams.length - 1];
+
+    const sortedStreams = data.streams.sort((a, b) => b.day - a.day);
+    const lastStream = sortedStreams[0];
     return lastStream.streamUrl;
   } catch (error) {
     console.error("Error fetching last stream URL:", error);

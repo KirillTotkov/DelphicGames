@@ -41,9 +41,8 @@
             <div class="accordion-collapse collapse" id="collapseTwo" data-bs-parent="#nominations-list">
                 <div class="accordion-body">
                     <div class="d-flex justify-content-end mt-1">
-                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addDayModal">Добавить
-                            день
-                        </button>
+                        <button class="btn btn-success add-stream-btn" data-bs-toggle="modal"
+                            data-bs-target="#addStreamModal">Добавить трансляцию</button>ы
                     </div>
                     <div class="table-responsive">
                         <table class="table table-striped table-hover mt-3">
@@ -69,17 +68,16 @@
     </div>
 </div>
 
-<!-- Добавление дня -->
-<div class="modal fade" id="addDayModal" tabindex="-1" aria-labelledby="addDayModalLabel" aria-hidden="true">
+<div class="modal fade" id="addStreamModal" tabindex="-1" aria-labelledby="addStreamModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addDayModalLabel">Добавить день</h5>
+                <h5 class="modal-title">Добавить трансляцию</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
             </div>
             <div class="modal-body">
-                <form id="addDayForm">
-                    <div class="row g-3 align-items-end">
+                <form id="addStreamForm">
+                    <div class="row g-3">
                         <div class="col-md-6">
                             <label for="dayDropdown" class="form-label">День</label>
                             <select id="dayDropdown" class="form-select" required>
@@ -90,53 +88,27 @@
                                 }
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label for="streamUrlInput" class="form-label fw-medium">URL потока</label>
+                        <div class="col-md-6">
+                            <label for="streamUrlInput" class="form-label">URL потока</label>
                             <input type="url" class="form-control" id="streamUrlInput" required />
                         </div>
-
-                    </div>
-                    <div class="row g-3 align-items-center mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Платформа</label>
-                            <input type="text" class="form-control" id="platformNameInput"
-                                placeholder="Введите название" required>
+                        <div class="col-md-4">
+                            <label for="platformNameInput" class="form-label">Платформа</label>
+                            <input type="text" class="form-control" id="platformNameInput" />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="platformUrlInput" class="form-label">URL Платформы</label>
+                            <input type="url" class="form-control" id="platformUrlInput" />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tokenInput" class="form-label">Token</label>
+                            <input type="text" class="form-control" id="tokenInput" />
                         </div>
                     </div>
-                    <div class="row g-3 align-items-center">
-                        <div class="col-md-6">
-                            <label for="urlInput" class="form-label">URL Платформы</label>
-                            <input type="url" class="form-control" id="urlInput" placeholder="Введите URL" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="tokenInput" class="form-label">Токен</label>
-                            <input type="text" class="form-control" id="tokenInput" placeholder="Введите токен"
-                                required>
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-end mt-3">
-                        <button type="button" class="btn btn-success" id="addPlatformBtn">Добавить Платформу</button>
+                    <div class="mt-3 d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">Добавить трансляцию</button>
                     </div>
                 </form>
-                <hr>
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover mt-3">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Платформа</th>
-                                <th>URL</th>
-                                <th>Токен</th>
-                                <th>Действие</th>
-                            </tr>
-                        </thead>
-                        <tbody id="addedPlatformsTable">
-                            <!-- Данные будут добавляться сюда -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="d-flex justify-content-end">
-                    <button type="submit" class="btn btn-primary" id="submitAddDayBtn">Добавить День</button>
-                </div>
             </div>
         </div>
     </div>
@@ -169,15 +141,15 @@
                         </div>
                         <div class="col-md-4">
                             <label for="editPlatformNameInput" class="form-label">Платформа</label>
-                            <input type="text" class="form-control" id="editPlatformNameInput" required />
+                            <input type="text" class="form-control" id="editPlatformNameInput" />
                         </div>
                         <div class="col-md-4">
                             <label for="editPlatformUrlInput" class="form-label">URL Платформы</label>
-                            <input type="url" class="form-control" id="editPlatformUrlInput" required />
+                            <input type="url" class="form-control" id="editPlatformUrlInput" />
                         </div>
                         <div class="col-md-4">
                             <label for="editTokenInput" class="form-label">Token</label>
-                            <input type="text" class="form-control" id="editTokenInput" required />
+                            <input type="text" class="form-control" id="editTokenInput" />
                         </div>
                     </div>
                     <div class="mt-3">

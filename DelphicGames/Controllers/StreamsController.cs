@@ -21,16 +21,16 @@ public class StreamsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult> AddDay([FromBody] AddDayDto dayDto)
+    public async Task<ActionResult> AddStream([FromBody] AddStreamDto? streamDto)
     {
-        if (dayDto == null)
+        if (streamDto == null)
         {
             return BadRequest("Данные дня не должны быть null.");
         }
 
         try
         {
-            await _streamService.AddDay(dayDto);
+            await _streamService.AddStream(streamDto);
             return Ok("День добавлен успешно.");
         }
         catch (ArgumentException ex)

@@ -74,7 +74,6 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                     nomination.Id,
                     nomination.Name,
                     nomination.Streams
-                        .Where(s => !string.IsNullOrEmpty(s.Token))
                         .Select(s => new GetStreamDto(
                             s.Id,
                             s.Day,
@@ -98,99 +97,70 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         }
     }
 
-    public async Task AddDay(AddDayDto dayDto)
+    public async Task AddStream(AddStreamDto streamDto)
     {
-        if (dayDto == null)
+        if (streamDto == null)
         {
-            throw new ArgumentNullException(nameof(dayDto), "Данные дня не должны быть null.");
+            throw new ArgumentNullException(nameof(streamDto), "Данные трансляции не должны быть null.");
         }
 
-        if (dayDto.Day <= 0)
+        if (streamDto.Day <= 0)
         {
-            throw new ArgumentException("День должен быть положительным числом.", nameof(dayDto.Day));
+            throw new ArgumentException("День должен быть положительным числом.", nameof(streamDto.Day));
         }
 
-        if (dayDto.DayStreams == null || !dayDto.DayStreams.Any())
+        // if (dayDto.DayStreams == null || !dayDto.DayStreams.Any())
+        // {
+        //     throw new ArgumentException("Список трансляций не может быть пустым.", nameof(dayDto.DayStreams));
+        // }
+
+        if (!string.IsNullOrWhiteSpace(streamDto.StreamUrl) && streamDto.StreamUrl.Length > 200)
         {
-            throw new ArgumentException("Список трансляций не может быть пустым.", nameof(dayDto.DayStreams));
+            throw new ArgumentException("URL трансляции превышает максимальную длину в 200 символов.", nameof(streamDto.StreamUrl));
         }
 
-        if (string.IsNullOrWhiteSpace(dayDto.StreamUrl))
+
+        if (!string.IsNullOrWhiteSpace(streamDto.PlatformName) && streamDto.PlatformName.Length > 100)
         {
-            throw new ArgumentException("URL трансляции не может быть пустым.", nameof(dayDto.StreamUrl));
+            throw new ArgumentException("Название платформы превышает максимальную длину в 100 символов.", nameof(streamDto.PlatformName));
         }
 
-        if (dayDto.StreamUrl.Length > 200)
+        if (!string.IsNullOrWhiteSpace(streamDto.PlatformUrl) && streamDto.PlatformUrl.Length > 200)
         {
-            throw new ArgumentException("URL трансляции превышает максимальную длину в 200 символов.", nameof(dayDto.StreamUrl));
+            throw new ArgumentException("URL платформы превышает максимальную длину в 200 символов.", nameof(streamDto.PlatformUrl));
         }
 
-        foreach (var dayStream in dayDto.DayStreams)
+        if (!string.IsNullOrWhiteSpace(streamDto.Token) && streamDto.Token.Length > 500)
         {
-            if (string.IsNullOrWhiteSpace(dayStream.PlatformName))
-            {
-                throw new ArgumentException("Имя платформы не может быть пустым.", nameof(dayStream.PlatformName));
-            }
-
-            if (dayStream.PlatformName.Length > 100)
-            {
-                throw new ArgumentException("Имя платформы превышает максимальную длину в 100 символов.", nameof(dayStream.PlatformName));
-            }
-
-            if (string.IsNullOrWhiteSpace(dayStream.PlatformUrl))
-            {
-                throw new ArgumentException("URL платформы не может быть пустым.", nameof(dayStream.PlatformUrl));
-            }
-
-            if (dayStream.PlatformUrl.Length > 200)
-            {
-                throw new ArgumentException("URL платформы превышает максимальную длину в 200 символов.", nameof(dayStream.PlatformUrl));
-            }
-
-            if (string.IsNullOrWhiteSpace(dayStream.Token))
-            {
-                throw new ArgumentException("Токен не может быть пустым.", nameof(dayStream.Token));
-            }
-
-            if (dayStream.Token.Length > 500)
-            {
-                throw new ArgumentException("Токен превышает максимальную длину в 500 символов.", nameof(dayStream.Token));
-            }
+            throw new ArgumentException("Token превышает максимальную длину в 500 символов.", nameof(streamDto.Token));
         }
 
         try
         {
             var nomination = await _context.Nominations
                 .Include(n => n.Streams)
-                .FirstOrDefaultAsync(n => n.Id == dayDto.NominationId);
+                .FirstOrDefaultAsync(n => n.Id == streamDto.NominationId);
 
             if (nomination == null)
             {
                 throw new InvalidOperationException("Номинация не найдена.");
             }
 
-            var streams = dayDto.DayStreams.Select(dayStream =>
+            var stream = new StreamEntity
             {
-                var stream = new StreamEntity
-                {
-                    NominationId = dayDto.NominationId,
-                    PlatformName = dayStream.PlatformName,
-                    PlatformUrl = dayStream.PlatformUrl,
-                    Token = dayStream.Token,
-                    StreamUrl = dayDto.StreamUrl,
-                    Day = dayDto.Day,
-                    IsActive = false
-                };
+                NominationId = streamDto.NominationId,
+                Day = streamDto.Day,
+                StreamUrl = streamDto.StreamUrl,
+                PlatformName = streamDto.PlatformName,
+                PlatformUrl = streamDto.PlatformUrl,
+                Token = streamDto.Token,
+                IsActive = false
+            };
 
-                return stream;
-            }).ToList();
-
-            await _context.Streams.AddRangeAsync(streams);
-
+            await _context.Streams.AddAsync(stream);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Добавлены трансляции для номинации {NominationId} на день {Day}.",
-                dayDto.NominationId, dayDto.Day);
+            _logger.LogInformation("Добавлена трансляция {StreamId} для номинации {NominationId}.", stream.Id, streamDto.NominationId);
         }
         catch (Exception ex)
         {
@@ -254,6 +224,11 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
 
     public async Task UpdateStream(int streamId, UpdateStreamDto dto)
     {
+        if (dto == null)
+        {
+            throw new ArgumentNullException(nameof(dto), "Данные трансляции не должны быть null.");
+        }
+
         try
         {
             var stream = await _context.Streams
@@ -273,7 +248,6 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             {
                 throw new ArgumentException("Имя платформы не может быть пустым.");
             }
-
             if (dto.PlatformName.Length > 100)
             {
                 throw new ArgumentException("Имя платформы превышает максимальную длину в 100 символов.");
@@ -283,7 +257,6 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             {
                 throw new ArgumentException("URL платформы не может быть пустым.");
             }
-
             if (dto.PlatformUrl.Length > 200)
             {
                 throw new ArgumentException("URL платформы превышает максимальную длину в 200 символов.");
@@ -293,7 +266,6 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             {
                 throw new ArgumentException("Токен не может быть пустым.");
             }
-
             if (dto.Token.Length > 500)
             {
                 throw new ArgumentException("Токен превышает максимальную длину в 500 символов.");
@@ -303,7 +275,6 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             {
                 throw new ArgumentException("URL трансляции не может быть пустым.");
             }
-
             if (dto.StreamUrl.Length > 200)
             {
                 throw new ArgumentException("URL трансляции превышает максимальную длину в 200 символов.");
@@ -594,10 +565,10 @@ public record GetStreamDto(
 
 public record UpdateStreamDto(
     int Day,
-    string PlatformName,
-    string PlatformUrl,
-    string Token,
-    string StreamUrl
+    string? PlatformName,
+    string? PlatformUrl,
+    string? Token,
+    string? StreamUrl
 );
 
 public record PlatformStatusDto(
@@ -607,12 +578,21 @@ public record PlatformStatusDto(
 
 public record AddDayDto(
     int NominationId,
-    string StreamUrl,
+    string? StreamUrl,
     int Day,
     List<DayStreamDto> DayStreams
 );
 
 public record DayStreamDto(
+    string? PlatformName,
+    string? PlatformUrl,
+    string? Token
+);
+
+public record AddStreamDto(
+    int NominationId,
+    string StreamUrl,
+    int Day,
     string PlatformName,
     string PlatformUrl,
     string Token
