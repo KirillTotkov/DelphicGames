@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using DelphicGames.Data.Models;
 using DelphicGames.Models;
+using MediatR;
 using Serilog;
 
 namespace DelphicGames.Services.Streaming;
@@ -11,14 +12,17 @@ namespace DelphicGames.Services.Streaming;
 public class TestStreamProcessor : IStreamProcessor
 {
     private readonly ILogger<TestStreamProcessor> _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
+
     private bool _disposed = false;
 
-    public TestStreamProcessor(ILogger<TestStreamProcessor> logger)
+    public TestStreamProcessor(ILogger<TestStreamProcessor> logger, IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
+        _scopeFactory = scopeFactory;
     }
 
-    public StreamInfo StartStreamForPlatform(StreamEntity streamEntity)
+    public async Task<StreamInfo> StartStreamForPlatform(StreamEntity streamEntity)
     {
         ArgumentNullException.ThrowIfNull(streamEntity);
 
@@ -52,24 +56,40 @@ public class TestStreamProcessor : IStreamProcessor
             }
         };
 
-        process.ErrorDataReceived += (sender, args) =>
+        process.ErrorDataReceived += async (sender, args) =>
         {
             if (!string.IsNullOrEmpty(args.Data))
             {
                 logger.Error(args.Data);
+                using var scope = _scopeFactory.CreateScope();
+                var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+
+                var errorEvent = new StreamStatusChangedEvent(streamEntity.Id, StreamStatus.Error, args.Data);
+                await mediator.Publish(errorEvent);
             }
         };
+
+        process.Exited += async (sender, args) =>
+       {
+           _logger.LogInformation($"Stream process for entity {streamEntity.Id} has exited.");
+
+           using var scope = _scopeFactory.CreateScope();
+           var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+
+           var completedEvent = new StreamStatusChangedEvent(streamEntity.Id, StreamStatus.Completed);
+           await mediator.Publish(completedEvent);
+       };
 
         try
         {
             process.Start();
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
-            Thread.Sleep(4000);
-            if (process.HasExited)
-            {
-                throw new InvalidOperationException("Процесс FFmpeg завершился неожиданно.");
-            }
+
+            using var scope = _scopeFactory.CreateScope();
+            var mediatorStart = scope.ServiceProvider.GetRequiredService<IMediator>();
+            var runningEvent = new StreamStatusChangedEvent(streamEntity.Id, StreamStatus.Running);
+            await mediatorStart.Publish(runningEvent);
 
             _logger.LogInformation("Запущен ffmpeg тестовый процесс для номинации {NominationId} на платформе {PlatformName}",
                 streamEntity.NominationId, streamEntity.PlatformName);
@@ -128,10 +148,5 @@ public class TestStreamProcessor : IStreamProcessor
             // Освобождение ресурсов
             _disposed = true;
         }
-    }
-
-    Task<StreamInfo> IStreamProcessor.StartStreamForPlatform(StreamEntity streamEntity)
-    {
-        throw new NotImplementedException();
     }
 }
