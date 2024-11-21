@@ -11,9 +11,9 @@ namespace DelphicGames.Pages.Root.Users;
 [Authorize(Roles = nameof(UserRoles.Root))]
 public class CreateModel : PageModel
 {
-    private readonly UserManager<User> _userManager;
-    private readonly RoleManager<IdentityRole> _roleManager;
     private readonly ILogger<CreateModel> _logger;
+    private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly UserManager<User> _userManager;
 
     public CreateModel(UserManager<User> userManager, RoleManager<IdentityRole> roleManager,
         ILogger<CreateModel> logger)
@@ -48,12 +48,11 @@ public class CreateModel : PageModel
         {
             if (!string.IsNullOrEmpty(Input.Role))
             {
-                if (Input.Role == nameof(UserRoles.Admin))
+                if (await _roleManager.RoleExistsAsync(Input.Role))
                 {
                     user.EmailConfirmed = true;
+                    await _userManager.AddToRoleAsync(user, Input.Role);
                 }
-
-                await _userManager.AddToRoleAsync(user, Input.Role);
             }
 
             _logger.LogInformation("Пользователь создан и назначена роль.");
