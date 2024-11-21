@@ -333,24 +333,26 @@ class StreamManager {
             }"
               data-bs-toggle="modal" data-bs-target="#addStreamModal">Добавить трансляцию</button>
           </div>
-          <table id="table${
-            nomination.nominationId
-          }" class="table table-striped table-hover mt-3">
-            <thead class="table-light">
-              <tr>
-                <th>День</th>
-                <th>URL Потока</th>
-                <th>Платформа</th>
-                <th>URL Платформы</th>
-                <th>Token</th>
-                <th>Статус</th>
-                <th>Действие</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${this.createStreamRows(nomination.streams)}
-            </tbody>
-          </table>
+          <div class="table-responsive">
+            <table id="table${
+              nomination.nominationId
+            }" class="table table-striped table-hover mt-3">
+              <thead class="table-light">
+                <tr>
+                  <th>День</th>
+                  <th>URL Потока</th>
+                  <th>Платформа</th>
+                  <th>URL Платформы</th>
+                  <th>Token</th>
+                  <th>Статус</th>
+                  <th>Действие</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${this.createStreamRows(nomination.streams)}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     `;
@@ -384,8 +386,10 @@ class StreamManager {
           }
         </td>          
         <td>
-          <button class="btn btn-danger btn-sm delete-stream-btn">Удалить</button>
-          <button class="btn btn-warning btn-sm change-stream-btn ms-2">Изменить</button>
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-danger btn-sm delete-stream-btn">Удалить</button>
+            <button class="btn btn-warning btn-sm change-stream-btn">Изменить</button>
+          </div>
         </td>
       </tr>
     `
