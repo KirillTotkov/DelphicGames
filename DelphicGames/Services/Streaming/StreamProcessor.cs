@@ -188,11 +188,13 @@ public class StreamProcessor : IStreamProcessor
     /// <returns></returns>
     private string GenerateFfmpegArguments(StreamEntity streamEntity)
     {
+        // -c copy -f flv rtmp://ovsu.okcdn.ru/input/9046182210355_7532004182579_erp4knrkmy
+
         var command =
-            " -y -fflags +genpts -thread_queue_size 512 -probesize 5000000 -analyzeduration 5000000 -timeout 5000000 -rtsp_transport tcp ";
+            " -thread_queue_size 512 -rtmp_buffer 1000 -rtmp_live live";
 
         command +=
-            $"-i {streamEntity.StreamUrl} -dn -sn -map 0:0 -codec:v copy -map 0:1 -codec:a aac -b:a 64k -shortest ";
+            $"-i {streamEntity.StreamUrl} -c copy ";
 
         if (!streamEntity.PlatformUrl.EndsWith("/"))
         {
