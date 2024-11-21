@@ -207,13 +207,21 @@ public class StreamsController : ControllerBase
         }
     }
 
-    [HttpPost("start/day/{dayId:int}")]
-    public async Task<IActionResult> StartDayStreams(int dayId)
+    [HttpPost("start/day/{day:int}")]
+    public async Task<IActionResult> StartDayStreams(int day)
     {
         try
         {
-            await _streamService.StartStreamsByDay(dayId);
-            return Ok($"Трансляции для дня начаты.");
+            bool allLaunched = await _streamService.StartStreamsByDay(day);
+            if (allLaunched)
+            {
+                return Ok(new { success = true, partial = false, message = $"Все трансляции  для дня {day} были запущены." });
+            }
+            else
+            {
+                return Ok(new { success = true, partial = true, message = $"Не все трансляции для дня {day} были запущены." });
+            }
+
         }
         catch (InvalidOperationException ex)
         {

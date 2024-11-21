@@ -368,19 +368,24 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
     }
 
     // Запуск всех трансляций для определенного дня
-    public async Task StartStreamsByDay(int day)
+    public async Task<bool> StartStreamsByDay(int day)
     {
         try
         {
             var streamsByDay = await _context.Streams
                 .Include(np => np.Nomination)
-                .Where(np => np.Day == day && !np.IsActive && !string.IsNullOrEmpty(np.Token) && !string.IsNullOrEmpty(np.PlatformName) && !string.IsNullOrEmpty(np.PlatformUrl))
+                .Where(np => np.Day == day && !np.IsActive &&
+                            !string.IsNullOrEmpty(np.Token) && !string.IsNullOrEmpty(np.PlatformName) && !string.IsNullOrEmpty(np.PlatformUrl))
                 .ToListAsync();
 
             if (streamsByDay.Count == 0)
             {
-                throw new InvalidOperationException($"День {day}:\nНет незапущенных трансляций или нет данных о платформе");
+                throw new InvalidOperationException($"День {day}: Нет незапущенных трансляций или отсутствует информация о платформе.");
             }
+
+            var totalStreams = await _context.Streams
+                .Where(np => np.Day == day)
+                .CountAsync();
 
             var startTasks = streamsByDay.Select(np => Task.Run(async () =>
             {
@@ -391,15 +396,23 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
 
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Все трансляции для дня {Day} запущены.", day);
+            if (streamsByDay.Count < totalStreams)
+            {
+                _logger.LogInformation("Не все трансляции были запущены за день {Day}.", day);
+                return false; // Partial success
+            }
+            else
+            {
+                _logger.LogInformation("Все трансляции для дня {Day} успешно запущены.", day);
+                return true; // All success
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при запуске всех трансляций для дня.");
+            _logger.LogError(ex, "Ошибка при запуске всех трансляций для дня {Day}.", day);
             throw;
         }
     }
-
     // Остановка всех трансляций для определенного дня
     public async Task StopStreamsByDay(int day)
     {
