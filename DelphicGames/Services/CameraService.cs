@@ -158,7 +158,7 @@ public class CameraService
     {
         if (string.IsNullOrEmpty(name) || name.Trim().Length > MaxNameLength)
         {
-            throw new ArgumentException($"Имя не может быть пустым или длиннее, чем {MaxNameLength} символов");
+            throw new ArgumentException($"Название камеры не может быть пустым или длиннее, чем {MaxNameLength} символов");
         }
 
         if (string.IsNullOrEmpty(url) || url.Trim().Length > MaxUrlLength)
