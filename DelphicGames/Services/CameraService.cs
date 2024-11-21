@@ -78,7 +78,7 @@ public class CameraService
 
         if (existingCamera.NominationId.HasValue)
         {
-            throw new InvalidOperationException("Невозможно удалить камеру, связанную с номинацией.");
+            throw new InvalidOperationException("Невозможно изменить камеру, связанную с номинацией.");
         }
 
         ValidateCameraInput(dto.Name, dto.Url);
