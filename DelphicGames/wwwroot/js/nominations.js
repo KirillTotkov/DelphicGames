@@ -127,6 +127,19 @@ class NominationManager {
     document.getElementById("exportExcelBtn").addEventListener("click", () => {
       window.location.href = "/api/nominations/export";
     });
+
+    const searchInput = document.getElementById("searchInput");
+
+    searchInput.addEventListener("input", () => {
+      const searchValue = searchInput.value.toLowerCase();
+      const tableRows = document.querySelectorAll("#table-body tr");
+
+      tableRows.forEach((row) => {
+        const name = row.querySelector("td:first-child").textContent.toLowerCase();
+        row.style.display = name.includes(searchValue) ? "" : "none";
+      });
+    });
+
   }
 
   async loadNominations() {
