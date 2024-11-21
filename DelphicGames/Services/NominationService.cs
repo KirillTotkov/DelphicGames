@@ -101,6 +101,11 @@ public class NominationService
             throw new ArgumentException($"Nomination with id {nominationId} not found");
         }
 
+        if (nomination.Streams.Any(np => np.IsActive))
+        {
+            throw new ArgumentException("Невозможно удалить номинацию во время ее трансляции.");
+        }
+
         await _streamService.StopNominationStreams(nominationId);
 
         _context.Nominations.Remove(nomination);
