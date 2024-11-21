@@ -138,6 +138,8 @@ public class RegisterModel : PageModel
         [Required]
         [EmailAddress]
         [Display(Name = "Email")]
+        [StringLength(100, ErrorMessage = "Email length must be between {2} and {1} characters.", MinimumLength = 5)]
+        [RegularExpression(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", ErrorMessage = "Invalid email format.")]
         public string Email { get; set; }
 
         [Required]

@@ -100,10 +100,15 @@ public class LoginModel : PageModel
 
     public class InputModel
     {
-        [Required] [EmailAddress] public string Email { get; set; }
+        [Required]
+        [EmailAddress]
+        [StringLength(100, ErrorMessage = "Email length must be between {2} and {1} characters.", MinimumLength = 5)]
+        [RegularExpression(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", ErrorMessage = "Invalid email format.")]
+        public string Email { get; set; }
 
         [Required]
         [DataType(DataType.Password)]
+        [StringLength(100, ErrorMessage = "Password length must be between {2} and {1} characters.", MinimumLength = 6)]
         public string Password { get; set; }
     }
 }
