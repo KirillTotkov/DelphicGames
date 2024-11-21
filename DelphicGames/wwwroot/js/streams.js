@@ -257,11 +257,12 @@ class StreamManager {
   async updateStreamCount(nominationId) {
     const nomination = await this.getNominationById(nominationId);
     const runningStreams = this.getRunningStreamsCount(nomination.streams);
+    const totalStreams = nomination.streams.length;
     const streamCountBadge = document.getElementById(
       `streamCount-${nominationId}`
     );
     if (streamCountBadge) {
-      streamCountBadge.textContent = `${runningStreams} Запущено`;
+      streamCountBadge.textContent = `Запущено: ${runningStreams} из ${totalStreams}`;
     }
   }
 
@@ -303,6 +304,7 @@ class StreamManager {
 
   createAccordionItem(nomination) {
     const runningStreams = this.getRunningStreamsCount(nomination.streams);
+    const totalStreams = nomination.streams.length;
 
     const accordionItem = document.createElement("div");
     accordionItem.className = "accordion-item";
@@ -318,8 +320,8 @@ class StreamManager {
           <span class="badge bg-primary ms-2" id="streamCount-${
             nomination.nominationId
           }">
-            ${runningStreams} Запущено
-          </span>
+          Запущено: ${runningStreams} из ${totalStreams}
+        </span>
         </button>
       </h2>
       <div id="collapse${
