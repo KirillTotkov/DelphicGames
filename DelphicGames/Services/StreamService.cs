@@ -99,20 +99,21 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
 
     public async Task AddStream(AddStreamDto streamDto)
     {
+
         if (streamDto == null)
         {
             throw new ArgumentNullException(nameof(streamDto), "Данные трансляции не должны быть null.");
         }
 
+        string? streamUrl = streamDto.StreamUrl.Trim();
+        string? platformName = streamDto.PlatformName?.Trim();
+        string? platformUrl = streamDto.PlatformUrl?.Trim();
+        string? token = streamDto.Token?.Trim();
+
         if (streamDto.Day <= 0)
         {
             throw new ArgumentException("День должен быть положительным числом.", nameof(streamDto.Day));
         }
-
-        // if (dayDto.DayStreams == null || !dayDto.DayStreams.Any())
-        // {
-        //     throw new ArgumentException("Список трансляций не может быть пустым.", nameof(dayDto.DayStreams));
-        // }
 
         if (!string.IsNullOrWhiteSpace(streamDto.StreamUrl) && streamDto.StreamUrl.Length > 200)
         {
@@ -133,6 +134,17 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         if (!string.IsNullOrWhiteSpace(streamDto.Token) && streamDto.Token.Length > 500)
         {
             throw new ArgumentException("Token превышает максимальную длину в 500 символов.", nameof(streamDto.Token));
+        }
+
+        if (!string.IsNullOrWhiteSpace(token))
+        {
+            var streamWithSameValues = await _context.Streams
+                .AnyAsync(s => s.Token == token && s.PlatformName == platformName && s.PlatformUrl == platformUrl);
+
+            if (streamWithSameValues)
+            {
+                throw new InvalidOperationException("Трансляция с такими параметрами уже существует.");
+            }
         }
 
         try
@@ -283,6 +295,17 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             if (dto.Day <= 0)
             {
                 throw new ArgumentException("День должен быть положительным числом.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Token))
+            {
+                var streamWithSameValues = await _context.Streams
+                    .AnyAsync(s => s.Token == dto.Token && s.PlatformName == dto.PlatformName && s.PlatformUrl == dto.PlatformUrl);
+
+                if (streamWithSameValues)
+                {
+                    throw new InvalidOperationException("Трансляция с такими параметрами уже существует.");
+                }
             }
 
             stream.Day = dto.Day;

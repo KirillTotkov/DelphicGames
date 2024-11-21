@@ -38,6 +38,10 @@ public class StreamsController : ControllerBase
             _logger.LogWarning(ex, "Неверные данные при добавлении дня.");
             return BadRequest(new { Error = ex.Message });
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { Error = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ошибка при добавлении дня.");
