@@ -204,4 +204,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("exportExcelBtn").addEventListener("click", () => {
     exportCamerasToExcel();
   });
+
+  const searchCameraInput = document.getElementById("searchCameraInput");
+
+  searchCameraInput.addEventListener("input", () => {
+    const filter = searchCameraInput.value.toLowerCase();
+    const rows = document.querySelectorAll("#cameraTable tbody tr");
+
+    rows.forEach((row) => {
+      const name = row
+        .querySelector("td:nth-child(1)")
+        .textContent.toLowerCase();
+      const url = row
+        .querySelector("td:nth-child(2)")
+        .textContent.toLowerCase();
+
+      if (name.includes(filter) || url.includes(filter)) {
+        row.style.display = "";
+      } else {
+        row.style.display = "none";
+      }
+    });
+  });
 });
