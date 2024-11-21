@@ -377,6 +377,11 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 throw new InvalidOperationException($"День {day}:\nНет незапущенных трансляций или нет данных о платформе");
             }
 
+            if (streamsByDay.Any(np => string.IsNullOrEmpty(np.Token) || string.IsNullOrEmpty(np.PlatformName) || string.IsNullOrEmpty(np.PlatformUrl)))
+            {
+                throw new InvalidOperationException($"День {day}:\nНет данных о платформе");
+            }
+
             var startTasks = streamsByDay.Select(np => Task.Run(async () =>
             {
                 await _streamManager.StartStream(np);
@@ -408,6 +413,11 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             if (streamsByDay.Count == 0)
             {
                 throw new InvalidOperationException($"День {day}:\nНет запущенных трансляций или нет данных о платформе");
+            }
+
+            if (streamsByDay.Any(np => string.IsNullOrEmpty(np.Token) || string.IsNullOrEmpty(np.PlatformName) || string.IsNullOrEmpty(np.PlatformUrl)))
+            {
+                throw new InvalidOperationException($"День {day}:\nНет данных о платформе");
             }
 
             var stopTasks = streamsByDay.Select(np => Task.Run(async () =>
