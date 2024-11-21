@@ -250,10 +250,7 @@ class StreamManager {
       toggleInput.checked = true;
     }
 
-
-    const nominationId = row
-      .closest(".accordion-item")
-      .getAttribute("data-id");
+    const nominationId = row.closest(".accordion-item").getAttribute("data-id");
     await this.updateStreamCount(nominationId);
   }
 
@@ -318,7 +315,7 @@ class StreamManager {
           }" aria-expanded="false"
           aria-controls="collapse${nomination.nominationId}">
           ${nomination.nomination ?? ""}
-          <span class="badge bg-success ms-2" id="streamCount-${
+          <span class="badge bg-primary ms-2" id="streamCount-${
             nomination.nominationId
           }">
             ${runningStreams} Запущено
@@ -579,13 +576,17 @@ class StreamManager {
         "Content-Type": "application/json",
       },
     })
+      .then((response) =>
+        response.json().then((data) => ({
+          ok: response.ok,
+          data,
+        }))
+      )
       .then((response) => {
         if (response.ok) {
-          this.notifier.success("Трансляции запущены.");
+          this.notifier.success(response.data.message);
         } else {
-          return response.json().then((data) => {
-            this.notifier.error(data.error || "Ошибка при запуске трансляций.");
-          });
+          this.notifier.error(data.error || "Ошибка при запуске трансляций.");
         }
       })
       .catch((error) => {
