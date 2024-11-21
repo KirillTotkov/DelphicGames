@@ -374,17 +374,12 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         {
             var streamsByDay = await _context.Streams
                 .Include(np => np.Nomination)
-                .Where(np => np.Day == day && !string.IsNullOrEmpty(np.Token) && !np.IsActive)
+                .Where(np => np.Day == day && !np.IsActive && !string.IsNullOrEmpty(np.Token) && !string.IsNullOrEmpty(np.PlatformName) && !string.IsNullOrEmpty(np.PlatformUrl))
                 .ToListAsync();
 
             if (streamsByDay.Count == 0)
             {
                 throw new InvalidOperationException($"День {day}:\nНет незапущенных трансляций или нет данных о платформе");
-            }
-
-            if (streamsByDay.Any(np => string.IsNullOrEmpty(np.Token) || string.IsNullOrEmpty(np.PlatformName) || string.IsNullOrEmpty(np.PlatformUrl)))
-            {
-                throw new InvalidOperationException($"День {day}:\nНет данных о платформе");
             }
 
             var startTasks = streamsByDay.Select(np => Task.Run(async () =>
@@ -411,18 +406,13 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         try
         {
             var streamsByDay = await _context.Streams
-                .Include(np => np.Nomination)
-                .Where(np => np.Day == day && np.IsActive)
-                .ToListAsync();
+               .Include(np => np.Nomination)
+               .Where(np => np.Day == day && np.IsActive && !string.IsNullOrEmpty(np.Token) && !string.IsNullOrEmpty(np.PlatformName) && !string.IsNullOrEmpty(np.PlatformUrl))
+               .ToListAsync();
 
             if (streamsByDay.Count == 0)
             {
                 throw new InvalidOperationException($"День {day}:\nНет запущенных трансляций или нет данных о платформе");
-            }
-
-            if (streamsByDay.Any(np => string.IsNullOrEmpty(np.Token) || string.IsNullOrEmpty(np.PlatformName) || string.IsNullOrEmpty(np.PlatformUrl)))
-            {
-                throw new InvalidOperationException($"День {day}:\nНет данных о платформе");
             }
 
             var stopTasks = streamsByDay.Select(np => Task.Run(async () =>
