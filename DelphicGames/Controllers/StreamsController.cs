@@ -215,11 +215,11 @@ public class StreamsController : ControllerBase
             bool allLaunched = await _streamService.StartStreamsByDay(day);
             if (allLaunched)
             {
-                return Ok(new { success = true, partial = false, message = $"Все трансляции  для дня {day} были запущены." });
+                return Ok(new { success = true, partial = false, message = $"День {day}: все трансляции были запущены." });
             }
             else
             {
-                return Ok(new { success = true, partial = true, message = $"Не все трансляции для дня {day} были запущены." });
+                return Ok(new { success = true, partial = true, message = $"День {day}: не все трансляции были запущены"});
             }
 
         }

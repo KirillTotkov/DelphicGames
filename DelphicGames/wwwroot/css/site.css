@@ -113,3 +113,10 @@ body {
     font-size: 0.8em;
     padding: 0.5em 0.75em;
 }
+
+td, th {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}

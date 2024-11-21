@@ -115,8 +115,8 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         {
             var exists = await _context.Streams.AnyAsync(s =>
                 s.Token != null && s.Token.Trim() == token &&
-                s.PlatformName != null && s.PlatformName.Trim() == platformName &&
-                s.PlatformUrl != null && s.PlatformUrl.Trim() == platformUrl);
+                s.Day == streamDto.Day &&
+                s.StreamUrl != null && s.StreamUrl.Trim() == streamUrl);
 
             if (exists)
             {
@@ -139,10 +139,10 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             {
                 NominationId = streamDto.NominationId,
                 Day = streamDto.Day,
-                StreamUrl = streamDto.StreamUrl,
-                PlatformName = streamDto.PlatformName,
-                PlatformUrl = streamDto.PlatformUrl,
-                Token = streamDto.Token,
+                StreamUrl = streamUrl,
+                PlatformName = platformName,
+                PlatformUrl = platformUrl,
+                Token = token,  
                 IsActive = false
             };
 
@@ -244,6 +244,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             var platformName = streamDto.PlatformName?.Trim();
             var platformUrl = streamDto.PlatformUrl?.Trim();
             var token = streamDto.Token?.Trim();
+            var streamUrl = streamDto.StreamUrl?.Trim();
 
             ValidateInput(streamDto.Day, streamDto.StreamUrl, platformName, platformUrl, token);
 
@@ -253,8 +254,8 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 var exists = await _context.Streams.AnyAsync(s =>
                     s.Id != streamId &&
                     s.Token != null && s.Token.Trim() == token &&
-                    s.PlatformName != null && s.PlatformName.Trim() == platformName &&
-                    s.PlatformUrl != null && s.PlatformUrl.Trim() == platformUrl);
+                    s.Day == streamDto.Day &&
+                    s.StreamUrl != null && s.StreamUrl.Trim() == streamUrl);
 
                 if (exists)
                 {
@@ -264,10 +265,10 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
 
 
             stream.Day = streamDto.Day;
-            stream.PlatformName = streamDto.PlatformName;
-            stream.PlatformUrl = streamDto.PlatformUrl;
-            stream.StreamUrl = streamDto.StreamUrl;
-            stream.Token = streamDto.Token;
+            stream.PlatformName = platformName;
+            stream.PlatformUrl = platformUrl;
+            stream.StreamUrl = streamUrl;
+            stream.Token = token;
 
             await _context.SaveChangesAsync();
 
