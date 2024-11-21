@@ -300,7 +300,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             if (!string.IsNullOrWhiteSpace(dto.Token))
             {
                 var streamWithSameValues = await _context.Streams
-                    .AnyAsync(s => s.Token == dto.Token && s.PlatformName == dto.PlatformName && s.PlatformUrl == dto.PlatformUrl);
+                    .AnyAsync(s => s.Id != streamId && s.Token == dto.Token && s.PlatformName == dto.PlatformName && s.PlatformUrl == dto.PlatformUrl);
 
                 if (streamWithSameValues)
                 {
