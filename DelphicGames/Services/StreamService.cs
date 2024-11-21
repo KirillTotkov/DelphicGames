@@ -374,7 +374,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
 
             if (streamsByDay.Count == 0)
             {
-                throw new InvalidOperationException($"Не запущенные трансляции для дня {day} не найдены.");
+                throw new InvalidOperationException($"День {day}:\nНет незапущенных трансляций или нет данных о платформе");
             }
 
             var startTasks = streamsByDay.Select(np => Task.Run(async () =>
@@ -407,7 +407,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
 
             if (streamsByDay.Count == 0)
             {
-                throw new InvalidOperationException($"Запущенные трансляции для дня {day} не найдены.");
+                throw new InvalidOperationException($"День {day}:\nНет запущенных трансляций или нет данных о платформе");
             }
 
             var stopTasks = streamsByDay.Select(np => Task.Run(async () =>
