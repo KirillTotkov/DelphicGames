@@ -256,7 +256,6 @@ function handleStreamStatusChanged(streamStatusDto) {
   if (!row) return;
 
   const toggleInput = row.querySelector(".stream-toggle");
-  console.log(status, errorMessage);
 
   if (status === "Error") {
     notyf.error(`Ошибка в трансляции: ${errorMessage}`);
@@ -535,7 +534,6 @@ function stopStreamsForDay() {
     },
   })
     .then((response) => {
-      isBulkStopping = false;
       if (response.ok) {
         notyf.success("Трансляции остановлены.");
       } else {
@@ -545,7 +543,11 @@ function stopStreamsForDay() {
       }
     })
     .catch((error) => {
-      isBulkStopping = false;
-      notyf.error(error.error || "Ошибка при остановке трансляций.");
+      notyf.error("Ошибка сервера при остановке трансляций.");
+    })
+    .finally(() => {
+      setTimeout(() => {
+        isBulkStopping = false;
+      }, 1500);
     });
 }
