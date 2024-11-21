@@ -81,7 +81,7 @@ public class StreamsController : ControllerBase
         return Ok(streams);
     }
 
-    [HttpGet("{nominationId:int}")]
+    [HttpGet("nominations/{nominationId:int}")]
     public async Task<ActionResult> GetNominationStreams(int nominationId)
     {
         var streams = await _streamService.GetNominationStreams(nominationId);
