@@ -171,12 +171,12 @@ public class CameraService
     {
         if (await _context.Cameras.AnyAsync(c => c.Name.Trim().ToLower() == dto.Name.Trim().ToLower()))
         {
-            throw new InvalidOperationException($"Камера с именем {dto.Name} уже существует");
+            throw new InvalidOperationException($"Камера с таким названием уже есть");
         }
 
         if (await _context.Cameras.AnyAsync(c => c.Url.Trim().ToLower() == dto.Url.Trim().ToLower()))
         {
-            throw new InvalidOperationException($"Камера с URL {dto.Url} уже существует");
+            throw new InvalidOperationException($"Камера с таким url уже есть");
         }
     }
 
@@ -184,12 +184,12 @@ public class CameraService
     {
         if (await _context.Cameras.AnyAsync(c => c.Name.Trim().ToLower() == dto.Name.Trim().ToLower() && c.Id != id))
         {
-            throw new InvalidOperationException($"Камера с именем {dto.Name} уже существует");
+            throw new InvalidOperationException($"Камера с таким названием уже существует");
         }
 
         if (await _context.Cameras.AnyAsync(c => c.Url.Trim().ToLower() == dto.Url.Trim().ToLower() && c.Id != id))
         {
-            throw new InvalidOperationException($"Камера с URL {dto.Url} уже существует");
+            throw new InvalidOperationException($"Камера с таким url уже существует");
         }
     }
 
