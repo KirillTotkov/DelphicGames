@@ -209,8 +209,8 @@ async function handleEditStream(event) {
     .value.trim();
   const token = document.getElementById("editTokenInput").value.trim();
 
-  if (!day || !streamUrl || !platformName || !platformUrl || !token) {
-    notyf.error("Пожалуйста, заполните все поля.");
+  if (!day || !streamUrl) {
+    notyf.error("Пожалуйста, заполните день и URL потока.");
     return;
   }
 
