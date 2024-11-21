@@ -277,7 +277,10 @@ function handleStreamStatusChanged(streamStatusDto) {
 
 async function fetchAndRenderNominations() {
   const data = await fetchData();
-  if (data) {
+  if (data && data.length > 0) {
+    document.getElementById("streamsHeader").classList.remove("d-none");
+    document.getElementById("streamsHeader").classList.add("d-flex");
+    
     const nominationsList = document.getElementById("nominations-list");
     nominationsList.innerHTML = "";
     data.forEach((nomination) => {
@@ -331,7 +334,9 @@ async function fetchAndRenderNominations() {
                     <td>${stream.token ?? ""}</td>
                     <td>
                       ${
-                        stream.platformName && stream.platformUrl && stream.token
+                        stream.platformName &&
+                        stream.platformUrl &&
+                        stream.token
                           ? `<div class="form-check form-switch">
                               <input class="form-check-input stream-toggle" type="checkbox" ${
                                 stream.isActive ? "checked" : ""
@@ -355,6 +360,18 @@ async function fetchAndRenderNominations() {
       `;
       nominationsList.appendChild(accordionItem);
     });
+  } else {
+    document.getElementById("nominations-list").innerHTML = "";
+
+    document.getElementById("streamsHeader").classList.add("d-none");
+
+    const noData = document.getElementById("noNominationsMessage");
+
+    noData.classList.remove("d-none");
+    noData.classList.add("d-block");
+
+
+    return;
   }
 
   const days = data.flatMap((nomination) =>
