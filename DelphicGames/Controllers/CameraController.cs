@@ -29,9 +29,9 @@ public class CameraController : ControllerBase
             var camera = await _cameraService.CreateCamera(dto, userId);
             return CreatedAtAction(nameof(GetCamera), new { Id = camera.Id }, camera);
         }
-        catch (InvalidOperationException e)
+        catch (Exception ex)
         {
-            return BadRequest(new { Error = e.Message });
+            return BadRequest(new { Error = ex.Message });
         }
     }
 
@@ -68,9 +68,9 @@ public class CameraController : ControllerBase
             var camera = await _cameraService.UpdateCamera(id, dto);
             return Ok(camera);
         }
-        catch (InvalidOperationException e)
+        catch (Exception ex)
         {
-            return BadRequest(new { Error = e.Message });
+            return BadRequest(new { Error = ex.Message });
         }
     }
 
@@ -83,9 +83,9 @@ public class CameraController : ControllerBase
             await _cameraService.DeleteCamera(id);
             return NoContent();
         }
-        catch (InvalidOperationException e)
+        catch (Exception ex)
         {
-            return BadRequest(new { Error = e.Message });
+            return BadRequest(new { Error = ex.Message });
         }
     }
 
