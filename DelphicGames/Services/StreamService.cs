@@ -219,6 +219,11 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 throw new InvalidOperationException("Stream not found.");
             }
 
+            if (stream.IsActive)
+            {
+                throw new InvalidOperationException("Нельзя удалять запущенную трансляцию.");
+            }
+
             await _streamManager.StopStream(stream);
 
             _context.Streams.Remove(stream);
