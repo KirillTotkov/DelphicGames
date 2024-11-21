@@ -188,10 +188,8 @@ public class StreamProcessor : IStreamProcessor
     /// <returns></returns>
     private string GenerateFfmpegArguments(StreamEntity streamEntity)
     {
-        // -c copy -f flv rtmp://ovsu.okcdn.ru/input/9046182210355_7532004182579_erp4knrkmy
-
         var command =
-            " -thread_queue_size 512 -rtmp_buffer 1000 -rtmp_live live";
+            " -thread_queue_size 512 -rtmp_buffer 5000 -rtmp_live live";
 
         command +=
             $"-i {streamEntity.StreamUrl} -c copy ";
