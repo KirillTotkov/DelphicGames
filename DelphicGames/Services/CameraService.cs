@@ -76,11 +76,17 @@ public class CameraService
         return cameras;
     }
 
-    public async Task<Camera?> UpdateCamera(int id, UpdateCameraDto dto)
+    public async Task<GetCameraDto?> UpdateCamera(int id, UpdateCameraDto dto)
     {
-        if (await _context.Nominations.AnyAsync())
+        var existingCamera = await _context.Cameras
+            .Include(c => c.Nomination)
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+        if (existingCamera == null) return null;
+
+        if (existingCamera.NominationId.HasValue)
         {
-            throw new InvalidOperationException("Невозможно обновить камеры после добавления номинаций.");
+            throw new InvalidOperationException("Cannot update camera associated with a nomination.");
         }
 
         if (string.IsNullOrEmpty(dto.Name) || dto.Name.Trim().Length > MaxNameLength)
@@ -90,12 +96,8 @@ public class CameraService
 
         if (string.IsNullOrEmpty(dto.Url) || dto.Url.Trim().Length > MaxUrlLength)
         {
-            throw new ArgumentException($"URL-адрес не может быть пустым или длиннее, чем {MaxUrlLength} символов");
+            throw new ArgumentException($"URL не может быть пустым или длиннее, чем {MaxUrlLength} символов");
         }
-
-
-        var existingCamera = await _context.Cameras.FindAsync(id);
-        if (existingCamera == null) return null;
 
         if (await _context.Cameras.AnyAsync(c => c.Url.Trim().ToLower() == dto.Url.Trim().ToLower() && c.Id != id))
         {
@@ -109,7 +111,7 @@ public class CameraService
 
         if (existingCamera.Url == dto.Url.Trim() && existingCamera.Name == dto.Name.Trim())
         {
-            return existingCamera;
+            return new GetCameraDto(existingCamera.Id, existingCamera.Name, existingCamera.Url);
         }
 
         try
@@ -118,7 +120,7 @@ public class CameraService
             existingCamera.Url = dto.Url.Trim();
             await _context.SaveChangesAsync();
             _logger.LogInformation("Camera updated: {Id}", id);
-            return existingCamera;
+            return new GetCameraDto(existingCamera.Id, existingCamera.Name, existingCamera.Url);
         }
         catch (Exception ex)
         {
@@ -129,16 +131,19 @@ public class CameraService
 
     public async Task<bool> DeleteCamera(int id)
     {
-        if (await _context.Nominations.AnyAsync())
+        var camera = await _context.Cameras
+        .Include(c => c.Nomination)
+        .FirstOrDefaultAsync(c => c.Id == id);
+
+        if (camera == null) return false;
+
+        if (camera.NominationId.HasValue)
         {
-            throw new InvalidOperationException("Невозможно удалить камеры после добавления номинаций.");
+            throw new InvalidOperationException("Cannot delete camera associated with a nomination.");
         }
 
         try
         {
-            var camera = await _context.Cameras.FindAsync(id);
-            if (camera == null) return false;
-
             _context.Cameras.Remove(camera);
             await _context.SaveChangesAsync();
             _logger.LogInformation("Camera deleted: {Id}", id);
