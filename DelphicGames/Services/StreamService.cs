@@ -104,35 +104,24 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             throw new ArgumentNullException(nameof(streamDto), "Данные трансляции не должны быть null.");
         }
 
-        if (streamDto.Day <= 0)
+        ValidateInput(streamDto.Day, streamDto.StreamUrl, streamDto.PlatformName, streamDto.PlatformUrl, streamDto.Token);
+
+        string? streamUrl = streamDto.StreamUrl.Trim();
+        string? platformName = streamDto.PlatformName?.Trim();
+        string? platformUrl = streamDto.PlatformUrl?.Trim();
+        string? token = streamDto.Token?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(token))
         {
-            throw new ArgumentException("День должен быть положительным числом.", nameof(streamDto.Day));
-        }
+            var exists = await _context.Streams.AnyAsync(s =>
+                s.Token != null && s.Token.Trim() == token &&
+                s.PlatformName != null && s.PlatformName.Trim() == platformName &&
+                s.PlatformUrl != null && s.PlatformUrl.Trim() == platformUrl);
 
-        // if (dayDto.DayStreams == null || !dayDto.DayStreams.Any())
-        // {
-        //     throw new ArgumentException("Список трансляций не может быть пустым.", nameof(dayDto.DayStreams));
-        // }
-
-        if (!string.IsNullOrWhiteSpace(streamDto.StreamUrl) && streamDto.StreamUrl.Length > 200)
-        {
-            throw new ArgumentException("URL трансляции превышает максимальную длину в 200 символов.", nameof(streamDto.StreamUrl));
-        }
-
-
-        if (!string.IsNullOrWhiteSpace(streamDto.PlatformName) && streamDto.PlatformName.Length > 100)
-        {
-            throw new ArgumentException("Название платформы превышает максимальную длину в 100 символов.", nameof(streamDto.PlatformName));
-        }
-
-        if (!string.IsNullOrWhiteSpace(streamDto.PlatformUrl) && streamDto.PlatformUrl.Length > 200)
-        {
-            throw new ArgumentException("URL платформы превышает максимальную длину в 200 символов.", nameof(streamDto.PlatformUrl));
-        }
-
-        if (!string.IsNullOrWhiteSpace(streamDto.Token) && streamDto.Token.Length > 500)
-        {
-            throw new ArgumentException("Token превышает максимальную длину в 500 символов.", nameof(streamDto.Token));
+            if (exists)
+            {
+                throw new InvalidOperationException("Трансляция с такими параметрами уже существует.");
+            }
         }
 
         try
@@ -160,7 +149,8 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             await _context.Streams.AddAsync(stream);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Добавлена трансляция {StreamId} для номинации {NominationId}.", stream.Id, streamDto.NominationId);
+            _logger.LogInformation("Добавлена трансляция {StreamId} для номинации {NominationId}.", stream.Id,
+                streamDto.NominationId);
         }
         catch (Exception ex)
         {
@@ -168,6 +158,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             throw;
         }
     }
+
 
     public async Task<GetStreamsDto> GetNominationStreams(int nominationId)
     {
@@ -208,6 +199,11 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 throw new InvalidOperationException("Stream not found.");
             }
 
+            if (stream.IsActive)
+            {
+                throw new InvalidOperationException("Нельзя удалять запущенную трансляцию.");
+            }
+
             await _streamManager.StopStream(stream);
 
             _context.Streams.Remove(stream);
@@ -222,11 +218,11 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         }
     }
 
-    public async Task UpdateStream(int streamId, UpdateStreamDto dto)
+    public async Task UpdateStream(int streamId, UpdateStreamDto streamDto)
     {
-        if (dto == null)
+        if (streamDto == null)
         {
-            throw new ArgumentNullException(nameof(dto), "Данные трансляции не должны быть null.");
+            throw new ArgumentNullException("Данные трансляции не должны быть null.");
         }
 
         try
@@ -244,52 +240,34 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 throw new InvalidOperationException("Нельзя изменять запущенную трансляцию");
             }
 
-            if (string.IsNullOrWhiteSpace(dto.PlatformName))
+
+            var platformName = streamDto.PlatformName?.Trim();
+            var platformUrl = streamDto.PlatformUrl?.Trim();
+            var token = streamDto.Token?.Trim();
+
+            ValidateInput(streamDto.Day, streamDto.StreamUrl, platformName, platformUrl, token);
+
+
+            if (!string.IsNullOrWhiteSpace(token))
             {
-                throw new ArgumentException("Имя платформы не может быть пустым.");
-            }
-            if (dto.PlatformName.Length > 100)
-            {
-                throw new ArgumentException("Имя платформы превышает максимальную длину в 100 символов.");
+                var exists = await _context.Streams.AnyAsync(s =>
+                    s.Id != streamId &&
+                    s.Token != null && s.Token.Trim() == token &&
+                    s.PlatformName != null && s.PlatformName.Trim() == platformName &&
+                    s.PlatformUrl != null && s.PlatformUrl.Trim() == platformUrl);
+
+                if (exists)
+                {
+                    throw new InvalidOperationException("Трансляция с такими параметрами уже существует.");
+                }
             }
 
-            if (string.IsNullOrWhiteSpace(dto.PlatformUrl))
-            {
-                throw new ArgumentException("URL платформы не может быть пустым.");
-            }
-            if (dto.PlatformUrl.Length > 200)
-            {
-                throw new ArgumentException("URL платформы превышает максимальную длину в 200 символов.");
-            }
 
-            if (string.IsNullOrWhiteSpace(dto.Token))
-            {
-                throw new ArgumentException("Токен не может быть пустым.");
-            }
-            if (dto.Token.Length > 500)
-            {
-                throw new ArgumentException("Токен превышает максимальную длину в 500 символов.");
-            }
-
-            if (string.IsNullOrWhiteSpace(dto.StreamUrl))
-            {
-                throw new ArgumentException("URL трансляции не может быть пустым.");
-            }
-            if (dto.StreamUrl.Length > 200)
-            {
-                throw new ArgumentException("URL трансляции превышает максимальную длину в 200 символов.");
-            }
-
-            if (dto.Day <= 0)
-            {
-                throw new ArgumentException("День должен быть положительным числом.");
-            }
-
-            stream.Day = dto.Day;
-            stream.PlatformName = dto.PlatformName;
-            stream.PlatformUrl = dto.PlatformUrl;
-            stream.StreamUrl = dto.StreamUrl;
-            stream.Token = dto.Token;
+            stream.Day = streamDto.Day;
+            stream.PlatformName = streamDto.PlatformName;
+            stream.PlatformUrl = streamDto.PlatformUrl;
+            stream.StreamUrl = streamDto.StreamUrl;
+            stream.Token = streamDto.Token;
 
             await _context.SaveChangesAsync();
 
@@ -357,19 +335,26 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
     }
 
     // Запуск всех трансляций для определенного дня
-    public async Task StartStreamsByDay(int day)
+    public async Task<bool> StartStreamsByDay(int day)
     {
         try
         {
             var streamsByDay = await _context.Streams
                 .Include(np => np.Nomination)
-                .Where(np => np.Day == day && !string.IsNullOrEmpty(np.Token) && !np.IsActive)
+                .Where(np => np.Day == day && !np.IsActive &&
+                             !string.IsNullOrEmpty(np.Token) && !string.IsNullOrEmpty(np.PlatformName) &&
+                             !string.IsNullOrEmpty(np.PlatformUrl))
                 .ToListAsync();
 
             if (streamsByDay.Count == 0)
             {
-                throw new InvalidOperationException($"Не запущенные трансляции для дня {day} не найдены.");
+                throw new InvalidOperationException(
+                    $"День {day}: Нет незапущенных трансляций или отсутствует информация о платформе.");
             }
+
+            var totalStreams = await _context.Streams
+                .Where(np => np.Day == day)
+                .CountAsync();
 
             var startTasks = streamsByDay.Select(np => Task.Run(async () =>
             {
@@ -380,11 +365,20 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
 
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Все трансляции для дня {Day} запущены.", day);
+            if (streamsByDay.Count < totalStreams)
+            {
+                _logger.LogInformation("Не все трансляции были запущены за день {Day}.", day);
+                return false; // Partial success
+            }
+            else
+            {
+                _logger.LogInformation("Все трансляции для дня {Day} успешно запущены.", day);
+                return true; // All success
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при запуске всех трансляций для дня.");
+            _logger.LogError(ex, "Ошибка при запуске всех трансляций для дня {Day}.", day);
             throw;
         }
     }
@@ -396,12 +390,15 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         {
             var streamsByDay = await _context.Streams
                 .Include(np => np.Nomination)
-                .Where(np => np.Day == day && np.IsActive)
+                .Where(np =>
+                    np.Day == day && np.IsActive && !string.IsNullOrEmpty(np.Token) &&
+                    !string.IsNullOrEmpty(np.PlatformName) && !string.IsNullOrEmpty(np.PlatformUrl))
                 .ToListAsync();
 
             if (streamsByDay.Count == 0)
             {
-                throw new InvalidOperationException($"Запущенные трансляции для дня {day} не найдены.");
+                throw new InvalidOperationException(
+                    $"День {day}:\nНет запущенных трансляций или нет данных о платформе");
             }
 
             var stopTasks = streamsByDay.Select(np => Task.Run(async () =>
@@ -543,6 +540,33 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         {
             _logger.LogError(ex, "Ошибка при остановке трансляций для номинации.");
             throw;
+        }
+    }
+    private void ValidateInput(int day, string? streamUrl, string? platformName, string? platformUrl, string? token)
+    {
+        if (day <= 0)
+        {
+            throw new ArgumentException("День должен быть положительным числом.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(streamUrl) && streamUrl.Trim().Length > 200)
+        {
+            throw new ArgumentException("URL потока превышает максимальную длину в 200 символов.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(platformName) && platformName.Trim().Length > 100)
+        {
+            throw new ArgumentException("Название платформы превышает максимальную длину в 100 символов.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(platformUrl) && platformUrl.Trim().Length > 200)
+        {
+            throw new ArgumentException("URL платформы превышает максимальную длину в 200 символов.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(token) && token.Trim().Length > 500)
+        {
+            throw new ArgumentException("Token превышает максимальную длину в 500 символов.");
         }
     }
 }
