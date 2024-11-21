@@ -589,10 +589,11 @@ class StreamManager {
         }))
       )
       .then((response) => {
+        console.log(response);
         if (response.ok) {
           this.notifier.success(response.data.message);
         } else {
-          this.notifier.error(data.error || "Ошибка при запуске трансляций.");
+          this.notifier.error(response.data.error || "Ошибка при запуске трансляций.");
         }
       })
       .catch((error) => {
