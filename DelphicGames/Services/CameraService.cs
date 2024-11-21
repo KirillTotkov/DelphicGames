@@ -19,7 +19,8 @@ public class CameraService
 
     public async Task<GetCameraDto> CreateCamera(AddCameraDto dto, string userId)
     {
-        ValidateInput(dto);
+        ValidateCameraInput(dto.Name, dto.Url);
+
         await ValidateDuplicates(dto);
 
         var camera = new Camera
@@ -52,15 +53,6 @@ public class CameraService
         return camera == null ? null : new GetCameraDto(camera.Id, camera.Name, camera.Url);
     }
 
-    public async Task<GetCameraDto?> GetCamera(string name)
-    {
-        var camera = await _context.Cameras
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Name == name);
-
-        return camera == null ? null : new GetCameraDto(camera.Id, camera.Name, camera.Url);
-    }
-
     public async Task<List<GetCameraDto>> GetCameras(List<string> userRoles, string userId)
     {
         var query = userRoles.Contains(nameof(UserRoles.Specialist))
@@ -89,25 +81,8 @@ public class CameraService
             throw new InvalidOperationException("Невозможно удалить камеру, связанную с номинацией.");
         }
 
-        if (string.IsNullOrEmpty(dto.Name) || dto.Name.Trim().Length > MaxNameLength)
-        {
-            throw new ArgumentException($"Имя не может быть пустым или длиннее, чем {MaxNameLength} символов");
-        }
-
-        if (string.IsNullOrEmpty(dto.Url) || dto.Url.Trim().Length > MaxUrlLength)
-        {
-            throw new ArgumentException($"URL не может быть пустым или длиннее, чем {MaxUrlLength} символов");
-        }
-
-        if (await _context.Cameras.AnyAsync(c => c.Url.Trim().ToLower() == dto.Url.Trim().ToLower() && c.Id != id))
-        {
-            throw new InvalidOperationException($"Камера с URL {dto.Url} уже существует");
-        }
-
-        if (await _context.Cameras.AnyAsync(c => c.Name.Trim().ToLower() == dto.Name.Trim().ToLower() && c.Id != id))
-        {
-            throw new InvalidOperationException($"Камера с именем {dto.Name} уже существует");
-        }
+        ValidateCameraInput(dto.Name, dto.Url);
+        await ValidateDuplicatesForUpdate(id, dto);
 
         if (existingCamera.Url == dto.Url.Trim() && existingCamera.Name == dto.Name.Trim())
         {
@@ -179,24 +154,14 @@ public class CameraService
         return cameras;
     }
 
-    public async Task<bool> CameraExists(int id)
+    private static void ValidateCameraInput(string name, string url)
     {
-        return await _context.Cameras.AnyAsync(c => c.Id == id);
-    }
-
-    public async Task<bool> CameraExists(string name)
-    {
-        return await _context.Cameras.AnyAsync(c => c.Name == name);
-    }
-
-    private void ValidateInput(AddCameraDto dto)
-    {
-        if (string.IsNullOrEmpty(dto.Name) || dto.Name.Trim().Length > MaxNameLength)
+        if (string.IsNullOrEmpty(name) || name.Trim().Length > MaxNameLength)
         {
             throw new ArgumentException($"Имя не может быть пустым или длиннее, чем {MaxNameLength} символов");
         }
 
-        if (string.IsNullOrEmpty(dto.Url) || dto.Url.Trim().Length > MaxUrlLength)
+        if (string.IsNullOrEmpty(url) || url.Trim().Length > MaxUrlLength)
         {
             throw new ArgumentException($"URL не может быть пустым или длиннее, чем {MaxUrlLength} символов");
         }
@@ -210,6 +175,19 @@ public class CameraService
         }
 
         if (await _context.Cameras.AnyAsync(c => c.Url.Trim().ToLower() == dto.Url.Trim().ToLower()))
+        {
+            throw new InvalidOperationException($"Камера с URL {dto.Url} уже существует");
+        }
+    }
+
+    private async Task ValidateDuplicatesForUpdate(int id, UpdateCameraDto dto)
+    {
+        if (await _context.Cameras.AnyAsync(c => c.Name.Trim().ToLower() == dto.Name.Trim().ToLower() && c.Id != id))
+        {
+            throw new InvalidOperationException($"Камера с именем {dto.Name} уже существует");
+        }
+
+        if (await _context.Cameras.AnyAsync(c => c.Url.Trim().ToLower() == dto.Url.Trim().ToLower() && c.Id != id))
         {
             throw new InvalidOperationException($"Камера с URL {dto.Url} уже существует");
         }
