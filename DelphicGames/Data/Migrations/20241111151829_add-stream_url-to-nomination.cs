@@ -10,19 +10,19 @@ namespace DelphicGames.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.RenameColumn(
-                name: "url",
-                table: "nominations",
-                newName: "stream_url");
-        }
-
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.RenameColumn(
+            migrationBuilder.AddColumn<string>(
                 name: "stream_url",
                 table: "nominations",
-                newName: "url");
+                type: "text",
+                nullable: false,
+                defaultValue: "");
+        }
+
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropColumn(
+                name: "stream_url",
+                table: "nominations");
         }
     }
 }
