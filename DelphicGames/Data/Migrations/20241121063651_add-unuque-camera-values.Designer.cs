@@ -3,6 +3,7 @@ using System;
 using DelphicGames.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DelphicGames.Data.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20241121063651_add-unuque-camera-values")]
+    partial class addunuquecameravalues
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -86,10 +89,6 @@ namespace DelphicGames.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_nominations");
-
-                    b.HasIndex("Name")
-                        .IsUnique()
-                        .HasDatabaseName("ix_nominations_name");
 
                     b.ToTable("nominations", (string)null);
                 });
