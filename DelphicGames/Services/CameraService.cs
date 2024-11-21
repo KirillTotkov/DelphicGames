@@ -19,7 +19,8 @@ public class CameraService
 
     public async Task<GetCameraDto> CreateCamera(AddCameraDto dto, string userId)
     {
-        ValidateInput(dto);
+        ValidateCameraInput(dto.Name, dto.Url);
+
         await ValidateDuplicates(dto);
 
         var camera = new Camera
@@ -52,15 +53,6 @@ public class CameraService
         return camera == null ? null : new GetCameraDto(camera.Id, camera.Name, camera.Url);
     }
 
-    public async Task<GetCameraDto?> GetCamera(string name)
-    {
-        var camera = await _context.Cameras
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Name == name);
-
-        return camera == null ? null : new GetCameraDto(camera.Id, camera.Name, camera.Url);
-    }
-
     public async Task<List<GetCameraDto>> GetCameras(List<string> userRoles, string userId)
     {
         var query = userRoles.Contains(nameof(UserRoles.Specialist))
@@ -76,40 +68,25 @@ public class CameraService
         return cameras;
     }
 
-    public async Task<Camera?> UpdateCamera(int id, UpdateCameraDto dto)
+    public async Task<GetCameraDto?> UpdateCamera(int id, UpdateCameraDto dto)
     {
-        if (await _context.Nominations.AnyAsync())
-        {
-            throw new InvalidOperationException("Невозможно обновить камеры после добавления номинаций.");
-        }
+        var existingCamera = await _context.Cameras
+            .Include(c => c.Nomination)
+            .FirstOrDefaultAsync(c => c.Id == id);
 
-        if (string.IsNullOrEmpty(dto.Name) || dto.Name.Trim().Length > MaxNameLength)
-        {
-            throw new ArgumentException($"Имя не может быть пустым или длиннее, чем {MaxNameLength} символов");
-        }
-
-        if (string.IsNullOrEmpty(dto.Url) || dto.Url.Trim().Length > MaxUrlLength)
-        {
-            throw new ArgumentException($"URL-адрес не может быть пустым или длиннее, чем {MaxUrlLength} символов");
-        }
-
-
-        var existingCamera = await _context.Cameras.FindAsync(id);
         if (existingCamera == null) return null;
 
-        if (await IsDuplicateUrl(dto.Url, id))
+        if (existingCamera.NominationId.HasValue)
         {
-            throw new InvalidOperationException($"Камера с URL {dto.Url} уже существует");
+            throw new InvalidOperationException("Невозможно удалить камеру, связанную с номинацией.");
         }
 
-        if (await _context.Cameras.AnyAsync(c => c.Name.ToLower() == dto.Name.ToLower() && c.Id != id))
-        {
-            throw new InvalidOperationException($"Камера с именем {dto.Name} уже существует");
-        }
+        ValidateCameraInput(dto.Name, dto.Url);
+        await ValidateDuplicatesForUpdate(id, dto);
 
         if (existingCamera.Url == dto.Url.Trim() && existingCamera.Name == dto.Name.Trim())
         {
-            return existingCamera;
+            return new GetCameraDto(existingCamera.Id, existingCamera.Name, existingCamera.Url);
         }
 
         try
@@ -118,7 +95,7 @@ public class CameraService
             existingCamera.Url = dto.Url.Trim();
             await _context.SaveChangesAsync();
             _logger.LogInformation("Camera updated: {Id}", id);
-            return existingCamera;
+            return new GetCameraDto(existingCamera.Id, existingCamera.Name, existingCamera.Url);
         }
         catch (Exception ex)
         {
@@ -129,16 +106,19 @@ public class CameraService
 
     public async Task<bool> DeleteCamera(int id)
     {
-        if (await _context.Nominations.AnyAsync())
+        var camera = await _context.Cameras
+        .Include(c => c.Nomination)
+        .FirstOrDefaultAsync(c => c.Id == id);
+
+        if (camera == null) return false;
+
+        if (camera.NominationId.HasValue)
         {
-            throw new InvalidOperationException("Невозможно удалить камеры после добавления номинаций.");
+            throw new InvalidOperationException("Невозможно удалить камеру, связанную с номинацией.");
         }
 
         try
         {
-            var camera = await _context.Cameras.FindAsync(id);
-            if (camera == null) return false;
-
             _context.Cameras.Remove(camera);
             await _context.SaveChangesAsync();
             _logger.LogInformation("Camera deleted: {Id}", id);
@@ -174,24 +154,14 @@ public class CameraService
         return cameras;
     }
 
-    public async Task<bool> CameraExists(int id)
+    private static void ValidateCameraInput(string name, string url)
     {
-        return await _context.Cameras.AnyAsync(c => c.Id == id);
-    }
-
-    public async Task<bool> CameraExists(string name)
-    {
-        return await _context.Cameras.AnyAsync(c => c.Name == name);
-    }
-
-    private void ValidateInput(AddCameraDto dto)
-    {
-        if (string.IsNullOrEmpty(dto.Name) || dto.Name.Trim().Length > MaxNameLength)
+        if (string.IsNullOrEmpty(name) || name.Trim().Length > MaxNameLength)
         {
             throw new ArgumentException($"Имя не может быть пустым или длиннее, чем {MaxNameLength} символов");
         }
 
-        if (string.IsNullOrEmpty(dto.Url) || dto.Url.Trim().Length > MaxUrlLength)
+        if (string.IsNullOrEmpty(url) || url.Trim().Length > MaxUrlLength)
         {
             throw new ArgumentException($"URL не может быть пустым или длиннее, чем {MaxUrlLength} символов");
         }
@@ -199,19 +169,29 @@ public class CameraService
 
     private async Task ValidateDuplicates(AddCameraDto dto)
     {
-        if (await _context.Cameras.AnyAsync(c => c.Name.ToLower() == dto.Name.ToLower()))
+        if (await _context.Cameras.AnyAsync(c => c.Name.Trim().ToLower() == dto.Name.Trim().ToLower()))
         {
             throw new InvalidOperationException($"Камера с именем {dto.Name} уже существует");
         }
 
-        if (await _context.Cameras.AnyAsync(c => c.Url.ToLower() == dto.Url.ToLower()))
+        if (await _context.Cameras.AnyAsync(c => c.Url.Trim().ToLower() == dto.Url.Trim().ToLower()))
         {
             throw new InvalidOperationException($"Камера с URL {dto.Url} уже существует");
         }
     }
 
-    private async Task<bool> IsDuplicateUrl(string url, int excludeId) =>
-        await _context.Cameras.AnyAsync(c => c.Url.ToLower() == url.ToLower() && c.Id != excludeId);
+    private async Task ValidateDuplicatesForUpdate(int id, UpdateCameraDto dto)
+    {
+        if (await _context.Cameras.AnyAsync(c => c.Name.Trim().ToLower() == dto.Name.Trim().ToLower() && c.Id != id))
+        {
+            throw new InvalidOperationException($"Камера с именем {dto.Name} уже существует");
+        }
+
+        if (await _context.Cameras.AnyAsync(c => c.Url.Trim().ToLower() == dto.Url.Trim().ToLower() && c.Id != id))
+        {
+            throw new InvalidOperationException($"Камера с URL {dto.Url} уже существует");
+        }
+    }
 
     public async Task<List<GetCameraDto>> GetAllCameras()
     {
