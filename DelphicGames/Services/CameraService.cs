@@ -86,7 +86,7 @@ public class CameraService
 
         if (existingCamera.NominationId.HasValue)
         {
-            throw new InvalidOperationException("Cannot update camera associated with a nomination.");
+            throw new InvalidOperationException("Невозможно удалить камеру, связанную с номинацией.");
         }
 
         if (string.IsNullOrEmpty(dto.Name) || dto.Name.Trim().Length > MaxNameLength)
@@ -139,7 +139,7 @@ public class CameraService
 
         if (camera.NominationId.HasValue)
         {
-            throw new InvalidOperationException("Cannot delete camera associated with a nomination.");
+            throw new InvalidOperationException("Невозможно удалить камеру, связанную с номинацией.");
         }
 
         try
