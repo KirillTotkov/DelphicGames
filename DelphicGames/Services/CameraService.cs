@@ -97,12 +97,12 @@ public class CameraService
         var existingCamera = await _context.Cameras.FindAsync(id);
         if (existingCamera == null) return null;
 
-        if (await IsDuplicateUrl(dto.Url, id))
+        if (await _context.Cameras.AnyAsync(c => c.Url.Trim().ToLower() == dto.Url.Trim().ToLower() && c.Id != id))
         {
             throw new InvalidOperationException($"Камера с URL {dto.Url} уже существует");
         }
 
-        if (await _context.Cameras.AnyAsync(c => c.Name.ToLower() == dto.Name.ToLower() && c.Id != id))
+        if (await _context.Cameras.AnyAsync(c => c.Name.Trim().ToLower() == dto.Name.Trim().ToLower() && c.Id != id))
         {
             throw new InvalidOperationException($"Камера с именем {dto.Name} уже существует");
         }
@@ -199,19 +199,16 @@ public class CameraService
 
     private async Task ValidateDuplicates(AddCameraDto dto)
     {
-        if (await _context.Cameras.AnyAsync(c => c.Name.ToLower() == dto.Name.ToLower()))
+        if (await _context.Cameras.AnyAsync(c => c.Name.Trim().ToLower() == dto.Name.Trim().ToLower()))
         {
             throw new InvalidOperationException($"Камера с именем {dto.Name} уже существует");
         }
 
-        if (await _context.Cameras.AnyAsync(c => c.Url.ToLower() == dto.Url.ToLower()))
+        if (await _context.Cameras.AnyAsync(c => c.Url.Trim().ToLower() == dto.Url.Trim().ToLower()))
         {
             throw new InvalidOperationException($"Камера с URL {dto.Url} уже существует");
         }
     }
-
-    private async Task<bool> IsDuplicateUrl(string url, int excludeId) =>
-        await _context.Cameras.AnyAsync(c => c.Url.ToLower() == url.ToLower() && c.Id != excludeId);
 
     public async Task<List<GetCameraDto>> GetAllCameras()
     {
