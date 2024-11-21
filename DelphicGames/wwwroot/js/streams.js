@@ -178,7 +178,7 @@ async function handleAddStream(event) {
     }
   } catch (error) {
     console.error("Error adding stream:", error);
-    notyf.error("Ошибка при добавлении трансляции.");
+    notyf.error(errorData.error || "Ошибка при добавлении трансляции.");
   }
 }
 

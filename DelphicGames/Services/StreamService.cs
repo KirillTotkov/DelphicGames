@@ -112,28 +112,27 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
 
         if (streamDto.Day <= 0)
         {
-            throw new ArgumentException("День должен быть положительным числом.", nameof(streamDto.Day));
+            throw new ArgumentException("День должен быть положительным числом.");
         }
 
         if (!string.IsNullOrWhiteSpace(streamDto.StreamUrl) && streamDto.StreamUrl.Length > 200)
         {
-            throw new ArgumentException("URL трансляции превышает максимальную длину в 200 символов.", nameof(streamDto.StreamUrl));
+            throw new ArgumentException("URL потока превышает максимальную длину в 200 символов.");
         }
-
 
         if (!string.IsNullOrWhiteSpace(streamDto.PlatformName) && streamDto.PlatformName.Length > 100)
         {
-            throw new ArgumentException("Название платформы превышает максимальную длину в 100 символов.", nameof(streamDto.PlatformName));
+            throw new ArgumentException("Название платформы превышает максимальную длину в 100 символов.");
         }
 
         if (!string.IsNullOrWhiteSpace(streamDto.PlatformUrl) && streamDto.PlatformUrl.Length > 200)
         {
-            throw new ArgumentException("URL платформы превышает максимальную длину в 200 символов.", nameof(streamDto.PlatformUrl));
+            throw new ArgumentException("URL платформы превышает максимальную длину в 200 символов.");
         }
 
         if (!string.IsNullOrWhiteSpace(streamDto.Token) && streamDto.Token.Length > 500)
         {
-            throw new ArgumentException("Token превышает максимальную длину в 500 символов.", nameof(streamDto.Token));
+            throw new ArgumentException("Token превышает максимальную длину в 500 символов.");
         }
 
         if (!string.IsNullOrWhiteSpace(token))
@@ -234,11 +233,11 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         }
     }
 
-    public async Task UpdateStream(int streamId, UpdateStreamDto dto)
+    public async Task UpdateStream(int streamId, UpdateStreamDto streamDto)
     {
-        if (dto == null)
+        if (streamDto == null)
         {
-            throw new ArgumentNullException(nameof(dto), "Данные трансляции не должны быть null.");
+            throw new ArgumentNullException("Данные трансляции не должны быть null.");
         }
 
         try
@@ -256,51 +255,35 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 throw new InvalidOperationException("Нельзя изменять запущенную трансляцию");
             }
 
-            if (string.IsNullOrWhiteSpace(dto.PlatformName))
+            if (!string.IsNullOrWhiteSpace(streamDto.StreamUrl) && streamDto.StreamUrl.Length > 200)
             {
-                throw new ArgumentException("Имя платформы не может быть пустым.");
-            }
-            if (dto.PlatformName.Length > 100)
-            {
-                throw new ArgumentException("Имя платформы превышает максимальную длину в 100 символов.");
+                throw new ArgumentException("URL потока превышает максимальную длину в 200 символов.");
             }
 
-            if (string.IsNullOrWhiteSpace(dto.PlatformUrl))
+            if (!string.IsNullOrWhiteSpace(streamDto.PlatformName) && streamDto.PlatformName.Length > 100)
             {
-                throw new ArgumentException("URL платформы не может быть пустым.");
+                throw new ArgumentException("Название платформы превышает максимальную длину в 100 символов.");
             }
-            if (dto.PlatformUrl.Length > 200)
+
+            if (!string.IsNullOrWhiteSpace(streamDto.PlatformUrl) && streamDto.PlatformUrl.Length > 200)
             {
                 throw new ArgumentException("URL платформы превышает максимальную длину в 200 символов.");
             }
 
-            if (string.IsNullOrWhiteSpace(dto.Token))
+            if (!string.IsNullOrWhiteSpace(streamDto.Token) && streamDto.Token.Length > 500)
             {
-                throw new ArgumentException("Токен не может быть пустым.");
-            }
-            if (dto.Token.Length > 500)
-            {
-                throw new ArgumentException("Токен превышает максимальную длину в 500 символов.");
+                throw new ArgumentException("Token превышает максимальную длину в 500 символов.");
             }
 
-            if (string.IsNullOrWhiteSpace(dto.StreamUrl))
-            {
-                throw new ArgumentException("URL трансляции не может быть пустым.");
-            }
-            if (dto.StreamUrl.Length > 200)
-            {
-                throw new ArgumentException("URL трансляции превышает максимальную длину в 200 символов.");
-            }
-
-            if (dto.Day <= 0)
+            if (streamDto.Day <= 0)
             {
                 throw new ArgumentException("День должен быть положительным числом.");
             }
 
-            if (!string.IsNullOrWhiteSpace(dto.Token))
+            if (!string.IsNullOrWhiteSpace(streamDto.Token))
             {
                 var streamWithSameValues = await _context.Streams
-                    .AnyAsync(s => s.Id != streamId && s.Token == dto.Token && s.PlatformName == dto.PlatformName && s.PlatformUrl == dto.PlatformUrl);
+                    .AnyAsync(s => s.Id != streamId && s.Token == streamDto.Token && s.PlatformName == streamDto.PlatformName && s.PlatformUrl == streamDto.PlatformUrl);
 
                 if (streamWithSameValues)
                 {
@@ -308,11 +291,11 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 }
             }
 
-            stream.Day = dto.Day;
-            stream.PlatformName = dto.PlatformName;
-            stream.PlatformUrl = dto.PlatformUrl;
-            stream.StreamUrl = dto.StreamUrl;
-            stream.Token = dto.Token;
+            stream.Day = streamDto.Day;
+            stream.PlatformName = streamDto.PlatformName;
+            stream.PlatformUrl = streamDto.PlatformUrl;
+            stream.StreamUrl = streamDto.StreamUrl;
+            stream.Token = streamDto.Token;
 
             await _context.SaveChangesAsync();
 
