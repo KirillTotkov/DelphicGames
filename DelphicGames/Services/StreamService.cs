@@ -36,12 +36,14 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         switch (notification.Status)
         {
             case StreamStatus.Running:
-                streamEntity.IsActive = true;
+                // streamEntity.IsActive = true;
                 break;
-            case StreamStatus.Completed:
             case StreamStatus.Error:
                 streamEntity.IsActive = false;
                 await _streamManager.StopStream(streamEntity);
+                break;
+            case StreamStatus.Completed:
+                streamEntity.IsActive = false;
                 break;
         }
 
@@ -104,7 +106,8 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             throw new ArgumentNullException(nameof(streamDto), "Данные трансляции не должны быть null.");
         }
 
-        ValidateInput(streamDto.Day, streamDto.StreamUrl, streamDto.PlatformName, streamDto.PlatformUrl, streamDto.Token);
+        ValidateInput(streamDto.Day, streamDto.StreamUrl, streamDto.PlatformName, streamDto.PlatformUrl,
+            streamDto.Token);
 
         string? streamUrl = streamDto.StreamUrl.Trim();
         string? platformName = streamDto.PlatformName?.Trim();
@@ -115,8 +118,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         {
             var exists = await _context.Streams.AnyAsync(s =>
                 s.Token != null && s.Token.Trim() == token &&
-                s.Day == streamDto.Day &&
-                s.StreamUrl != null && s.StreamUrl.Trim() == streamUrl);
+                s.PlatformUrl != null && s.PlatformUrl.Trim() == platformUrl);
 
             if (exists)
             {
@@ -142,7 +144,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 StreamUrl = streamUrl,
                 PlatformName = platformName,
                 PlatformUrl = platformUrl,
-                Token = token,  
+                Token = token,
                 IsActive = false
             };
 
@@ -254,8 +256,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 var exists = await _context.Streams.AnyAsync(s =>
                     s.Id != streamId &&
                     s.Token != null && s.Token.Trim() == token &&
-                    s.Day == streamDto.Day &&
-                    s.StreamUrl != null && s.StreamUrl.Trim() == streamUrl);
+                    s.PlatformUrl != null && s.PlatformUrl.Trim() == platformUrl);
 
                 if (exists)
                 {
@@ -321,7 +322,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             {
                 await _streamManager.StopStream(stream);
                 stream.IsActive = false;
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
             else
             {
@@ -543,6 +544,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             throw;
         }
     }
+
     private void ValidateInput(int day, string? streamUrl, string? platformName, string? platformUrl, string? token)
     {
         if (day <= 0)

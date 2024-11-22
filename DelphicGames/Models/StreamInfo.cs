@@ -5,6 +5,7 @@ namespace DelphicGames.Models;
 
 public class StreamInfo : IDisposable
 {
+    public int StreamId { get; set; }
     public string NominationUrl { get; set; }
     public string PlatformUrl { get; set; }
     public string Token { get; set; }

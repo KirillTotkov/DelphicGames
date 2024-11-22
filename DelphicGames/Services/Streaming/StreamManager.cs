@@ -64,15 +64,14 @@ public class StreamManager
             await _semaphore.WaitAsync();
             if (_nominationStreams.TryGetValue(streamEntity.NominationId, out var streams))
             {
-                var stream = streams.FirstOrDefault(s =>
-                    s.PlatformUrl == streamEntity.PlatformUrl && s.Token == streamEntity.Token);
+                var stream = streams.FirstOrDefault(s => s.StreamId == streamEntity.Id);
 
                 if (stream != null)
                 {
                     streamProcessor.StopStreamForPlatform(stream);
                     streams.Remove(stream);
 
-                    if (!streams.Any())
+                    if (streams.Count == 0)
                     {
                         _nominationStreams.TryRemove(streamEntity.NominationId, out _);
                     }
