@@ -35,6 +35,10 @@ public class StreamProcessor : IStreamProcessor
         }
 
         var ffmpegArguments = GenerateFfmpegArguments(streamEntity);
+        if (ffmpegArguments == null)
+        {
+            throw new InvalidOperationException("Поддерживаются только протоколы rtmp и http(s)");
+        }
 
         // Создание директории для логов камеры
         var nominationId = streamEntity.NominationId;
@@ -187,7 +191,21 @@ public class StreamProcessor : IStreamProcessor
     /// </summary>
     /// <param name="streamEntity"></param>
     /// <returns></returns>
-    private string GenerateFfmpegArguments(StreamEntity streamEntity)
+    private string? GenerateFfmpegArguments(StreamEntity streamEntity)
+    {
+        if (streamEntity.StreamUrl.ToLower().StartsWith("rtmp:"))
+        {
+            return GetRtmpArguments(streamEntity);
+        }
+        if (streamEntity.StreamUrl.ToLower().StartsWith("https:") || streamEntity.StreamUrl.ToLower().StartsWith("http:"))
+        {
+            return GetHttpArguments(streamEntity);
+        }
+
+        return null;
+    }
+
+    private string GetRtmpArguments(StreamEntity streamEntity)
     {
         var command =
             " -thread_queue_size 512 -rtmp_buffer 5000 -rtmp_live live ";
@@ -206,6 +224,27 @@ public class StreamProcessor : IStreamProcessor
 
         return command.Trim();
     }
+
+    private string GetHttpArguments(StreamEntity streamEntity)
+    {
+        var command =
+            " -stream_loop -1 -thread_queue_size 512 ";
+
+        command +=
+            $"-i {streamEntity.StreamUrl} -c copy -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 2";
+
+        if (!streamEntity.PlatformUrl.EndsWith("/"))
+        {
+            streamEntity.PlatformUrl += "/";
+        }
+
+        var url = streamEntity.PlatformUrl + streamEntity.Token;
+
+        command += $"-f flv {url} ";
+
+        return command.Trim();
+    }
+
 
     public void Dispose()
     {
