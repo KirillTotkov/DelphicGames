@@ -133,7 +133,8 @@ public class StreamProcessor : IStreamProcessor
             PlatformUrl = streamEntity.PlatformUrl,
             Token = streamEntity.Token,
             Process = process,
-            Logger = logger
+            Logger = logger,
+            StreamId = streamEntity.Id
         };
 
         return stream;

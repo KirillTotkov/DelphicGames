@@ -71,7 +71,7 @@ public class StreamManager
                     streamProcessor.StopStreamForPlatform(stream);
                     streams.Remove(stream);
 
-                    if (streams.Count == 0)
+                    if (!streams.Any())
                     {
                         _nominationStreams.TryRemove(streamEntity.NominationId, out _);
                     }
