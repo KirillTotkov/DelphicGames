@@ -39,11 +39,9 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 // streamEntity.IsActive = true;
                 break;
             case StreamStatus.Error:
-                streamEntity.IsActive = false;
-                await _streamManager.StopStream(streamEntity);
-                break;
             case StreamStatus.Completed:
                 streamEntity.IsActive = false;
+                await _streamManager.StopStream(streamEntity);
                 break;
         }
 
