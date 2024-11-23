@@ -12,7 +12,6 @@ public class StreamManager : IAsyncDisposable
 
     // private readonly IStreamProcessor _streamProcessor;
     private bool _disposed;
-    private readonly SemaphoreSlim _semaphore = new(1);
     private readonly IServiceScopeFactory _scopeFactory;
 
 
@@ -30,12 +29,6 @@ public class StreamManager : IAsyncDisposable
 
         try
         {
-            _logger.LogInformation(" StartStreamWaiting for semaphore...");
-
-            await _semaphore.WaitAsync().ConfigureAwait(false);
-
-            _logger.LogInformation(" StartStream Semaphore acquired.");
-
             var streams = _nominationStreams.GetOrAdd(streamEntity.NominationId, _ => new List<StreamInfo>());
             var stream = await streamProcessor.StartStreamForPlatform(streamEntity);
             streams.Add(stream);
@@ -54,13 +47,7 @@ public class StreamManager : IAsyncDisposable
                 streamEntity.NominationId, streamEntity.PlatformName);
             throw;
         }
-        finally
-        {
-            _logger.LogInformation(" StartStream Releasing semaphore...");
 
-            _semaphore.Release();
-            _logger.LogInformation(" StartStream Semaphore released.");
-        }
     }
 
     // Остановка потока для определённой камеры и платформы
@@ -71,12 +58,6 @@ public class StreamManager : IAsyncDisposable
 
         try
         {
-            _logger.LogInformation("StopStream Waiting for semaphore...");
-
-            await _semaphore.WaitAsync().ConfigureAwait(false);
-
-            _logger.LogInformation("StopStream Semaphore acquired.");
-
             if (_nominationStreams.TryGetValue(streamEntity.NominationId, out var streams))
             {
                 var t = streams.Select(s => s.StreamId).ToList();
@@ -103,16 +84,6 @@ public class StreamManager : IAsyncDisposable
                 streamEntity.NominationId, streamEntity.PlatformName);
             throw;
         }
-        finally
-        {
-            _logger.LogInformation("StopStream Releasing semaphore...");
-
-            _semaphore.Release();
-            _logger.LogInformation("StopStream Semaphore released.");
-
-        }
-
-
     }
 
     // Запуск всех потоков
@@ -129,10 +100,6 @@ public class StreamManager : IAsyncDisposable
     // Остановка всех потоков
     public async Task StopAllStreams(bool shouldLock = true)
     {
-        if (shouldLock)
-        {
-            await _semaphore.WaitAsync();
-        }
 
         try
         {
@@ -149,12 +116,10 @@ public class StreamManager : IAsyncDisposable
 
             _nominationStreams.Clear();
         }
-        finally
+        catch (Exception ex)
         {
-            if (shouldLock)
-            {
-                _semaphore.Release();
-            }
+            _logger.LogError(ex, "Error stopping all streams");
+            throw;
         }
     }
 
@@ -171,12 +136,6 @@ public class StreamManager : IAsyncDisposable
 
         try
         {
-            _logger.LogInformation("RemoveStreamFromNomination Waiting for semaphore...");
-
-            await _semaphore.WaitAsync().ConfigureAwait(false);
-
-            _logger.LogInformation("RemoveStreamFromNomination Semaphore acquired.");
-
             if (_nominationStreams.TryGetValue(streamEntity.NominationId, out var streams))
             {
                 var stream = streams.FirstOrDefault(s => s.StreamId == streamEntity.Id);
@@ -200,14 +159,6 @@ public class StreamManager : IAsyncDisposable
                 streamEntity.NominationId, streamEntity.PlatformName);
             throw;
         }
-        finally
-        {
-            _logger.LogInformation("RemoveStreamFromNomination Releasing semaphore...");
-
-            _semaphore.Release();
-            _logger.LogInformation("RemoveStreamFromNomination Semaphore released.");
-
-        }
     }
 
     public async ValueTask DisposeAsync()
@@ -216,20 +167,14 @@ public class StreamManager : IAsyncDisposable
 
         _disposed = true;
 
-        await _semaphore.WaitAsync();
         try
         {
             await StopAllStreams(false);
-            _semaphore.Dispose();
             _logger.LogInformation("StreamManager disposed asynchronously.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error disposing StreamManager.");
-        }
-        finally
-        {
-            _semaphore.Release();
         }
 
         GC.SuppressFinalize(this);
