@@ -126,10 +126,9 @@ public class StreamManager
         }
     }
 
-    // Проверка наличия активных потоков для номинации
-    public bool HasActiveStreams(int nominationId)
+    public IEnumerable<StreamInfo> GetActiveStreamsProcesses()
     {
-        return _nominationStreams.TryGetValue(nominationId, out var streams) && streams.Any();
+        return _nominationStreams.Values.SelectMany(s => s).ToList();
     }
 
     public void Dispose()

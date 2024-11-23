@@ -545,6 +545,21 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
         }
     }
 
+    public List<RunnersDto> GetActiveStreamsProcesses()
+    {
+        try
+        {
+            var runningStreams = _streamManager.GetActiveStreamsProcesses();
+
+            return runningStreams.Select(s => new RunnersDto(s.StreamId, s.NominationUrl, s.PlatformUrl, s.Token)).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching running streams");
+            throw;
+        }
+    }
+
     private void ValidateInput(int day, string? streamUrl, string? platformName, string? platformUrl, string? token)
     {
         if (day <= 0)
@@ -621,6 +636,13 @@ public record AddStreamDto(
     string StreamUrl,
     int Day,
     string PlatformName,
+    string PlatformUrl,
+    string Token
+);
+
+public record RunnersDto(
+    int StreamId,
+    string NominationUrl,
     string PlatformUrl,
     string Token
 );

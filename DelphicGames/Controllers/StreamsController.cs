@@ -242,4 +242,12 @@ public class StreamsController : ControllerBase
             return BadRequest(new { Error = ex.Message });
         }
     }
+
+    [HttpGet("active")]
+    public IActionResult GetActiveStreamsProcesses()
+    {
+        var streams =  _streamService.GetActiveStreamsProcesses();
+        return Ok(streams);
+    }
+    
 }
