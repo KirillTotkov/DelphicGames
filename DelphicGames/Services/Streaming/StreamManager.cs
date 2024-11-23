@@ -127,19 +127,23 @@ public class StreamManager : IAsyncDisposable
     }
 
     // Остановка всех потоков
-    public async Task StopAllStreams()
+    public async Task StopAllStreams(bool shouldLock = true)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var streamProcessor = scope.ServiceProvider.GetRequiredService<IStreamProcessor>();
+        if (shouldLock)
+        {
+            await _semaphore.WaitAsync();
+        }
 
         try
         {
-            await _semaphore.WaitAsync();
             foreach (var streams in _nominationStreams.Values)
             {
                 foreach (var stream in streams.ToList())
                 {
+                    using var scope = _scopeFactory.CreateScope();
+                    var streamProcessor = scope.ServiceProvider.GetRequiredService<IStreamProcessor>();
                     streamProcessor.StopStreamForPlatform(stream);
+                    streams.Remove(stream);
                 }
             }
 
@@ -147,7 +151,10 @@ public class StreamManager : IAsyncDisposable
         }
         finally
         {
-            _semaphore.Release();
+            if (shouldLock)
+            {
+                _semaphore.Release();
+            }
         }
     }
 
@@ -165,7 +172,7 @@ public class StreamManager : IAsyncDisposable
         await _semaphore.WaitAsync();
         try
         {
-            await StopAllStreams();
+            await StopAllStreams(false);
             _semaphore.Dispose();
             _logger.LogInformation("StreamManager disposed asynchronously.");
         }
@@ -178,7 +185,6 @@ public class StreamManager : IAsyncDisposable
             _semaphore.Release();
         }
 
-        // Suppress finalization if needed
         GC.SuppressFinalize(this);
     }
 }
