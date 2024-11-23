@@ -231,7 +231,7 @@ public class StreamProcessor : IStreamProcessor
             " -stream_loop -1 -thread_queue_size 512 ";
 
         command +=
-            $"-i {streamEntity.StreamUrl} -c copy -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 2";
+            $"-i {streamEntity.StreamUrl} -c copy -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 2 ";
 
         if (!streamEntity.PlatformUrl.EndsWith("/"))
         {
