@@ -41,7 +41,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             case StreamStatus.Error:
             case StreamStatus.Completed:
                 streamEntity.IsActive = false;
-                await _streamManager.StopStream(streamEntity);
+                await _streamManager.RemoveStreamFromNomination(streamEntity);
                 break;
         }
 
@@ -298,7 +298,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
                 throw new InvalidOperationException("Token is empty.");
             }
 
-            await _streamManager.StartStream(stream);
+            await _streamManager.StartStream(stream).ConfigureAwait(false);
             stream.IsActive = true;
             await _context.SaveChangesAsync();
         }
@@ -318,7 +318,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
 
             if (stream != null)
             {
-                await _streamManager.StopStream(stream);
+                await _streamManager.StopStream(stream).ConfigureAwait(false);
                 stream.IsActive = false;
                 await _context.SaveChangesAsync();
             }

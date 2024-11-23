@@ -148,25 +148,32 @@ public class StreamProcessor : IStreamProcessor
     {
         try
         {
-            if (!streamInfo.Process.HasExited)
+            if (streamInfo.Process != null && !streamInfo.Process.HasExited)
             {
-                streamInfo.Process.Kill(true);
+                streamInfo.Process.Kill(entireProcessTree: true);
                 streamInfo.Process.WaitForExit();
                 streamInfo.Logger.Information("Трансляция остановлена.");
                 _logger.LogInformation("Остановлен ffmpeg процесс для камеры {CameraId}", streamInfo.NominationUrl);
             }
+            else
+            {
+                _logger.LogWarning("Процесс для камеры {CameraId} уже завершен или не инициализирован.", streamInfo.NominationUrl);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при остановке процесса ffmpeg для камеры {CameraId}",
-                streamInfo.NominationUrl);
+            _logger.LogError(ex, "Ошибка при остановке процесса ffmpeg для камеры {CameraId}", streamInfo.NominationUrl);
         }
         finally
         {
-            streamInfo.Process.OutputDataReceived -= null;
-            streamInfo.Process.ErrorDataReceived -= null;
-            streamInfo.Process.Exited -= null;
-            streamInfo.Process.Dispose();
+            if (streamInfo.Process != null)
+            {
+                streamInfo.Process.OutputDataReceived -= null;
+                streamInfo.Process.ErrorDataReceived -= null;
+                streamInfo.Process.Exited -= null;
+                streamInfo.Process.Dispose();
+            }
+
             streamInfo.Logger.Dispose();
         }
     }

@@ -4,7 +4,7 @@ using DelphicGames.Models;
 
 namespace DelphicGames.Services.Streaming;
 
-public class StreamManager
+public class StreamManager : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<int, List<StreamInfo>> _nominationStreams = new();
 
@@ -12,7 +12,6 @@ public class StreamManager
 
     // private readonly IStreamProcessor _streamProcessor;
     private bool _disposed;
-    private readonly SemaphoreSlim _semaphore = new(1);
     private readonly IServiceScopeFactory _scopeFactory;
 
 
@@ -30,12 +29,6 @@ public class StreamManager
 
         try
         {
-            _logger.LogInformation(" StartStreamWaiting for semaphore...");
-
-            await _semaphore.WaitAsync();
-
-            _logger.LogInformation(" StartStream Semaphore acquired.");
-
             var streams = _nominationStreams.GetOrAdd(streamEntity.NominationId, _ => new List<StreamInfo>());
             var stream = await streamProcessor.StartStreamForPlatform(streamEntity);
             streams.Add(stream);
@@ -54,13 +47,7 @@ public class StreamManager
                 streamEntity.NominationId, streamEntity.PlatformName);
             throw;
         }
-        finally
-        {
-            _logger.LogInformation(" StartStream Releasing semaphore...");
 
-            _semaphore.Release();
-            _logger.LogInformation(" StartStream Semaphore released.");
-        }
     }
 
     // Остановка потока для определённой камеры и платформы
@@ -71,12 +58,6 @@ public class StreamManager
 
         try
         {
-            _logger.LogInformation("StopStream Waiting for semaphore...");
-
-            await _semaphore.WaitAsync();
-
-            _logger.LogInformation("StopStream Semaphore acquired.");
-
             if (_nominationStreams.TryGetValue(streamEntity.NominationId, out var streams))
             {
                 var t = streams.Select(s => s.StreamId).ToList();
@@ -103,16 +84,6 @@ public class StreamManager
                 streamEntity.NominationId, streamEntity.PlatformName);
             throw;
         }
-        finally
-        {
-            _logger.LogInformation("StopStream Releasing semaphore...");
-
-            _semaphore.Release();
-            _logger.LogInformation("StopStream Semaphore released.");
-
-        }
-
-
     }
 
     // Запуск всех потоков
@@ -127,27 +98,28 @@ public class StreamManager
     }
 
     // Остановка всех потоков
-    public async Task StopAllStreams()
+    public async Task StopAllStreams(bool shouldLock = true)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var streamProcessor = scope.ServiceProvider.GetRequiredService<IStreamProcessor>();
 
         try
         {
-            await _semaphore.WaitAsync();
             foreach (var streams in _nominationStreams.Values)
             {
                 foreach (var stream in streams.ToList())
                 {
+                    using var scope = _scopeFactory.CreateScope();
+                    var streamProcessor = scope.ServiceProvider.GetRequiredService<IStreamProcessor>();
                     streamProcessor.StopStreamForPlatform(stream);
+                    streams.Remove(stream);
                 }
             }
 
             _nominationStreams.Clear();
         }
-        finally
+        catch (Exception ex)
         {
-            _semaphore.Release();
+            _logger.LogError(ex, "Error stopping all streams");
+            throw;
         }
     }
 
@@ -156,34 +128,53 @@ public class StreamManager
         return _nominationStreams.Values.SelectMany(s => s).ToList();
     }
 
-
-
-    public void Dispose()
+    public async Task RemoveStreamFromNomination(StreamEntity streamEntity)
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        using var scope = _scopeFactory.CreateScope();
+        var streamProcessor = scope.ServiceProvider.GetRequiredService<IStreamProcessor>();
+
+        try
+        {
+            if (_nominationStreams.TryGetValue(streamEntity.NominationId, out var streams))
+            {
+                var stream = streams.FirstOrDefault(s => s.StreamId == streamEntity.Id);
+
+                if (stream != null)
+                {
+                    streams.Remove(stream);
+
+                    if (!streams.Any())
+                    {
+                        _nominationStreams.TryRemove(streamEntity.NominationId, out _);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error removing stream for nomination {NominationId} on platform {PlatformName}",
+                streamEntity.NominationId, streamEntity.PlatformName);
+            throw;
+        }
     }
 
-    protected virtual void Dispose(bool disposing)
+    public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
 
-        if (disposing)
+        _disposed = true;
+
+        try
         {
-            _semaphore.Wait();
-            try
-            {
-                StopAllStreams().GetAwaiter().GetResult();
-                _semaphore.Dispose();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error disposing StreamManager.");
-            }
-            finally
-            {
-                _disposed = true;
-            }
+            await StopAllStreams(false);
+            _logger.LogInformation("StreamManager disposed asynchronously.");
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error disposing StreamManager.");
+        }
+
+        GC.SuppressFinalize(this);
     }
 }
