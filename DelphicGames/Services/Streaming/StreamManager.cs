@@ -163,6 +163,53 @@ public class StreamManager : IAsyncDisposable
         return _nominationStreams.Values.SelectMany(s => s).ToList();
     }
 
+    // remove stream from nomination
+    public async Task RemoveStreamFromNomination(StreamEntity streamEntity)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var streamProcessor = scope.ServiceProvider.GetRequiredService<IStreamProcessor>();
+
+        try
+        {
+            _logger.LogInformation("RemoveStreamFromNomination Waiting for semaphore...");
+
+            await _semaphore.WaitAsync().ConfigureAwait(false);
+
+            _logger.LogInformation("RemoveStreamFromNomination Semaphore acquired.");
+
+            if (_nominationStreams.TryGetValue(streamEntity.NominationId, out var streams))
+            {
+                var stream = streams.FirstOrDefault(s => s.StreamId == streamEntity.Id);
+
+                if (stream != null)
+                {
+                    streamProcessor.StopStreamForPlatform(stream);
+                    streams.Remove(stream);
+
+                    if (!streams.Any())
+                    {
+                        _nominationStreams.TryRemove(streamEntity.NominationId, out _);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error removing stream for nomination {NominationId} on platform {PlatformName}",
+                streamEntity.NominationId, streamEntity.PlatformName);
+            throw;
+        }
+        finally
+        {
+            _logger.LogInformation("RemoveStreamFromNomination Releasing semaphore...");
+
+            _semaphore.Release();
+            _logger.LogInformation("RemoveStreamFromNomination Semaphore released.");
+
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
