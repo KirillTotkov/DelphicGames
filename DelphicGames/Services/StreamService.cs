@@ -41,7 +41,7 @@ public class StreamService : INotificationHandler<StreamStatusChangedEvent>
             case StreamStatus.Error:
             case StreamStatus.Completed:
                 streamEntity.IsActive = false;
-                await _streamManager.RemoveStreamFromNomination(streamEntity).ConfigureAwait(false);
+                await _streamManager.RemoveStreamFromNomination(streamEntity);
                 break;
         }
 

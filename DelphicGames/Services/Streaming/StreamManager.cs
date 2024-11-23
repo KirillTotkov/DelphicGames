@@ -128,7 +128,6 @@ public class StreamManager : IAsyncDisposable
         return _nominationStreams.Values.SelectMany(s => s).ToList();
     }
 
-    // remove stream from nomination
     public async Task RemoveStreamFromNomination(StreamEntity streamEntity)
     {
         using var scope = _scopeFactory.CreateScope();
@@ -142,7 +141,6 @@ public class StreamManager : IAsyncDisposable
 
                 if (stream != null)
                 {
-                    streamProcessor.StopStreamForPlatform(stream);
                     streams.Remove(stream);
 
                     if (!streams.Any())
