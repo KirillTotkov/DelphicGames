@@ -7,7 +7,9 @@ namespace DelphicGames.Services.Streaming;
 public class StreamManager
 {
     private readonly ConcurrentDictionary<int, List<StreamInfo>> _nominationStreams = new();
+
     private readonly ILogger<StreamManager> _logger;
+
     // private readonly IStreamProcessor _streamProcessor;
     private bool _disposed;
     private readonly SemaphoreSlim _semaphore = new(1);
@@ -28,7 +30,12 @@ public class StreamManager
 
         try
         {
+            _logger.LogInformation(" StartStreamWaiting for semaphore...");
+
             await _semaphore.WaitAsync();
+
+            _logger.LogInformation(" StartStream Semaphore acquired.");
+
             var streams = _nominationStreams.GetOrAdd(streamEntity.NominationId, _ => new List<StreamInfo>());
             var stream = await streamProcessor.StartStreamForPlatform(streamEntity);
             streams.Add(stream);
@@ -49,7 +56,10 @@ public class StreamManager
         }
         finally
         {
+            _logger.LogInformation(" StartStream Releasing semaphore...");
+
             _semaphore.Release();
+            _logger.LogInformation(" StartStream Semaphore released.");
         }
     }
 
@@ -61,9 +71,17 @@ public class StreamManager
 
         try
         {
+            _logger.LogInformation("StopStream Waiting for semaphore...");
+
             await _semaphore.WaitAsync();
+
+            _logger.LogInformation("StopStream Semaphore acquired.");
+
             if (_nominationStreams.TryGetValue(streamEntity.NominationId, out var streams))
             {
+                var t = streams.Select(s => s.StreamId).ToList();
+                _logger.LogInformation("StopStream !!!!!!   {t}  !!!!!1", string.Join(", ", t));
+
                 var stream = streams.FirstOrDefault(s => s.StreamId == streamEntity.Id);
 
                 if (stream != null)
@@ -87,8 +105,14 @@ public class StreamManager
         }
         finally
         {
+            _logger.LogInformation("StopStream Releasing semaphore...");
+
             _semaphore.Release();
+            _logger.LogInformation("StopStream Semaphore released.");
+
         }
+
+
     }
 
     // Запуск всех потоков
@@ -118,6 +142,7 @@ public class StreamManager
                     streamProcessor.StopStreamForPlatform(stream);
                 }
             }
+
             _nominationStreams.Clear();
         }
         finally
@@ -130,6 +155,8 @@ public class StreamManager
     {
         return _nominationStreams.Values.SelectMany(s => s).ToList();
     }
+
+
 
     public void Dispose()
     {
