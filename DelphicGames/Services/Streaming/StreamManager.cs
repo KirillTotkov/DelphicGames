@@ -4,7 +4,7 @@ using DelphicGames.Models;
 
 namespace DelphicGames.Services.Streaming;
 
-public class StreamManager
+public class StreamManager : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<int, List<StreamInfo>> _nominationStreams = new();
 
@@ -32,7 +32,7 @@ public class StreamManager
         {
             _logger.LogInformation(" StartStreamWaiting for semaphore...");
 
-            await _semaphore.WaitAsync();
+            await _semaphore.WaitAsync().ConfigureAwait(false);
 
             _logger.LogInformation(" StartStream Semaphore acquired.");
 
@@ -73,7 +73,7 @@ public class StreamManager
         {
             _logger.LogInformation("StopStream Waiting for semaphore...");
 
-            await _semaphore.WaitAsync();
+            await _semaphore.WaitAsync().ConfigureAwait(false);
 
             _logger.LogInformation("StopStream Semaphore acquired.");
 
@@ -156,34 +156,29 @@ public class StreamManager
         return _nominationStreams.Values.SelectMany(s => s).ToList();
     }
 
-
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
+    public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
 
-        if (disposing)
+        _disposed = true;
+
+        await _semaphore.WaitAsync();
+        try
         {
-            _semaphore.Wait();
-            try
-            {
-                StopAllStreams().GetAwaiter().GetResult();
-                _semaphore.Dispose();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error disposing StreamManager.");
-            }
-            finally
-            {
-                _disposed = true;
-            }
+            await StopAllStreams();
+            _semaphore.Dispose();
+            _logger.LogInformation("StreamManager disposed asynchronously.");
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error disposing StreamManager.");
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+
+        // Suppress finalization if needed
+        GC.SuppressFinalize(this);
     }
 }
